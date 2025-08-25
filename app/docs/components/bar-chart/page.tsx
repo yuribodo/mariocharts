@@ -98,26 +98,36 @@ const barChartProps = [
 // Installation steps
 const installationSteps = [
   {
-    title: "Install dependencies",
-    description: "Add the required peer dependencies to your project.",
-    code: `npm install framer-motion clsx tailwind-merge
-# or
-yarn add framer-motion clsx tailwind-merge
-# or  
-pnpm add framer-motion clsx tailwind-merge`,
+    title: "Initialize Mario Charts (first time only)",
+    description: "Set up Mario Charts in your React project. This configures paths and dependencies.",
+    code: `# Initialize the project (run once)
+npx mario-charts@latest init
+
+# Or initialize with components
+npx mario-charts@latest init --components bar-chart`,
     language: "bash"
   },
   {
-    title: "Copy the component",
-    description: "Copy and paste the BarChart component into your project.",
-    code: `// Copy this entire component to your project
-// File: components/ui/bar-chart.tsx`,
+    title: "Add the BarChart component",
+    description: "Install the BarChart component using the CLI. This automatically handles dependencies.",
+    code: `# Add BarChart component
+npx mario-charts@latest add bar-chart
+
+# Add multiple components at once
+npx mario-charts@latest add bar-chart line-chart kpi-card`,
     language: "bash"
   },
   {
-    title: "Update import paths",
-    description: "Make sure the import path matches your project structure.",
-    code: `import { BarChart } from "@/components/ui/bar-chart";`,
+    title: "Start using the component",
+    description: "Import and use the BarChart in your React components.",
+    code: `import { BarChart } from "@/components/charts/bar-chart";
+
+// Use in your component
+<BarChart 
+  data={data} 
+  x="month" 
+  y="revenue" 
+/>`,
     language: "tsx"
   }
 ];
@@ -146,14 +156,14 @@ export default function BarChartPage() {
         </div>
         <p className="text-xl text-muted-foreground leading-7 max-w-3xl">
           A production-ready, highly customizable bar chart component with zero configuration required.
-          Perfect TypeScript support, advanced animations, and copy-paste installation.
+          Perfect TypeScript support, advanced animations, and one-command installation.
         </p>
         
         {/* Features */}
         <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-            Copy-Paste Ready
+            CLI Installation
           </div>
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
@@ -170,6 +180,10 @@ export default function BarChartPage() {
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
             TypeScript
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
+            Zero Dependencies
           </div>
         </div>
       </div>
