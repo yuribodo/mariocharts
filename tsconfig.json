@@ -25,12 +25,14 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@/components/*": ["./src/components/*"],
-      "@/hooks/*": ["./src/hooks/*"],
-      "@/utils/*": ["./src/utils/*"],
-      "@/types/*": ["./src/types/*"],
-      "@/themes/*": ["./src/themes/*"],
-      "@/lib/*": ["./lib/*"]
+      "@/components": ["./src/components"],
+      "@/hooks": ["./src/hooks"],
+      "@/utils": ["./src/utils"],
+      "@/types": ["./src/types"],
+      "@/themes": ["./src/themes"],
+      "@/core": ["./src/core"],
+      "@/plugins": ["./src/plugins"],
+      "@/lib": ["./lib"]
     }
   },
   "include": [

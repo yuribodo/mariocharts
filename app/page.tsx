@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { ArrowRight, ChartBar, Copy, Check } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { MacbookScroll } from "../src/components/ui/macbook-scroll";
-import { DashboardDemo } from "../components/ui/dashboard-demo";
 import { MiniBarChart } from "../components/ui/mini-bar-chart";
 import { MiniLineChart } from "../components/ui/mini-line-chart";
 
@@ -236,7 +235,36 @@ export default function Home() {
         }
         showGradient={true}
       >
-        <DashboardDemo />
+        <div className="bg-background p-6 rounded-lg border">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Revenue Overview</h3>
+              <div className="h-64 bg-gradient-to-r from-blue-50 to-blue-100 rounded-md flex items-end p-4 gap-2">
+                <div className="w-12 h-24 bg-blue-500 rounded-t-md"></div>
+                <div className="w-12 h-32 bg-blue-600 rounded-t-md"></div>
+                <div className="w-12 h-20 bg-blue-400 rounded-t-md"></div>
+                <div className="w-12 h-40 bg-blue-700 rounded-t-md"></div>
+                <div className="w-12 h-36 bg-blue-500 rounded-t-md"></div>
+                <div className="w-12 h-48 bg-blue-800 rounded-t-md"></div>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Performance Metrics</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-card p-4 rounded-lg border">
+                  <p className="text-sm text-muted-foreground">Total Sales</p>
+                  <p className="text-2xl font-bold">$24,500</p>
+                  <p className="text-sm text-green-600">+12% from last month</p>
+                </div>
+                <div className="bg-card p-4 rounded-lg border">
+                  <p className="text-sm text-muted-foreground">Users</p>
+                  <p className="text-2xl font-bold">1,240</p>
+                  <p className="text-sm text-red-600">-3% from last month</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </MacbookScroll>
     </div>
   );

@@ -1,11 +1,42 @@
 "use client";
 
 import { memo } from "react";
-import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
-import { type BarChartProps } from "@/types/chart-types";
-import { getChartColors } from "@/utils/color-utils";
+// Types inline for simplicity
+interface ChartAxisConfig<T extends Record<string, unknown> = Record<string, unknown>> {
+  readonly dataKey: keyof T;
+  readonly label?: string;
+  readonly hide?: boolean;
+  readonly domain?: [number, number];
+}
+
+interface BarChartProps<T extends Record<string, unknown>> {
+  readonly data: readonly T[];
+  readonly xAxis: ChartAxisConfig<T>;
+  readonly yAxis?: Partial<ChartAxisConfig<T>> & { readonly label?: string };
+  readonly colors?: readonly string[];
+  readonly className?: string;
+  readonly loading?: boolean;
+  readonly error?: string | null;
+  readonly emptyState?: React.ReactNode;
+  readonly animation?: boolean;
+  readonly interactive?: boolean;
+  readonly tooltip?: {
+    readonly enabled?: boolean;
+    readonly custom?: React.ComponentType<any>;
+  };
+  readonly margin?: {
+    readonly top?: number;
+    readonly right?: number;
+    readonly bottom?: number;
+    readonly left?: number;
+  };
+  readonly onBarClick?: (data: T, index: number) => void;
+  readonly onBarHover?: (data: T | null, index: number) => void;
+}
+// Simple color palette
+const defaultColors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
 const BarChartComponent = <T extends Record<string, unknown>>({
   data,
@@ -19,7 +50,6 @@ const BarChartComponent = <T extends Record<string, unknown>>({
   animation = true,
   interactive = true,
   tooltip = { enabled: true },
-  legend,
   margin = { top: 20, right: 30, left: 20, bottom: 5 },
   onBarClick,
   onBarHover,
@@ -48,7 +78,7 @@ const BarChartComponent = <T extends Record<string, unknown>>({
     );
   }
 
-  const chartColors = colors || getChartColors(data.length);
+  const chartColors = colors || defaultColors;
 
   return (
     <div className={cn("chart-container", className)}>
@@ -56,11 +86,9 @@ const BarChartComponent = <T extends Record<string, unknown>>({
         <RechartsBarChart
           data={data as any[]}
           margin={margin}
-          {...(onBarClick && { onClick: (data, index) => onBarClick(data.activePayload?.[0]?.payload, index) })}
-          {...(onBarHover && { 
-            onMouseEnter: (data, index) => onBarHover(data.activePayload?.[0]?.payload, index),
-            onMouseLeave: () => onBarHover(null, -1)
-          })}
+          onClick={(data) => onBarClick && onBarClick(data?.activePayload?.[0]?.payload, 0)}
+          onMouseMove={(data) => onBarHover && onBarHover(data?.activePayload?.[0]?.payload, 0)}
+          onMouseLeave={() => onBarHover && onBarHover(null, -1)}
         >
           <CartesianGrid 
             strokeDasharray="3 3" 
@@ -71,31 +99,25 @@ const BarChartComponent = <T extends Record<string, unknown>>({
             axisLine={false}
             tickLine={false}
             tick={{ fontSize: 12, fill: "currentColor" }}
-            {...(xAxis.hide && { hide: xAxis.hide })}
-            {...(xAxis.label && { label: { value: xAxis.label, position: "insideBottom", offset: -5 } })}
+            hide={xAxis.hide}
+            {...( xAxis.label && { label: { value: xAxis.label, position: "insideBottom", offset: -5 } })}
           />
           <YAxis
             axisLine={false}
             tickLine={false}
             tick={{ fontSize: 12, fill: "currentColor" }}
-            {...(yAxis?.hide && { hide: yAxis.hide })}
-            {...(yAxis?.domain && { domain: yAxis.domain })}
-            {...(yAxis?.label && { label: { value: yAxis.label, angle: -90, position: "insideLeft" } })}
+            hide={yAxis?.hide}
+            {...( yAxis?.domain && { domain: yAxis.domain })}
+            {...( yAxis?.label && { label: { value: yAxis.label, angle: -90, position: "insideLeft" } })}
           />
           {tooltip.enabled && (
             <Tooltip
-              {...(tooltip.custom && { content: tooltip.custom as any })}
+              content={tooltip.custom as any}
               cursor={{ fill: "hsl(var(--muted))", opacity: 0.1 }}
             />
           )}
-          {legend?.enabled && (
-            <Legend 
-              verticalAlign={legend.position === "top" || legend.position === "bottom" ? legend.position : "bottom"}
-              align={legend.align || "center"}
-            />
-          )}
           <Bar
-            dataKey={yAxis?.dataKey as string || "value"}
+            dataKey={(yAxis?.dataKey || "value") as string}
             fill={chartColors[0]}
             radius={[4, 4, 0, 0]}
             animationDuration={animation ? 500 : 0}
