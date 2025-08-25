@@ -59,8 +59,8 @@ export function CodeBlock({ code, language = "bash", className }: CodeBlockProps
   const isHighlighted = highlightedCode !== code;
 
   return (
-    <div className="group relative border rounded-lg overflow-hidden bg-card shadow-sm my-6">
-      <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border-b">
+    <div className="group relative border rounded-lg overflow-hidden my-6" style={{ backdropFilter: 'none', filter: 'none' }}>
+      <div className="flex items-center justify-between px-4 py-3 bg-muted border-b">
         <span className="text-sm font-mono font-medium text-muted-foreground">
           {language === "tsx" ? "tsx" : 
            language === "jsx" ? "jsx" : 
@@ -71,7 +71,7 @@ export function CodeBlock({ code, language = "bash", className }: CodeBlockProps
         </span>
         <button
           onClick={copyToClipboard}
-          className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-md hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-md hover:bg-background text-muted-foreground hover:text-foreground"
           title="Copy code"
         >
           {copied ? (
@@ -84,12 +84,12 @@ export function CodeBlock({ code, language = "bash", className }: CodeBlockProps
       <div className="relative">
         {isHighlighted ? (
           <div 
-            className={`[&>pre]:p-6 [&>pre]:text-sm [&>pre]:overflow-x-auto [&>pre]:rounded-none [&>pre]:border-none [&_code]:font-mono ${className || ''}`}
+            className={`[&>pre]:p-6 [&>pre]:text-sm [&>pre]:overflow-x-auto [&>pre]:rounded-none [&>pre]:border-none [&>pre]:bg-background [&>pre]:m-0 [&_code]:font-mono ${className || ''}`}
             dangerouslySetInnerHTML={{ __html: highlightedCode }}
           />
         ) : (
-          <pre className="bg-white p-6 text-sm overflow-x-auto border-none">
-            <code className="text-gray-800 font-mono">{code}</code>
+          <pre className="bg-background p-6 text-sm overflow-x-auto border-none m-0">
+            <code className="text-foreground font-mono">{code}</code>
           </pre>
         )}
       </div>

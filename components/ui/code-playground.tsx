@@ -28,8 +28,8 @@ export function ChartExample() {
   return (
     <BarChart
       data={data}
-      xAxis={{ dataKey: 'name' }}
-      yAxis={{ label: 'Amount ($)' }}
+      x="name"
+      y="revenue"
       colors={['hsl(210 100% 50%)', 'hsl(340 100% 50%)']}
       className="h-80"
     />
@@ -80,8 +80,8 @@ export function CodePlayground({
           <div className="w-full h-80 flex items-center justify-center bg-background rounded-lg">
             <BarChart
               data={sampleData}
-              xAxis={{ dataKey: 'name' }}
-              yAxis={{ label: 'Amount ($)' }}
+              x="name"
+              y="revenue"
               colors={['hsl(210 100% 50%)', 'hsl(340 100% 50%)']}
               className="h-full w-full"
             />
