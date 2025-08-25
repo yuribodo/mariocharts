@@ -1,0 +1,106 @@
+{
+  "$schema": "./lib/schema.json",
+  "style": "default",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "tailwind.config.ts",
+    "css": "app/globals.css",
+    "baseColor": "slate",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils", 
+    "ui": "@/components/ui",
+    "charts": "@/components/charts",
+    "hooks": "@/hooks",
+    "types": "@/types",
+    "themes": "@/themes"
+  },
+  "registry": {
+    "url": "https://mario-charts.dev/registry",
+    "version": "latest"
+  },
+  "components": {
+    "charts": [
+      "bar-chart",
+      "line-chart", 
+      "pie-chart",
+      "area-chart",
+      "scatter-plot",
+      "funnel-chart",
+      "gauge-chart",
+      "heatmap"
+    ],
+    "layout": [
+      "dashboard-grid",
+      "chart-container",
+      "responsive-container"
+    ],
+    "ui": [
+      "kpi-card",
+      "data-table",
+      "progress-bar",
+      "loading-states"
+    ],
+    "filters": [
+      "date-range-picker",
+      "multi-select",
+      "slider-range"
+    ],
+    "primitives": [
+      "tooltip",
+      "legend", 
+      "empty-state"
+    ]
+  },
+  "themes": {
+    "default": {
+      "name": "Default",
+      "cssVars": {
+        "light": {
+          "background": "0 0% 100%",
+          "foreground": "222.2 84% 4.9%",
+          "primary": "210 100% 50%",
+          "chart-1": "210 100% 50%",
+          "chart-2": "340 100% 50%",
+          "chart-3": "120 100% 40%",
+          "chart-4": "45 100% 50%",
+          "chart-5": "270 100% 50%"
+        },
+        "dark": {
+          "background": "222.2 84% 4.9%",
+          "foreground": "210 40% 98%", 
+          "primary": "210 100% 50%",
+          "chart-1": "210 100% 60%",
+          "chart-2": "340 100% 60%",
+          "chart-3": "120 100% 50%",
+          "chart-4": "45 100% 60%",
+          "chart-5": "270 100% 60%"
+        }
+      }
+    }
+  },
+  "animations": {
+    "enabled": true,
+    "duration": {
+      "fast": "150ms",
+      "normal": "300ms", 
+      "slow": "500ms"
+    },
+    "easing": {
+      "ease": "cubic-bezier(0.4, 0, 0.2, 1)",
+      "bounce": "cubic-bezier(0.68, -0.55, 0.265, 1.55)"
+    }
+  },
+  "performance": {
+    "virtualization": {
+      "enabled": true,
+      "threshold": 1000
+    },
+    "memoization": true,
+    "lazyLoading": true
+  }
+}

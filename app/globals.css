@@ -1,0 +1,511 @@
+@import "tailwindcss";
+
+
+@theme {
+  --font-family-sans: "Geist", system-ui, sans-serif;
+  --font-family-mono: "Geist Mono", monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-family-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Shiki code highlighting styles */
+  .shiki-light {
+    background-color: #ffffff !important;
+    color: #24292f !important;
+  }
+
+  /* Ensure good contrast for code elements */
+  pre[class*="shiki"] {
+    background-color: #ffffff !important;
+    color: #24292f !important;
+  }
+
+  code[class*="shiki"] {
+    background-color: #ffffff !important;
+    color: #24292f !important;
+  }
+
+  /* Ultra-fast transitions */
+  * {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+    transition-timing-function: linear; /* Linear for speed */
+    transition-duration: 80ms; /* Ultra fast */
+  }
+
+  /* Enhanced smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 2rem;
+  }
+
+  /* Focus styles for better accessibility */
+  :focus-visible {
+    outline: 2px solid hsl(var(--color-primary));
+    outline-offset: 2px;
+  }
+
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      max-width: 640px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .container {
+      max-width: 768px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      max-width: 1024px;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .container {
+      max-width: 1280px;
+    }
+  }
+
+  @media (min-width: 1536px) {
+    .container {
+      max-width: 1536px;
+    }
+  }
+}
+
+/* Documentation UX improvements */
+
+/* Ultra-fast page transitions */
+@media (prefers-reduced-motion: no-preference) {
+  /* View Transitions API support when available */
+  html:has(view-transition) {
+    view-transition-name: main;
+  }
+
+  ::view-transition-old(main),
+  ::view-transition-new(main) {
+    animation-duration: 0.05s;
+    animation-timing-function: linear;
+  }
+
+  /* Force hardware acceleration for instant transitions */
+  main {
+    transform: translateZ(0);
+    will-change: transform, opacity;
+  }
+}
+
+/* Reduced motion fallbacks */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Maintain functionality while removing motion */
+  [data-motion] {
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* Enhanced focus states for docs */
+.docs-focusable:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Subtle hover states */
+.docs-link {
+  transition: color 0.15s ease-out;
+}
+
+.docs-link:hover {
+  color: var(--color-primary);
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .glass-card {
+    border-width: 2px;
+    border-color: var(--color-border);
+    background: var(--color-background);
+  }
+
+  .text-muted-foreground {
+    color: var(--color-foreground);
+  }
+}
+
+/* Improved print styles for documentation */
+@media print {
+  .docs-sidebar,
+  .scroll-progress,
+  .docs-toc,
+  nav,
+  button {
+    display: none !important;
+  }
+
+  main {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .glass-card {
+    border: 1px solid #ccc;
+    background: white;
+    box-shadow: none;
+  }
+}
+
+/* Skip link for screen readers */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  padding: 8px;
+  z-index: 100;
+  text-decoration: none;
+  border-radius: 4px;
+  border: 2px solid var(--color-border);
+}
+
+.skip-link:focus {
+  top: 6px;
+}
+
+/* Better selection colors */
+::selection {
+  background-color: hsl(var(--color-primary) / 0.2);
+  color: var(--color-foreground);
+}
+
+/* Code block improvements */
+pre {
+  font-feature-settings: "liga" 0, "calt" 0;
+  tab-size: 2;
+}
+
+code {
+  font-feature-settings: "liga" 0, "calt" 0;
+  font-variant-ligatures: none;
+}
+
+/* Scrollbar styling for webkit browsers */
+.docs-scrollable::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.docs-scrollable::-webkit-scrollbar-track {
+  background: hsl(var(--color-muted) / 0.3);
+  border-radius: 4px;
+}
+
+.docs-scrollable::-webkit-scrollbar-thumb {
+  background: hsl(var(--color-muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+.docs-scrollable::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--color-muted-foreground) / 0.5);
+}
+
+/* Glass card base styles */
+.glass-card {
+  background: hsl(var(--color-card) / 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid hsl(var(--color-border) / 0.5);
+  transition: all 0.2s ease;
+}
+
+.glass-card:hover {
+  background: hsl(var(--color-card) / 0.9);
+  border-color: hsl(var(--color-border) / 0.8);
+}
+
+/* Button gradient styling */
+.btn-gradient {
+  background: linear-gradient(135deg, var(--color-primary), hsl(var(--color-primary) / 0.8));
+  color: var(--color-primary-foreground);
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-gradient:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px hsl(var(--color-primary) / 0.3);
+}
+
+/* Ensure proper spacing for docs content */
+.prose {
+  max-width: none;
+}
+
+.prose h1, 
+.prose h2, 
+.prose h3, 
+.prose h4 {
+  scroll-margin-top: 2rem;
+}
+
+/* Loading spinner */
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mini Charts Animations */
+.mini-bar {
+  animation: drawInBar 2s ease-out infinite;
+  transform-origin: bottom;
+}
+
+.mini-line {
+  stroke-dasharray: 50;
+  stroke-dashoffset: 50;
+  animation: drawInLine 2s ease-out infinite;
+}
+
+@keyframes drawInBar {
+  0% { 
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.4;
+  }
+  30% { 
+    transform: scaleY(1);
+    opacity: 0.5;
+  }
+  90% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0.3;
+    transform: scaleY(0.8);
+  }
+}
+
+@keyframes drawInLine {
+  0% {
+    stroke-dashoffset: 50;
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.4;
+  }
+  30% {
+    stroke-dashoffset: 0;
+    opacity: 0.5;
+  }
+  90% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0.3;
+  }
+}
+
+/* Simple Mini Charts - Clean and Minimal */
+.mini-chart-simple {
+  transform: scale(1.5);
+  transition: all 0.3s ease;
+}
+
+.mini-chart-simple .mini-bar,
+.mini-chart-simple .mini-line {
+  opacity: 0.3;
+}
+
+.mini-chart-simple:hover .mini-bar,
+.mini-chart-simple:hover .mini-line {
+  opacity: 0.6;
+}
+
+/* Responsive scaling for mini charts */
+@media (min-width: 768px) {
+  .mini-chart-simple {
+    transform: scale(1.8);
+  }
+}
+
+@media (min-width: 1024px) {
+  .mini-chart-simple {
+    transform: scale(2);
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .mini-bar,
+  .mini-line {
+    animation: none !important;
+    opacity: 0.4 !important;
+    transform: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.625rem;
+  /* Mario Charts Off-White Theme */
+  --background: #FEFEFE;
+  --foreground: #1A1D23;
+  --card: #FFFFFF;
+  --card-foreground: #1A1D23;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1D23;
+  --primary: hsl(0 0% 9%);
+  --primary-foreground: hsl(0 0% 98%);
+  --secondary: #FAFAFB;
+  --secondary-foreground: #4A5568;
+  --muted: #F5F6F7;
+  --muted-foreground: #718096;
+  --accent: #F5F6F7;
+  --accent-foreground: #1A1D23;
+  --destructive: #EF4444;
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: hsl(0 0% 3.9%);
+  --chart-1: hsl(210 100% 50%);
+  --chart-2: hsl(340 100% 50%);
+  --chart-3: hsl(120 100% 40%);
+  --chart-4: hsl(45 100% 50%);
+  --chart-5: hsl(270 100% 50%);
+  --sidebar: #FAFAFB;
+  --sidebar-foreground: #1A1D23;
+  --sidebar-primary: hsl(0 0% 9%);
+  --sidebar-primary-foreground: hsl(0 0% 98%);
+  --sidebar-accent: #F5F6F7;
+  --sidebar-accent-foreground: #1A1D23;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: hsl(0 0% 3.9%);
+}
+
+.dark {
+  /* Mario Charts Dark Theme */
+  --background: #0A0A0A;
+  --foreground: #FAFAFA;
+  --card: #1A1A1A;
+  --card-foreground: #FAFAFA;
+  --popover: #1A1A1A;
+  --popover-foreground: #FAFAFA;
+  --primary: hsl(0 0% 98%);
+  --primary-foreground: hsl(0 0% 9%);
+  --secondary: #2A2A2A;
+  --secondary-foreground: #E5E5E5;
+  --muted: #2A2A2A;
+  --muted-foreground: #A1A1AA;
+  --accent: #2A2A2A;
+  --accent-foreground: #FAFAFA;
+  --destructive: #EF4444;
+  --border: #3A3A3A;
+  --input: #3A3A3A;
+  --ring: hsl(0 0% 98%);
+  --chart-1: hsl(210 100% 50%);
+  --chart-2: hsl(340 100% 50%);
+  --chart-3: hsl(120 100% 40%);
+  --chart-4: hsl(45 100% 50%);
+  --chart-5: hsl(270 100% 50%);
+  --sidebar: #1A1A1A;
+  --sidebar-foreground: #FAFAFA;
+  --sidebar-primary: hsl(0 0% 98%);
+  --sidebar-primary-foreground: hsl(0 0% 9%);
+  --sidebar-accent: #2A2A2A;
+  --sidebar-accent-foreground: #FAFAFA;
+  --sidebar-border: #3A3A3A;
+  --sidebar-ring: hsl(0 0% 98%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
