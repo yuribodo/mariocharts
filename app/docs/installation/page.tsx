@@ -32,7 +32,7 @@ export default function InstallationPage() {
             Quick Start
           </h2>
           <p className="text-lg text-muted-foreground mt-4 leading-relaxed">
-            The easiest way to get started is using the Mario Charts CLI.
+            The easiest way to get started is using the Mario Charts CLI. It automatically handles dependencies, configuration, and file setup.
           </p>
         </div>
 
@@ -53,13 +53,37 @@ export default function InstallationPage() {
             />
           </div>
 
+          <div className="space-y-4">
+            <h3 className="text-xl font-semibold text-foreground">Start using in your code</h3>
+            <CodeBlock 
+              code={`import { BarChart } from "@/components/charts/bar-chart";
+
+const data = [
+  { month: "Jan", revenue: 4500 },
+  { month: "Feb", revenue: 5200 },
+  { month: "Mar", revenue: 4800 }
+];
+
+export function Dashboard() {
+  return (
+    <BarChart 
+      data={data}
+      x="month"
+      y="revenue"
+    />
+  );
+}`}
+              language="tsx"
+            />
+          </div>
+
           <div className="border border-emerald-200 rounded-lg p-6 bg-emerald-50">
             <div className="flex items-center gap-3 mb-3">
               <CheckCircle size={20} className="text-emerald-600" />
               <h4 className="font-semibold text-emerald-900">You're all set!</h4>
             </div>
             <p className="text-emerald-700 leading-relaxed">
-              You can now use Mario Charts components in your React application.
+              That's it! The CLI automatically installed dependencies, configured your project, and added the component files. You can now use Mario Charts components in your React application.
             </p>
           </div>
         </div>

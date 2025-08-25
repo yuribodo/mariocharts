@@ -1,0 +1,68 @@
+{
+  "name": "mario-charts",
+  "version": "0.1.0",
+  "description": "CLI for Mario Charts - Modern React component library for charts and dashboards",
+  "main": "dist/index.js",
+  "bin": {
+    "mario-charts": "dist/index.js"
+  },
+  "files": [
+    "dist/**/*",
+    "scripts/**/*",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup && node scripts/postbuild.js",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build",
+    "test": "echo \"Error: no test specified\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yuribodo/mariocharts.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://mariocharts.com",
+  "bugs": {
+    "url": "https://github.com/yuribodo/mariocharts/issues"
+  },
+  "keywords": [
+    "react",
+    "charts",
+    "dashboard",
+    "components",
+    "typescript",
+    "tailwind",
+    "cli"
+  ],
+  "author": "Yuri Bodo",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "inquirer": "^12.0.0",
+    "chalk": "^5.4.1",
+    "ora": "^8.1.1",
+    "execa": "^9.5.1",
+    "fs-extra": "^11.2.0",
+    "node-fetch": "^3.3.2",
+    "zod": "^3.24.1",
+    "cosmiconfig": "^9.0.0",
+    "diff": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "@types/fs-extra": "^11.0.4",
+    "@types/diff": "^6.0.0",
+    "tsx": "^4.19.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BarChart Test</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        :root {
+            --chart-primary: 217 91% 60%;
+            --chart-secondary: 142 76% 36%;
+            --chart-warning: 38 92% 50%;
+            --chart-error: 0 84% 60%;
+            --chart-accent: 262 83% 58%;
+            --chart-info: 199 89% 48%;
+            --chart-success: 120 60% 50%;
+            --chart-muted: 215 20% 65%;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 20px;
+            background: #fafafa;
+        }
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            background: white;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>BarChart Test</h1>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Simple test data
+        const testData = [
+            { month: 'Jan', revenue: 4500 },
+            { month: 'Feb', revenue: 5200 },
+            { month: 'Mar', revenue: 4800 },
+            { month: 'Apr', revenue: 6100 },
+            { month: 'May', revenue: 5900 }
+        ];
+
+        // Simplified SVG BarChart for testing
+        function SimpleBarChart({ data, x, y }) {
+            const width = 600;
+            const height = 300;
+            const margin = { top: 20, right: 20, bottom: 40, left: 40 };
+            const chartWidth = width - margin.left - margin.right;
+            const chartHeight = height - margin.top - margin.bottom;
+
+            const maxValue = Math.max(...data.map(d => d[y]));
+            const barWidth = chartWidth / data.length * 0.8;
+            const barSpacing = chartWidth / data.length;
+
+            console.log('SimpleBarChart rendering:', { data, maxValue, barWidth, chartWidth, chartHeight });
+
+            return React.createElement('div', { className: 'chart-container' },
+                React.createElement('svg', { width, height },
+                    React.createElement('g', { transform: `translate(${margin.left}, ${margin.top})` },
+                        // Bars
+                        data.map((item, index) => {
+                            const barHeight = (item[y] / maxValue) * chartHeight;
+                            const barX = index * barSpacing + barSpacing * 0.1;
+                            const barY = chartHeight - barHeight;
+                            
+                            console.log(`Bar ${index}:`, { barX, barY, barWidth, barHeight, value: item[y] });
+                            
+                            return React.createElement('rect', {
+                                key: index,
+                                x: barX,
+                                y: barY,
+                                width: barWidth,
+                                height: barHeight,
+                                fill: `hsl(${217} 91% ${60 - index * 5}%)`,
+                                rx: 4
+                            });
+                        }),
+                        // X-axis labels
+                        data.map((item, index) => {
+                            const labelX = index * barSpacing + barSpacing * 0.5;
+                            return React.createElement('text', {
+                                key: `label-${index}`,
+                                x: labelX,
+                                y: chartHeight + 20,
+                                textAnchor: 'middle',
+                                fontSize: 12,
+                                fill: '#666'
+                            }, item[x]);
+                        })
+                    )
+                )
+            );
+        }
+
+        function App() {
+            return React.createElement('div', null,
+                React.createElement('h2', null, 'Simple SVG BarChart Test'),
+                React.createElement(SimpleBarChart, {
+                    data: testData,
+                    x: 'month',
+                    y: 'revenue'
+                })
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+</body>
+</html>

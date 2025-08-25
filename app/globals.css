@@ -299,13 +299,13 @@ code {
   }
 }
 
-/* Mini Charts Animations */
-.mini-bar {
+/* Mini Charts Animations - Scoped para evitar conflitos */
+.mini-chart-simple .mini-bar {
   animation: drawInBar 2s ease-out infinite;
   transform-origin: bottom;
 }
 
-.mini-line {
+.mini-chart-simple .mini-line {
   stroke-dasharray: 50;
   stroke-dashoffset: 50;
   animation: drawInLine 2s ease-out infinite;
@@ -352,39 +352,39 @@ code {
   }
 }
 
-/* Simple Mini Charts - Clean and Minimal */
-.mini-chart-simple {
+/* Simple Mini Charts - Clean and Minimal - Scoped para evitar conflitos */
+.mini-chart-container.mini-chart-simple {
   transform: scale(1.5);
   transition: all 0.3s ease;
 }
 
-.mini-chart-simple .mini-bar,
-.mini-chart-simple .mini-line {
+.mini-chart-container.mini-chart-simple .mini-bar,
+.mini-chart-container.mini-chart-simple .mini-line {
   opacity: 0.3;
 }
 
-.mini-chart-simple:hover .mini-bar,
-.mini-chart-simple:hover .mini-line {
+.mini-chart-container.mini-chart-simple:hover .mini-bar,
+.mini-chart-container.mini-chart-simple:hover .mini-line {
   opacity: 0.6;
 }
 
-/* Responsive scaling for mini charts */
+/* Responsive scaling for mini charts - Scoped */
 @media (min-width: 768px) {
-  .mini-chart-simple {
+  .mini-chart-container.mini-chart-simple {
     transform: scale(1.8);
   }
 }
 
 @media (min-width: 1024px) {
-  .mini-chart-simple {
+  .mini-chart-container.mini-chart-simple {
     transform: scale(2);
   }
 }
 
-/* Respect reduced motion preferences */
+/* Respect reduced motion preferences - Scoped */
 @media (prefers-reduced-motion: reduce) {
-  .mini-bar,
-  .mini-line {
+  .mini-chart-container .mini-bar,
+  .mini-chart-container .mini-line {
     animation: none !important;
     opacity: 0.4 !important;
     transform: none !important;

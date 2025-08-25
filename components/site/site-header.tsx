@@ -55,16 +55,10 @@ export function SiteHeader() {
                     href={item.href}
                     className={cn(
                       "transition-colors hover:text-foreground/80 relative py-2",
-                      isActive ? "text-foreground" : "text-foreground/60"
+                      isActive ? "text-foreground font-semibold" : "text-foreground/60"
                     )}
                   >
                     {item.name}
-                    {isActive && (
-                      <motion.div
-                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary"
-                        layoutId="activeNavItem"
-                      />
-                    )}
                   </Link>
                 </motion.div>
               );

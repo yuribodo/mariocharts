@@ -17,7 +17,7 @@ export function MiniBarChart({
   
   return (
     <div 
-      className={cn("inline-flex items-end gap-[2px]", className)}
+      className={cn("inline-flex items-end gap-[2px] mini-chart-container", className)}
       style={{ '--delay': `${delay}s` } as React.CSSProperties}
     >
       {bars.map((height, index) => (

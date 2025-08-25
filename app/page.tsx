@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { ArrowRight, ChartBar, Copy, Check } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { MacbookScroll } from "../src/components/ui/macbook-scroll";
-import { DashboardDemo } from "../components/ui/dashboard-demo";
 import { MiniBarChart } from "../components/ui/mini-bar-chart";
 import { MiniLineChart } from "../components/ui/mini-line-chart";
+import { BarChart } from "../src/components/charts/bar-chart";
 
 export default function Home() {
   const [copySuccess, setCopySuccess] = useState(false);
@@ -236,7 +236,70 @@ export default function Home() {
         }
         showGradient={true}
       >
-        <DashboardDemo />
+        <div className="bg-background p-4 rounded-lg border shadow-lg max-w-full overflow-hidden">
+          <div className="space-y-4">
+            {/* Compact Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">Sales Dashboard</h3>
+                <p className="text-xs text-muted-foreground">Revenue performance Q1-Q2 2024</p>
+              </div>
+              <div className="flex items-center space-x-1.5">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span className="text-xs text-muted-foreground">Live</span>
+              </div>
+            </div>
+
+            {/* Main Chart - Optimized for MacBook screen */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium">Monthly Revenue</h4>
+                <span className="text-xs text-muted-foreground">6 months</span>
+              </div>
+              <div className="w-full max-w-full overflow-hidden">
+                <BarChart 
+                  data={[
+                    { month: 'Jan', revenue: 45000 },
+                    { month: 'Feb', revenue: 52000 },
+                    { month: 'Mar', revenue: 48000 },
+                    { month: 'Apr', revenue: 61000 },
+                    { month: 'May', revenue: 59000 },
+                    { month: 'Jun', revenue: 67000 },
+                  ]}
+                  x="month"
+                  y="revenue"
+                  height={180}
+                  colors={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']}
+                  animation={true}
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            {/* Compact KPI Grid */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-card p-3 rounded-md border">
+                <p className="text-xs text-muted-foreground">Total Revenue</p>
+                <p className="text-lg font-bold">$332K</p>
+                <p className="text-xs text-green-600 flex items-center">
+                  <span className="mr-1">↗</span>+8.2%
+                </p>
+              </div>
+              <div className="bg-card p-3 rounded-md border">
+                <p className="text-xs text-muted-foreground">Avg. Monthly</p>
+                <p className="text-lg font-bold">$55.3K</p>
+                <p className="text-xs text-blue-600 flex items-center">
+                  <span className="mr-1">📈</span>Trending
+                </p>
+              </div>
+              <div className="bg-card p-3 rounded-md border">
+                <p className="text-xs text-muted-foreground">Best Month</p>
+                <p className="text-lg font-bold">June</p>
+                <p className="text-xs text-primary">$67K peak</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </MacbookScroll>
     </div>
   );
