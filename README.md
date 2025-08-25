@@ -79,26 +79,6 @@ export function Dashboard() {
 }
 ```
 
-## 📚 Components
-
-### Phase 1: Essential Core
-- ✅ **BarChart** - Responsive bar charts with animations
-- ⏳ **LineChart** - Time series line charts
-- ✅ **KPICard** - Metric cards with sparklines
-- ⏳ **AreaChart** - Area charts for cumulative data
-
-### Phase 2: Fundamental Expansion  
-- ⏳ **PieChart/DonutChart** - Pie and donut charts
-- ⏳ **DataTable** - Data tables with filters and sorting
-- ⏳ **StackedBarChart** - Multi-series bar charts
-- ⏳ **GaugeChart** - Progress and goal indicators
-
-### Phase 3: Advanced Features
-- ⏳ **ScatterPlot** - Correlation analysis charts
-- ⏳ **FunnelChart** - Conversion funnel visualization
-- ⏳ **Heatmap** - Pattern recognition charts
-- ⏳ **ProgressBar** - Custom progress indicators
-
 ## 🎨 Design System
 
 ### Color Palette
@@ -135,14 +115,6 @@ Mario Charts is built with performance in mind:
 - **Virtualization**: Handle datasets with 10k+ rows efficiently
 - **Memoization**: Prevents unnecessary re-renders
 - **Lazy Loading**: Components load on-demand
-
-### Performance Benchmarks
-
-| Dataset Size | Render Time | Memory Usage |
-|--------------|-------------|--------------|
-| 100 rows     | <50ms       | ~2MB         |
-| 1,000 rows   | <100ms      | ~8MB         |
-| 10,000 rows  | <300ms      | ~25MB        |
 
 ## 🛠️ Development
 
@@ -212,35 +184,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 - **TypeScript** with strict mode enabled
 - **ESLint** for code quality
 - **Prettier** for formatting
-- **Testing** with Jest and React Testing Library
 - **Storybook** for component documentation
-
-## 📖 Documentation
-
-- 📚 [Component Documentation](https://mario-charts.dev/docs)
-- 🎮 [Interactive Playground](https://mario-charts.dev/playground)
-- 📘 [API Reference](https://mario-charts.dev/api)
-- 💡 [Examples](https://mario-charts.dev/examples)
-
-## 🗺️ Roadmap
-
-### Q1 2024
-- [ ] Complete Phase 1 components (LineChart, AreaChart)
-- [ ] CLI tooling improvements
-- [ ] Storybook documentation
-- [ ] Performance optimizations
-
-### Q2 2024  
-- [ ] Phase 2 components (PieChart, DataTable, StackedBar, Gauge)
-- [ ] Theme customization UI
-- [ ] Advanced animations
-- [ ] Mobile optimizations
-
-### Q3 2024
-- [ ] Phase 3 components (Scatter, Funnel, Heatmap)
-- [ ] Plugin system
-- [ ] Advanced filtering
-- [ ] Accessibility audit
 
 ## 📄 License
 
@@ -259,5 +203,3 @@ Mario Charts is built on top of these amazing open source projects:
 ---
 
 **Made with ❤️ by the Mario Charts team**
-
-[📧 Contact](mailto:hello@mario-charts.dev) · [🐦 Twitter](https://twitter.com/mariocharts) · [💬 Discord](https://discord.gg/mariocharts)
