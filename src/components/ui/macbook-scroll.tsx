@@ -70,7 +70,7 @@ export const MacbookScroll = ({
   return (
     <div
       ref={ref}
-      className="flex min-h-[200vh] shrink-0 scale-[0.35] transform flex-col items-center justify-start py-0 [perspective:800px] sm:scale-50 md:scale-100 md:py-80"
+      className="flex min-h-[220vh] shrink-0 scale-[0.35] transform flex-col items-center justify-start py-0 [perspective:800px] sm:scale-50 md:scale-100 md:py-80"
     >
       <motion.h2
         style={{
@@ -95,7 +95,7 @@ export const MacbookScroll = ({
         children={children}
       />
       {/* Base area */}
-      <div className="relative -z-10 h-[22rem] w-[32rem] overflow-hidden rounded-2xl bg-[#FAFAFB]">
+      <div className="relative -z-10 h-[22rem] w-[32rem] overflow-hidden rounded-2xl bg-gradient-to-br from-slate-200 to-slate-300 dark:from-[#FAFAFB] dark:to-[#F5F5F5] border border-slate-300/50 dark:border-gray-600/20">
         {/* above keyboard bar */}
         <div className="relative h-10 w-full">
           <div className="absolute inset-x-0 mx-auto h-4 w-[80%] bg-[#050505]" />
@@ -114,7 +114,7 @@ export const MacbookScroll = ({
         <Trackpad />
         <div className="absolute inset-x-0 bottom-0 mx-auto h-2 w-20 rounded-tl-3xl rounded-tr-3xl bg-gradient-to-t from-[#272729] to-[#050505]" />
         {showGradient && (
-          <div className="absolute inset-x-0 bottom-0 z-50 h-40 w-full bg-gradient-to-t from-[#FEFEFE] via-[#FAFAFB] to-transparent"></div>
+          <div className="absolute inset-x-0 bottom-0 z-50 h-40 w-full bg-gradient-to-t from-slate-100 via-slate-200/80 to-transparent dark:from-[#FEFEFE] dark:via-[#FAFAFB]"></div>
         )}
         {badge && <div className="absolute bottom-4 left-4">{badge}</div>}
       </div>
@@ -145,13 +145,13 @@ export const Lid = ({
           transformOrigin: "bottom",
           transformStyle: "preserve-3d",
         }}
-        className="relative h-[12rem] w-[32rem] rounded-2xl bg-[#272729] p-2"
+        className="relative h-[12rem] w-[32rem] rounded-2xl bg-gradient-to-br from-slate-400 to-slate-500 dark:from-[#272729] dark:to-[#1a1a1a] p-2 border border-slate-400/30 dark:border-gray-700/30"
       >
         <div
           style={{
             boxShadow: "0px 2px 0px 2px #171717 inset",
           }}
-          className="absolute inset-0 flex items-center justify-center rounded-lg bg-[#272729]"
+          className="absolute inset-0 flex items-center justify-center rounded-lg bg-gradient-to-br from-slate-500 to-slate-600 dark:from-[#272729] dark:to-[#1a1a1a]"
         >
           <span className="text-white">
             <AceternityLogo />
@@ -166,10 +166,14 @@ export const Lid = ({
           translateY: translate,
           transformStyle: "preserve-3d",
           transformOrigin: "top",
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale'
         }}
-        className="absolute inset-0 h-96 w-[32rem] rounded-2xl bg-[#272729] p-2"
+        className="absolute inset-0 h-96 w-[32rem] rounded-2xl bg-gradient-to-br from-slate-400 to-slate-500 dark:from-[#272729] dark:to-[#1a1a1a] p-2 border border-slate-400/30 dark:border-gray-700/30"
       >
-        <div className="absolute inset-0 rounded-lg bg-[#FEFEFE] border border-gray-400/60 dark:border-gray-600/40" />
+        <div className="absolute inset-0 rounded-lg bg-white dark:bg-[#FEFEFE] border border-slate-300/60 dark:border-gray-600/40 shadow-inner" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }} />
         {src ? (
           <img
             src={src as string}
@@ -177,7 +181,13 @@ export const Lid = ({
             className="absolute inset-0 h-full w-full rounded-lg object-cover object-left-top"
           />
         ) : children ? (
-          <div className="absolute inset-1 h-[calc(100%-0.5rem)] w-[calc(100%-0.5rem)] rounded-lg overflow-hidden">
+          <div className="absolute inset-1 h-[calc(100%-0.5rem)] w-[calc(100%-0.5rem)] rounded-lg overflow-hidden" style={{ 
+            backfaceVisibility: 'hidden', 
+            WebkitBackfaceVisibility: 'hidden',
+            transform: 'translateZ(0)',
+            WebkitTransform: 'translateZ(0)',
+            willChange: 'transform'
+          }}>
             {children}
           </div>
         ) : null}

@@ -469,7 +469,7 @@ const DEFAULT_COLORS = [
 ] as const;
 
 const DEFAULT_HEIGHT = 300;
-const MARGIN = { top: 5, right: 10, bottom: 20, left: 30 };
+const MARGIN = { top: 10, right: 15, bottom: 25, left: 25 };
 
 // Utilities
 function formatValue(value: unknown): string {
@@ -587,13 +587,17 @@ function BarChartComponent<T extends ChartDataItem>({
     const maxValue = Math.max(...values);
     
     // 2. Se todos os valores são 0 ou negativos, usar altura 0
+    const barWidth = chartWidth / data.length;
+    const barSpacing = barWidth * 0.2;
+    const actualBarWidth = barWidth * 0.8;
+    
     if (maxValue <= 0) {
       return data.map((item, index) => ({
         data: item,
         index,
-        x: (index + 0.1) * (chartWidth / data.length),
+        x: index * barWidth + barSpacing / 2,
         y: chartHeight, // Sempre na base
-        width: (chartWidth / data.length) * 0.8,
+        width: actualBarWidth,
         height: 0,
         color: colors[index % colors.length] || DEFAULT_COLORS[0],
         label: String(item[x]),
@@ -610,9 +614,9 @@ function BarChartComponent<T extends ChartDataItem>({
       return {
         data: item,
         index,
-        x: (index + 0.1) * (chartWidth / data.length),
+        x: index * barWidth + barSpacing / 2,
         y: chartHeight - normalizedHeight,
-        width: (chartWidth / data.length) * 0.8,
+        width: actualBarWidth,
         height: normalizedHeight,
         color: colors[index % colors.length] || DEFAULT_COLORS[0],
         label: String(item[x]),
@@ -642,7 +646,7 @@ function BarChartComponent<T extends ChartDataItem>({
       className={cn('relative w-full', className)}
       style={{ height }}
     >
-      <svg width="100%" height={height} className="overflow-visible">
+      <svg width="100%" height={height} className="overflow-hidden">
         <g transform={\`translate(\${MARGIN.left}, \${MARGIN.top})\`}>
           {/* Eixo Y */}
           <line 

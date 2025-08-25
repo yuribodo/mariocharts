@@ -3,7 +3,7 @@
 import * as React from "react";
 import { memo, useMemo, useState, useRef, useLayoutEffect } from "react";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn } from "../../../../lib/utils";
 
 // Types
 type ChartDataItem = Record<string, unknown>;
@@ -27,7 +27,7 @@ const DEFAULT_COLORS = [
 ] as const;
 
 const DEFAULT_HEIGHT = 300;
-const MARGIN = { top: 5, right: 10, bottom: 20, left: 30 }; // Margens mínimas
+const MARGIN = { top: 10, right: 15, bottom: 25, left: 25 }; // Margens otimizadas
 
 // Utilities
 function formatValue(value: unknown): string {
@@ -145,13 +145,17 @@ function BarChartComponent<T extends ChartDataItem>({
     const maxValue = Math.max(...values);
     
     // 2. Se todos os valores são 0 ou negativos, usar altura 0
+    const barWidth = chartWidth / data.length;
+    const barSpacing = barWidth * 0.2;
+    const actualBarWidth = barWidth * 0.8;
+    
     if (maxValue <= 0) {
       return data.map((item, index) => ({
         data: item,
         index,
-        x: (index + 0.1) * (chartWidth / data.length),
+        x: index * barWidth + barSpacing / 2,
         y: chartHeight, // Sempre na base
-        width: (chartWidth / data.length) * 0.8,
+        width: actualBarWidth,
         height: 0,
         color: colors[index % colors.length] || DEFAULT_COLORS[0],
         label: String(item[x]),
@@ -160,19 +164,19 @@ function BarChartComponent<T extends ChartDataItem>({
       }));
     }
     
-    // 3. Processar barras normalmente - usando mais espaço disponível
+    // 3. Processar barras normalmente - usando espaço disponível de forma eficiente
+    
     return data.map((item, index) => {
-      const value = values[index] || 0; // Fix undefined issue
-      // Usar 100% da altura disponível - máximo aproveitamento
+      const value = values[index] || 0;
       const normalizedHeight = Math.max(0, (value / maxValue) * chartHeight);
       
       return {
         data: item,
         index,
-        x: (index + 0.1) * (chartWidth / data.length),
-        y: chartHeight - normalizedHeight, // Y position starts from bottom minus height
-        width: (chartWidth / data.length) * 0.8,
-        height: normalizedHeight, // Height varies based on value
+        x: index * barWidth + barSpacing / 2, // Centered position with spacing
+        y: chartHeight - normalizedHeight,
+        width: actualBarWidth,
+        height: normalizedHeight,
         color: colors[index % colors.length] || DEFAULT_COLORS[0],
         label: String(item[x]),
         value: formatValue(value),
@@ -201,7 +205,7 @@ function BarChartComponent<T extends ChartDataItem>({
       className={cn('relative w-full', className)}
       style={{ height }}
     >
-      <svg width="100%" height={height} className="overflow-visible">
+      <svg width="100%" height={height} className="overflow-hidden">
         <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
           {/* Eixo Y */}
           <line 
