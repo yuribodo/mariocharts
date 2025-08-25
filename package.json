@@ -1,7 +1,10 @@
 {
-  "name": "mario-charts",
+  "name": "mario-charts-workspace",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "description": "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box",
   "repository": {
     "type": "git",
@@ -21,7 +24,9 @@
   ],
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "build": "npm run build:cli && next build --turbopack",
+    "build:cli": "npm run build --workspace=packages/cli",
+    "dev:cli": "npm run dev --workspace=packages/cli",
     "start": "next start",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
