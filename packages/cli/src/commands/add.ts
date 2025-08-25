@@ -4,7 +4,7 @@ import inquirer from 'inquirer';
 import chalk from 'chalk';
 import ora from 'ora';
 import { execa } from 'execa';
-import { diff } from 'diff';
+import { createPatch } from 'diff';
 import { getConfig, resolveConfigPaths } from '../utils/config.js';
 import { AddOptions } from '../utils/types.js';
 import { Logger } from '../utils/logger.js';
@@ -192,7 +192,7 @@ async function installComponent(
       if (existingContent !== file.content) {
         logger.warn(`Component ${component.name} already exists at ${path.relative(cwd, targetPath)}`);
         
-        const patches = diff.createPatch(
+        const patches = createPatch(
           file.name,
           existingContent,
           file.content,

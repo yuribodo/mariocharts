@@ -49,6 +49,7 @@
     "out",
     "build",
     "dist",
-    "storybook-static"
+    "storybook-static",
+    "packages"
   ]
 }
