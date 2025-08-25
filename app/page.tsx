@@ -91,17 +91,17 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              <span className="bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+              <span className="text-foreground">
                 Build{" "}
-                <span className="relative">
-                  Beautiful
-                  <motion.div
-                    className="absolute -bottom-2 left-0 h-1 bg-gradient-to-r from-primary via-primary to-primary/70 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: "100%" }}
-                    transition={{ duration: 0.8, delay: 1.2, ease: "easeOut" }}
-                  />
-                </span>
+              </span>
+              <span className="relative bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
+                Beautiful
+                <motion.div
+                  className="absolute -bottom-1 left-0 h-1 bg-gradient-to-r from-primary via-primary to-primary/70 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 0.8, delay: 1.2, ease: "easeOut" }}
+                />
               </span>
               <br />
               <span className="text-primary font-black">
