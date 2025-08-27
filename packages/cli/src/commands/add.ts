@@ -10,6 +10,34 @@ import { AddOptions } from '../utils/types.js';
 import { Logger } from '../utils/logger.js';
 import { defaultRegistry } from '../utils/registry.js';
 
+// Security utilities for path validation
+function sanitizeFileName(fileName: string): string {
+  // Remove any path traversal attempts and dangerous characters
+  return fileName
+    .replace(/\.\./g, '') // Remove .. path traversal
+    .replace(/[<>:"|?*]/g, '') // Remove invalid filename characters
+    .replace(/^\.+/, '') // Remove leading dots
+    .replace(/\s+/g, '-') // Replace spaces with dashes
+    .toLowerCase();
+}
+
+function validatePath(targetPath: string, basePath: string): boolean {
+  // Resolve both paths to absolute paths
+  const resolvedTarget = path.resolve(targetPath);
+  const resolvedBase = path.resolve(basePath);
+  
+  // Check if the target path is within the base path
+  const relativePath = path.relative(resolvedBase, resolvedTarget);
+  
+  // If the relative path starts with .. or is an absolute path, it's outside the base
+  return !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+}
+
+function isValidComponentType(componentType: string): boolean {
+  const validTypes = ['chart', 'ui', 'layout', 'filter', 'primitive'];
+  return validTypes.includes(componentType);
+}
+
 const logger = new Logger();
 
 export async function addComponents(components: string[], options: AddOptions = {}) {
@@ -238,8 +266,19 @@ async function installComponent(
 }
 
 function resolveComponentPath(fileName: string, componentType: string, config: any, cwd: string): string {
-  let basePath: string;
+  // Security: Validate component type
+  if (!isValidComponentType(componentType)) {
+    throw new Error(`Invalid component type: ${componentType}`);
+  }
 
+  // Security: Sanitize filename to prevent path traversal
+  const sanitizedFileName = sanitizeFileName(fileName);
+  if (!sanitizedFileName || sanitizedFileName !== fileName.toLowerCase().replace(/[^a-z0-9\-]/g, '-')) {
+    logger.warn(`Filename was sanitized from "${fileName}" to "${sanitizedFileName}"`);
+  }
+
+  // Resolve base path based on component type
+  let basePath: string;
   switch (componentType) {
     case 'chart':
       basePath = config.aliases.charts.replace('@/', '');
@@ -260,7 +299,25 @@ function resolveComponentPath(fileName: string, componentType: string, config: a
       basePath = config.aliases.components.replace('@/', '');
   }
 
-  return path.resolve(cwd, basePath, fileName);
+  // Security: Ensure basePath is clean
+  basePath = path.normalize(basePath);
+  
+  // Create the target path
+  const targetPath = path.resolve(cwd, basePath, sanitizedFileName);
+  
+  // Security: Validate that the resolved path is within the project directory
+  const projectRoot = path.resolve(cwd);
+  if (!validatePath(targetPath, projectRoot)) {
+    throw new Error(`Security violation: Path ${targetPath} is outside project directory ${projectRoot}`);
+  }
+
+  // Security: Additional check - ensure we're not writing to system directories
+  const resolvedBasePath = path.resolve(cwd, basePath);
+  if (!validatePath(targetPath, resolvedBasePath)) {
+    throw new Error(`Security violation: Path ${targetPath} is outside intended directory ${resolvedBasePath}`);
+  }
+
+  return targetPath;
 }
 
 function getComponentImportPath(component: any, config: any): string {
