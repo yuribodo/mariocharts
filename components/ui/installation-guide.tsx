@@ -136,7 +136,7 @@ export function InstallationGuide({
               Zero Lock-in Philosophy
             </div>
             <div className="text-sm text-muted-foreground mt-1">
-              The component is fully yours to own, modify, and customize. No external dependencies on our library.
+              The component is fully yours to own, modify, and customize.
             </div>
           </div>
         </div>

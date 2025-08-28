@@ -11,7 +11,7 @@ Mario Charts prioritizes ease of use, excellent developer experience, and zero l
 ## ✨ Features
 
 - 📈 **Beautiful Charts Out-of-the-Box** - Stunning visuals with minimal configuration
-- 🎨 **Customizable Design System** - Built on Tailwind CSS with design tokens
+- 🎨 **Multiple Variants & Orientations** - Filled/outline styles with vertical/horizontal layouts
 - 📱 **Responsive by Default** - Works perfectly on all screen sizes
 - ♿ **Accessibility First** - Built with Radix UI primitives for full accessibility
 - 🎭 **Smooth Animations** - Powered by Framer Motion for delightful interactions
@@ -68,8 +68,10 @@ export function Dashboard() {
       
       <BarChart 
         data={data}
-        xAxis={{ dataKey: 'name' }}
-        yAxis={{ label: 'Revenue ($)' }}
+        x="name"
+        y="revenue"
+        variant="filled"
+        orientation="vertical"
         onBarClick={(data, index) => {
           console.log('Clicked:', data, index);
         }}
@@ -79,10 +81,39 @@ export function Dashboard() {
 }
 ```
 
+### Advanced Examples
+
+```tsx
+// Outline variant with horizontal orientation
+<BarChart 
+  data={data}
+  x="product"
+  y="sales"
+  variant="outline"
+  orientation="horizontal"
+  height={400}
+  colors={['#3b82f6', '#10b981', '#f59e0b', '#ef4444']}
+/>
+
+// Vertical filled bars with custom styling
+<BarChart 
+  data={data}
+  x="month"
+  y="revenue"
+  variant="filled"
+  orientation="vertical"
+  animation={true}
+  onBarClick={(data, index) => {
+    // Handle bar interactions
+    console.log(`Selected: ${data.month} - $${data.revenue}`);
+  }}
+/>
+```
+
 ## 📚 Components
 
 ### Phase 1: Essential Core
-- ✅ **BarChart** - Responsive bar charts with animations
+- ✅ **BarChart** - Responsive bar charts with filled/outline variants, vertical/horizontal orientations, and smooth animations
 - ⏳ **LineChart** - Time series line charts
 - ✅ **KPICard** - Metric cards with sparklines
 - ⏳ **AreaChart** - Area charts for cumulative data

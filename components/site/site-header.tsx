@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChartBar, GithubLogo, List, X } from "@phosphor-icons/react";
+import { GithubLogo, List, X } from "@phosphor-icons/react";
 import { useState } from "react";
 
 import { cn } from "../../lib/utils";
 import { ThemeToggle } from "./theme-toggle";
+import { Logo } from "./logo";
 
 const navigation = [
   { name: "Docs", href: "/docs" },
@@ -28,10 +29,11 @@ export function SiteHeader() {
           >
             <Link href="/" className="mr-6 flex items-center space-x-2">
               <motion.div
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
               >
-                <ChartBar size={24} weight="duotone" />
+                <Logo size={24} />
               </motion.div>
               <span className="hidden font-bold sm:inline-block">
                 Mario Charts
@@ -101,7 +103,7 @@ export function SiteHeader() {
         {/* Mobile logo */}
         <div className="flex md:hidden">
           <Link href="/" className="flex items-center space-x-2">
-            <ChartBar size={20} weight="duotone" />
+            <Logo size={20} />
             <span className="font-bold">Mario Charts</span>
           </Link>
         </div>
