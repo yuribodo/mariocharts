@@ -36,12 +36,7 @@ export const metadata: Metadata = {
     creator: "@mariocharts",
   },
   icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-    ],
-    shortcut: "/favicon-16x16.png",
-    apple: "/apple-touch-icon.png",
+    icon: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8IS0tIFJvdW5kZWQgc3F1YXJlIGJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzAwMDAwMCIvPgogIAogIDwhLS0gQmFyIGNoYXJ0IGJhcnMgLS0+CiAgPHJlY3QgeD0iOCIgeT0iMjAiIHdpZHRoPSIzIiBoZWlnaHQ9IjgiIHJ4PSIxLjUiIGZpbGw9IndoaXRlIi8+CiAgPHJlY3QgeD0iMTIuNSIgeT0iMTYiIHdpZHRoPSIzIiBoZWlnaHQ9IjEyIiByeD0iMS41IiBmaWxsPSJ3aGl0ZSIvPgogIDxyZWN0IHg9IjE3IiB5PSIxMiIgd2lkdGg9IjMiIGhlaWdodD0iMTYiIHJ4PSIxLjUiIGZpbGw9IndoaXRlIi8+CiAgPHJlY3QgeD0iMjEuNSIgeT0iOCIgd2lkdGg9IjMiIGhlaWdodD0iMjAiIHJ4PSIxLjUiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==",
   },
 };
 
@@ -53,9 +48,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8IS0tIFJvdW5kZWQgc3F1YXJlIGJhY2tncm91bmQgLS0+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzAwMDAwMCIvPgogIAogIDwhLS0gQmFyIGNoYXJ0IGJhcnMgLS0+CiAgPHJlY3QgeD0iOCIgeT0iMjAiIHdpZHRoPSIzIiBoZWlnaHQ9IjgiIHJ4PSIxLjUiIGZpbGw9IndoaXRlIi8+CiAgPHJlY3QgeD0iMTIuNSIgeT0iMTYiIHdpZHRoPSIzIiBoZWlnaHQ9IjEyIiByeD0iMS41IiBmaWxsPSJ3aGl0ZSIvPgogIDxyZWN0IHg9IjE3IiB5PSIxMiIgd2lkdGg9IjMiIGhlaWdodD0iMTYiIHJ4PSIxLjUiIGZpbGw9IndoaXRlIi8+CiAgPHJlY3QgeD0iMjEuNSIgeT0iOCIgd2lkdGg9IjMiIGhlaWdodD0iMjAiIHJ4PSIxLjUiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPg==" type="image/svg+xml" />
       </head>
       <body 
         className={cn(
