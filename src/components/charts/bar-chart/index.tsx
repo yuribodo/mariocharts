@@ -18,6 +18,8 @@ interface BarChartProps<T extends ChartDataItem> {
   readonly loading?: boolean;
   readonly error?: string | null;
   readonly animation?: boolean;
+  readonly variant?: 'filled' | 'outline';
+  readonly orientation?: 'vertical' | 'horizontal';
   readonly onBarClick?: (data: T, index: number) => void;
 }
 
@@ -27,7 +29,7 @@ const DEFAULT_COLORS = [
 ] as const;
 
 const DEFAULT_HEIGHT = 300;
-const MARGIN = { top: 10, right: 15, bottom: 25, left: 25 }; // Margens otimizadas
+const MARGIN = { top: 10, right: 15, bottom: 25, left: 25 }; // Optimized margins
 
 // Utilities
 function formatValue(value: unknown): string {
@@ -75,19 +77,67 @@ function useContainerDimensions() {
 }
 
 // Loading/Error States
-function LoadingState() {
+function LoadingState({ 
+  orientation = 'vertical', 
+  variant = 'filled',
+  height = DEFAULT_HEIGHT 
+}: {
+  orientation?: 'vertical' | 'horizontal';
+  variant?: 'filled' | 'outline';
+  height?: number;
+}) {
+  const isVertical = orientation === 'vertical';
+  const isFilled = variant === 'filled';
+  
   return (
-    <div className="flex items-center justify-center h-64">
-      <div className="space-y-3">
-        <div className="animate-pulse bg-muted rounded h-4 w-32" />
-        <div className="flex space-x-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className="bg-muted rounded w-8 animate-pulse"
-              style={{ height: 40 + (i * 12) }}
-            />
-          ))}
+    <div className="relative w-full" style={{ height }}>
+      <div className={`flex items-center justify-center h-full p-6`}>
+        <div className="w-full max-w-full">
+          {/* Loading title skeleton */}
+          <div className="animate-pulse bg-muted rounded h-4 w-32 mb-4" />
+          
+          {/* Chart area with proper margins */}
+          <div 
+            className="relative border-l border-b border-muted/30"
+            style={{
+              height: height - MARGIN.top - MARGIN.bottom - 50,
+              marginLeft: MARGIN.left,
+              marginRight: MARGIN.right,
+              marginBottom: MARGIN.bottom,
+            }}
+          >
+            {/* Loading bars */}
+            <div className={`flex ${isVertical ? 'items-end space-x-2 h-full' : 'flex-col justify-center space-y-2 w-full'}`}>
+              {Array.from({ length: 5 }).map((_, i) => {
+                const barSize = isVertical 
+                  ? { width: 32, height: 40 + (i * 20) }
+                  : { width: 60 + (i * 30), height: 24 };
+                
+                return (
+                  <div
+                    key={i}
+                    className={`${isFilled ? 'bg-muted' : 'border-2 border-muted bg-transparent'} rounded animate-pulse`}
+                    style={{
+                      width: barSize.width,
+                      height: barSize.height,
+                      animationDelay: `${i * 0.1}s`
+                    }}
+                  />
+                );
+              })}
+            </div>
+            
+            {/* Axis labels skeleton */}
+            <div className={`absolute ${isVertical ? 'bottom-0 left-0 right-0 flex justify-around mt-2' : 'left-0 top-0 bottom-0 flex flex-col justify-around -ml-8'}`}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={`label-${i}`}
+                  className="animate-pulse bg-muted rounded h-3 w-8"
+                  style={{ animationDelay: `${(i + 5) * 0.1}s` }}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -129,6 +179,8 @@ function BarChartComponent<T extends ChartDataItem>({
   loading = false,
   error = null,
   animation = true,
+  variant = 'filled',
+  orientation = 'vertical',
   onBarClick,
 }: BarChartProps<T>) {
   const [containerRef, containerWidth] = useContainerDimensions();
@@ -140,23 +192,27 @@ function BarChartComponent<T extends ChartDataItem>({
   const processedBars = useMemo(() => {
     if (!data.length || chartWidth <= 0 || chartHeight <= 0) return [];
     
-    // 1. Extrair valores numéricos
+    // 1. Extract numeric values
     const values = data.map(d => getNumericValue(d, y as string));
     const maxValue = Math.max(...values);
     
-    // 2. Se todos os valores são 0 ou negativos, usar altura 0
-    const barWidth = chartWidth / data.length;
-    const barSpacing = barWidth * 0.2;
-    const actualBarWidth = barWidth * 0.8;
+    const isVertical = orientation === 'vertical';
+    const barCount = data.length;
     
+    // Calculate bar dimensions based on orientation
+    const barSize = isVertical ? chartWidth / barCount : chartHeight / barCount;
+    const barSpacing = barSize * 0.2;
+    const actualBarSize = barSize * 0.8;
+    
+    // 2. If all values are 0 or negative, use dimension 0
     if (maxValue <= 0) {
       return data.map((item, index) => ({
         data: item,
         index,
-        x: index * barWidth + barSpacing / 2,
-        y: chartHeight, // Sempre na base
-        width: actualBarWidth,
-        height: 0,
+        x: isVertical ? index * barSize + barSpacing / 2 : 0,
+        y: isVertical ? chartHeight : index * barSize + barSpacing / 2,
+        width: isVertical ? actualBarSize : 0,
+        height: isVertical ? 0 : actualBarSize,
         color: colors[index % colors.length] || DEFAULT_COLORS[0],
         label: String(item[x]),
         value: formatValue(values[index]),
@@ -164,28 +220,44 @@ function BarChartComponent<T extends ChartDataItem>({
       }));
     }
     
-    // 3. Processar barras normalmente - usando espaço disponível de forma eficiente
-    
+    // 3. Process bars normally - using available space efficiently
     return data.map((item, index) => {
       const value = values[index] || 0;
-      const normalizedHeight = Math.max(0, (value / maxValue) * chartHeight);
       
-      return {
-        data: item,
-        index,
-        x: index * barWidth + barSpacing / 2, // Centered position with spacing
-        y: chartHeight - normalizedHeight,
-        width: actualBarWidth,
-        height: normalizedHeight,
-        color: colors[index % colors.length] || DEFAULT_COLORS[0],
-        label: String(item[x]),
-        value: formatValue(value),
-        rawValue: value
-      };
+      if (isVertical) {
+        const normalizedHeight = Math.max(0, (value / maxValue) * chartHeight);
+        return {
+          data: item,
+          index,
+          x: index * barSize + barSpacing / 2,
+          y: chartHeight - normalizedHeight,
+          width: actualBarSize,
+          height: normalizedHeight,
+          color: colors[index % colors.length] || DEFAULT_COLORS[0],
+          label: String(item[x]),
+          value: formatValue(value),
+          rawValue: value
+        };
+      } else {
+        // Horizontal orientation
+        const normalizedWidth = Math.max(0, (value / maxValue) * chartWidth);
+        return {
+          data: item,
+          index,
+          x: 0,
+          y: index * barSize + barSpacing / 2,
+          width: normalizedWidth,
+          height: actualBarSize,
+          color: colors[index % colors.length] || DEFAULT_COLORS[0],
+          label: String(item[x]),
+          value: formatValue(value),
+          rawValue: value
+        };
+      }
     });
-  }, [data, x, y, colors, chartWidth, chartHeight]);
+  }, [data, x, y, colors, chartWidth, chartHeight, orientation]);
   
-  if (loading) return <LoadingState />;
+  if (loading) return <LoadingState orientation={orientation} variant={variant} height={height} />;
   if (error) return <ErrorState error={error} />;
   if (!data.length) return <EmptyState />;
   
@@ -207,32 +279,63 @@ function BarChartComponent<T extends ChartDataItem>({
     >
       <svg width="100%" height={height} className="overflow-hidden">
         <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
-          {/* Eixo Y */}
-          <line 
-            x1={0} 
-            y1={0} 
-            x2={0} 
-            y2={chartHeight} 
-            stroke="currentColor" 
-            opacity={0.1} 
-          />
+          {/* Axes - adapt to orientation */}
+          {orientation === 'vertical' ? (
+            <>
+              {/* Y Axis */}
+              <line 
+                x1={0} 
+                y1={0} 
+                x2={0} 
+                y2={chartHeight} 
+                stroke="currentColor" 
+                opacity={0.1} 
+              />
+              
+              {/* X Axis - base */}
+              <line 
+                x1={0} 
+                y1={chartHeight} 
+                x2={chartWidth} 
+                y2={chartHeight} 
+                stroke="currentColor" 
+                opacity={0.3} 
+                strokeWidth={1.5}
+              />
+            </>
+          ) : (
+            <>
+              {/* Y Axis - left side */}
+              <line 
+                x1={0} 
+                y1={0} 
+                x2={0} 
+                y2={chartHeight} 
+                stroke="currentColor" 
+                opacity={0.3} 
+                strokeWidth={1.5}
+              />
+              
+              {/* X Axis */}
+              <line 
+                x1={0} 
+                y1={chartHeight} 
+                x2={chartWidth} 
+                y2={chartHeight} 
+                stroke="currentColor" 
+                opacity={0.1} 
+              />
+            </>
+          )}
           
-          {/* Eixo X - SEMPRE na base */}
-          <line 
-            x1={0} 
-            y1={chartHeight} 
-            x2={chartWidth} 
-            y2={chartHeight} 
-            stroke="currentColor" 
-            opacity={0.3} 
-            strokeWidth={1.5}
-          />
-          
-          {/* Barras */}
+          {/* Bars */}
           {processedBars.map((bar) => {
+            const isVertical = orientation === 'vertical';
+            const isFilled = variant === 'filled';
+            
             const motionProps = animation ? {
-              initial: { scaleY: 0 }, // Escala Y inicia em 0
-              animate: { scaleY: 1 }, // Cresce até escala completa
+              initial: isVertical ? { scaleY: 0 } : { scaleX: 0 },
+              animate: isVertical ? { scaleY: 1 } : { scaleX: 1 },
               transition: {
                 duration: 0.6,
                 delay: bar.index * 0.05,
@@ -241,63 +344,103 @@ function BarChartComponent<T extends ChartDataItem>({
               whileHover: { opacity: 0.8 }
             } : {};
             
+            const transformOrigin = isVertical 
+              ? `${bar.x + bar.width/2}px ${bar.y + bar.height}px` // Vertical: origin at base
+              : `${bar.x}px ${bar.y + bar.height/2}px`; // Horizontal: origin at left center
+            
             return (
-              <motion.rect
-                key={bar.index}
-                x={bar.x}
-                y={bar.y}
-                width={bar.width}
-                height={bar.height}
-                fill={bar.color}
-                rx={4}
-                className="cursor-pointer"
-                style={{ 
-                  transformOrigin: `${bar.x + bar.width/2}px ${bar.y + bar.height}px` // Origin na base da barra
-                }}
-                {...motionProps}
-                onMouseEnter={() => setHoveredIndex(bar.index)}
-                onMouseLeave={() => setHoveredIndex(null)}
-                onClick={() => onBarClick?.(bar.data, bar.index)}
-              />
+              <g key={bar.index}>
+                {/* Invisible hit area for outline variant - captures mouse events across entire bar */}
+                {!isFilled && (
+                  <rect
+                    x={bar.x}
+                    y={bar.y}
+                    width={bar.width}
+                    height={bar.height}
+                    fill="transparent"
+                    className="cursor-pointer"
+                    onMouseEnter={() => setHoveredIndex(bar.index)}
+                    onMouseLeave={() => setHoveredIndex(null)}
+                    onClick={() => onBarClick?.(bar.data, bar.index)}
+                  />
+                )}
+                
+                {/* Visible bar */}
+                <motion.rect
+                  x={bar.x}
+                  y={bar.y}
+                  width={bar.width}
+                  height={bar.height}
+                  fill={isFilled ? bar.color : 'none'}
+                  stroke={isFilled ? 'none' : bar.color}
+                  strokeWidth={isFilled ? 0 : 2}
+                  rx={4}
+                  className={isFilled ? "cursor-pointer" : "pointer-events-none"}
+                  style={{ 
+                    transformOrigin
+                  }}
+                  {...motionProps}
+                  onMouseEnter={isFilled ? () => setHoveredIndex(bar.index) : undefined}
+                  onMouseLeave={isFilled ? () => setHoveredIndex(null) : undefined}
+                  onClick={isFilled ? () => onBarClick?.(bar.data, bar.index) : undefined}
+                />
+              </g>
             );
           })}
           
-          {/* Labels do eixo X */}
-          {processedBars.map((bar) => (
-            <text
-              key={`label-${bar.index}`}
-              x={bar.x + bar.width / 2}
-              y={chartHeight + 10}
-              textAnchor="middle"
-              fontSize={11}
-              className="fill-muted-foreground"
-            >
-              {bar.label}
-            </text>
-          ))}
+          {/* Labels - adapt to orientation */}
+          {processedBars.map((bar) => {
+            const isVertical = orientation === 'vertical';
+            
+            return (
+              <text
+                key={`label-${bar.index}`}
+                x={isVertical ? bar.x + bar.width / 2 : -8}
+                y={isVertical ? chartHeight + 10 : bar.y + bar.height / 2}
+                textAnchor={isVertical ? "middle" : "end"}
+                dominantBaseline={isVertical ? "auto" : "middle"}
+                fontSize={11}
+                className="fill-muted-foreground"
+              >
+                {bar.label}
+              </text>
+            );
+          })}
         </g>
       </svg>
       
       {/* Tooltip */}
-      {hoveredIndex !== null && processedBars[hoveredIndex] && (
-        <motion.div 
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 5 }}
-          className="absolute pointer-events-none z-50 bg-background border rounded-lg px-3 py-2 shadow-xl transform -translate-x-1/2"
-          style={{
-            left: processedBars[hoveredIndex].x + processedBars[hoveredIndex].width / 2 + MARGIN.left,
-            top: Math.max(10, processedBars[hoveredIndex].y + MARGIN.top - 55),
-          }}
-        >
-          <div className="text-xs font-medium text-center whitespace-nowrap">
-            {processedBars[hoveredIndex].label}
-          </div>
-          <div className="text-sm font-bold text-primary text-center">
-            {processedBars[hoveredIndex].value}
-          </div>
-        </motion.div>
-      )}
+      {hoveredIndex !== null && processedBars[hoveredIndex] && (() => {
+        const bar = processedBars[hoveredIndex];
+        const isVertical = orientation === 'vertical';
+        
+        const tooltipStyle = isVertical ? {
+          left: bar.x + bar.width / 2 + MARGIN.left,
+          top: Math.max(10, bar.y + MARGIN.top - 55),
+        } : {
+          left: bar.x + bar.width + MARGIN.left + 10,
+          top: bar.y + bar.height / 2 + MARGIN.top,
+        };
+        
+        return (
+          <motion.div 
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 5 }}
+            className={`absolute pointer-events-none z-50 bg-background border rounded-lg px-3 py-2 shadow-xl ${
+              isVertical ? 'transform -translate-x-1/2' : 'transform -translate-y-1/2'
+            }`}
+            style={tooltipStyle}
+          >
+            <div className="text-xs font-medium text-center whitespace-nowrap">
+              {bar.label}
+            </div>
+            <div className="text-sm font-bold text-primary text-center">
+              {bar.value}
+            </div>
+          </motion.div>
+        );
+      })()}
     </div>
   );
 }

@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, ChartBar, Copy, Check } from "@phosphor-icons/react";
+import { ArrowRight, Copy, Check } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { MacbookScroll } from "../src/components/ui/macbook-scroll";
 import { MiniBarChart } from "../components/ui/mini-bar-chart";
 import { MiniLineChart } from "../components/ui/mini-line-chart";
 import { BarChart } from "../src/components/charts/bar-chart";
+import { Logo } from "../components/site/logo";
 
 export default function Home() {
   const [copySuccess, setCopySuccess] = useState(false);
@@ -25,9 +26,9 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen scroll-smooth" style={{ scrollSnapType: 'y mandatory' }}>
       {/* Hero Section */}
-      <section className="relative flex flex-col items-center justify-center px-4 py-24 text-center min-h-[90vh] overflow-hidden">
+      <section className="relative flex flex-col items-center justify-center px-4 py-24 text-center min-h-[90vh] overflow-hidden snap-start">
         {/* Grid Pattern Background */}
         <div className="absolute inset-0 -z-10">
           <div 
@@ -137,7 +138,7 @@ export default function Home() {
                 href="/docs/components/bar-chart"
                 className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-8 py-2"
               >
-                <ChartBar className="mr-2 h-4 w-4" />
+                <Logo size={16} className="mr-2" />
                 Components
               </Link>
             </motion.div>
@@ -222,7 +223,8 @@ export default function Home() {
       </section>
 
       {/* MacBook Scroll Demo */}
-      <MacbookScroll
+      <section className="snap-center">
+        <MacbookScroll
         title={
           <div className="text-center">
             <h2 className="text-3xl md:text-5xl font-bold mb-4">
@@ -236,71 +238,118 @@ export default function Home() {
         }
         showGradient={true}
       >
-        <div className="bg-background p-4 rounded-lg border shadow-lg max-w-full overflow-hidden">
+        <div className="bg-background p-4 rounded-xl border shadow-lg max-w-full overflow-hidden">
           <div className="space-y-4">
-            {/* Compact Header */}
+            {/* Premium Header */}
             <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">Sales Dashboard</h3>
-                <p className="text-xs text-muted-foreground">Revenue performance Q1-Q2 2024</p>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                    Revenue Analytics
+                  </h3>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span className="text-xs text-green-600 font-medium">Live</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <span>Last 12 months</span>
+                  <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full font-medium">🔥 Hot</span>
+                  <span className="px-2 py-0.5 bg-green-500/10 text-green-600 rounded-full font-medium">📈 +22% Growth</span>
+                </div>
               </div>
-              <div className="flex items-center space-x-1.5">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                <span className="text-xs text-muted-foreground">Live</span>
+              <div className="text-right">
+                <div className="text-xl font-bold text-primary">$1.2M</div>
+                <div className="text-xs text-green-600 font-medium">↗ +22.4%</div>
               </div>
             </div>
 
-            {/* Main Chart - Optimized for MacBook screen */}
+            {/* KPI Cards Grid */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-card border rounded-lg p-3 space-y-1 hover:shadow-md transition-shadow">
+                <div className="text-xs text-muted-foreground">Revenue</div>
+                <div className="text-sm font-bold">$1.2M</div>
+                <div className="text-xs text-green-600 font-medium">+22%</div>
+              </div>
+              <div className="bg-card border rounded-lg p-3 space-y-1 hover:shadow-md transition-shadow">
+                <div className="text-xs text-muted-foreground">Orders</div>
+                <div className="text-sm font-bold">8,549</div>
+                <div className="text-xs text-blue-600 font-medium">+18%</div>
+              </div>
+              <div className="bg-card border rounded-lg p-3 space-y-1 hover:shadow-md transition-shadow">
+                <div className="text-xs text-muted-foreground">AOV</div>
+                <div className="text-sm font-bold">$142</div>
+                <div className="text-xs text-orange-600 font-medium">+3.2%</div>
+              </div>
+            </div>
+
+            {/* Main Revenue Trend */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium">Monthly Revenue</h4>
-                <span className="text-xs text-muted-foreground">6 months</span>
+                <h4 className="text-sm font-semibold">Monthly Revenue Trend</h4>
+                <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded">12 months</span>
               </div>
-              <div className="w-full max-w-full overflow-hidden">
+              <div className="bg-card p-3 rounded-lg border">
                 <BarChart 
                   data={[
-                    { month: 'Jan', revenue: 45000 },
-                    { month: 'Feb', revenue: 52000 },
-                    { month: 'Mar', revenue: 48000 },
-                    { month: 'Apr', revenue: 61000 },
-                    { month: 'May', revenue: 59000 },
-                    { month: 'Jun', revenue: 67000 },
+                    { month: 'Jan', revenue: 78000 },
+                    { month: 'Feb', revenue: 85000 },
+                    { month: 'Mar', revenue: 92000 },
+                    { month: 'Apr', revenue: 98000 },
+                    { month: 'May', revenue: 105000 },
+                    { month: 'Jun', revenue: 112000 },
+                    { month: 'Jul', revenue: 118000 },
+                    { month: 'Aug', revenue: 125000 },
+                    { month: 'Sep', revenue: 132000 },
+                    { month: 'Oct', revenue: 128000 },
+                    { month: 'Nov', revenue: 145000 },
+                    { month: 'Dec', revenue: 152000 },
                   ]}
                   x="month"
                   y="revenue"
-                  height={180}
-                  colors={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']}
+                  height={140}
+                  variant="filled"
+                  orientation="vertical"
+                  colors={['#3b82f6', '#1d4ed8', '#2563eb', '#1e40af', '#1e3a8a', '#312e81', '#4c1d95', '#5b21b6', '#7c3aed', '#8b5cf6', '#a855f7', '#c084fc']}
                   animation={true}
                   className="w-full"
                 />
               </div>
             </div>
 
-            {/* Compact KPI Grid */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-card p-3 rounded-md border">
-                <p className="text-xs text-muted-foreground">Total Revenue</p>
-                <p className="text-lg font-bold">$332K</p>
-                <p className="text-xs text-green-600 flex items-center">
-                  <span className="mr-1">↗</span>+8.2%
-                </p>
+            {/* Categories Performance */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold">Top Categories</h4>
+                <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded">YTD Performance</span>
               </div>
-              <div className="bg-card p-3 rounded-md border">
-                <p className="text-xs text-muted-foreground">Avg. Monthly</p>
-                <p className="text-lg font-bold">$55.3K</p>
-                <p className="text-xs text-blue-600 flex items-center">
-                  <span className="mr-1">📈</span>Trending
-                </p>
-              </div>
-              <div className="bg-card p-3 rounded-md border">
-                <p className="text-xs text-muted-foreground">Best Month</p>
-                <p className="text-lg font-bold">June</p>
-                <p className="text-xs text-primary">$67K peak</p>
+              <div className="bg-card p-3 rounded-lg border">
+                <BarChart 
+                  data={[
+                    { category: 'Electronics', sales: 425000, growth: 28 },
+                    { category: 'Fashion', sales: 312000, growth: 15 },
+                    { category: 'Home & Living', sales: 287000, growth: 22 },
+                    { category: 'Sports', sales: 195000, growth: 35 },
+                    { category: 'Books', sales: 89000, growth: 8 },
+                  ]}
+                  x="category"
+                  y="sales"
+                  height={120}
+                  variant="outline"
+                  orientation="horizontal"
+                  colors={['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6']}
+                  animation={true}
+                  className="w-full"
+                />
               </div>
             </div>
           </div>
         </div>
-      </MacbookScroll>
+        </MacbookScroll>
+      </section>
+      
+      {/* Additional scroll space for desktop centering */}
+      <div className="h-0 md:h-[80vh]"></div>
     </div>
   );
 }

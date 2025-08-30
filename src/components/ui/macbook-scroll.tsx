@@ -41,43 +41,48 @@ export const MacbookScroll = ({
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: ref,
-    offset: ["start start", "end start"],
+    offset: ["start start", "end end"],
   });
 
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    if (window && window.innerWidth < 768) {
-      setIsMobile(true);
-    }
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   const scaleX = useTransform(
     scrollYProgress,
-    [0, 0.3],
+    [0, isMobile ? 0.5 : 0.4],
     [1.2, isMobile ? 1 : 1.5],
   );
   const scaleY = useTransform(
     scrollYProgress,
-    [0, 0.3],
+    [0, isMobile ? 0.5 : 0.4],
     [0.6, isMobile ? 1 : 1.5],
   );
-  const translate = useTransform(scrollYProgress, [0, 1], [0, 1500]);
-  const rotate = useTransform(scrollYProgress, [0.1, 0.12, 0.3], [-28, -28, 0]);
-  const textTransform = useTransform(scrollYProgress, [0, 0.3], [0, 100]);
-  const textOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
+  const translate = useTransform(scrollYProgress, [0, 0.6, 1], [0, isMobile ? 400 : 600, isMobile ? 800 : 1200]);
+  const rotate = useTransform(scrollYProgress, [0.05, 0.1, isMobile ? 0.5 : 0.3], [-28, -28, 0]);
+  const textTransform = useTransform(scrollYProgress, [0, isMobile ? 0.25 : 0.2], [0, 100]);
+  const textOpacity = useTransform(scrollYProgress, [0, isMobile ? 0.15 : 0.12], [1, 0]);
 
   return (
     <div
       ref={ref}
-      className="flex min-h-[220vh] shrink-0 scale-[0.35] transform flex-col items-center justify-start py-0 [perspective:800px] sm:scale-50 md:scale-100 md:py-80"
+      className="flex min-h-[150vh] shrink-0 scale-[0.6] transform flex-col items-center justify-start py-8 [perspective:800px] sm:min-h-[180vh] sm:scale-[0.7] md:min-h-[180vh] md:scale-100 md:py-60"
     >
       <motion.h2
         style={{
           translateY: textTransform,
           opacity: textOpacity,
         }}
-        className="mb-20 text-center text-3xl font-bold text-foreground"
+        className="mb-12 text-center text-xl sm:text-2xl md:text-3xl font-bold text-foreground px-4"
       >
         {title || (
           <span>
@@ -95,7 +100,7 @@ export const MacbookScroll = ({
         children={children}
       />
       {/* Base area */}
-      <div className="relative -z-10 h-[22rem] w-[32rem] overflow-hidden rounded-2xl bg-gradient-to-br from-slate-200 to-slate-300 dark:from-[#FAFAFB] dark:to-[#F5F5F5] border border-slate-300/50 dark:border-gray-600/20">
+      <div className="relative -z-10 h-[18rem] w-[26rem] sm:h-[20rem] sm:w-[30rem] md:h-[22rem] md:w-[32rem] overflow-hidden rounded-2xl bg-gradient-to-br from-slate-200 to-slate-300 dark:from-[#FAFAFB] dark:to-[#F5F5F5] border border-slate-300/50 dark:border-gray-600/20">
         {/* above keyboard bar */}
         <div className="relative h-10 w-full">
           <div className="absolute inset-x-0 mx-auto h-4 w-[80%] bg-[#050505]" />
@@ -145,7 +150,7 @@ export const Lid = ({
           transformOrigin: "bottom",
           transformStyle: "preserve-3d",
         }}
-        className="relative h-[12rem] w-[32rem] rounded-2xl bg-gradient-to-br from-slate-400 to-slate-500 dark:from-[#272729] dark:to-[#1a1a1a] p-2 border border-slate-400/30 dark:border-gray-700/30"
+        className="relative h-[10rem] w-[26rem] sm:h-[11rem] sm:w-[30rem] md:h-[12rem] md:w-[32rem] rounded-2xl bg-gradient-to-br from-slate-400 to-slate-500 dark:from-[#272729] dark:to-[#1a1a1a] p-2 border border-slate-400/30 dark:border-gray-700/30"
       >
         <div
           style={{
@@ -168,10 +173,11 @@ export const Lid = ({
           transformOrigin: "top",
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden',
-          WebkitFontSmoothing: 'antialiased',
-          MozOsxFontSmoothing: 'grayscale'
+          WebkitFontSmoothing: 'subpixel-antialiased',
+          MozOsxFontSmoothing: 'auto',
+          imageRendering: 'crisp-edges'
         }}
-        className="absolute inset-0 h-96 w-[32rem] rounded-2xl bg-gradient-to-br from-slate-400 to-slate-500 dark:from-[#272729] dark:to-[#1a1a1a] p-2 border border-slate-400/30 dark:border-gray-700/30"
+        className="absolute inset-0 h-96 w-[26rem] sm:w-[30rem] md:w-[32rem] rounded-2xl bg-gradient-to-br from-slate-400 to-slate-500 dark:from-[#272729] dark:to-[#1a1a1a] p-2 border border-slate-400/30 dark:border-gray-700/30"
       >
         <div className="absolute inset-0 rounded-lg bg-white dark:bg-[#FEFEFE] border border-slate-300/60 dark:border-gray-600/40 shadow-inner" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }} />
         {src ? (
@@ -183,11 +189,11 @@ export const Lid = ({
         ) : children ? (
           <div className="absolute inset-1 h-[calc(100%-0.5rem)] w-[calc(100%-0.5rem)] rounded-lg overflow-hidden" style={{ 
             backfaceVisibility: 'hidden', 
-            WebkitBackfaceVisibility: 'hidden',
             transform: 'translateZ(0)',
-            WebkitTransform: 'translateZ(0)',
-            willChange: 'transform'
-          }}>
+            willChange: 'transform',
+            imageRendering: 'crisp-edges',
+            textRendering: 'optimizeLegibility',
+          } as React.CSSProperties}>
             {children}
           </div>
         ) : null}

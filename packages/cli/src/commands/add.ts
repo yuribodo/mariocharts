@@ -10,16 +10,80 @@ import { AddOptions } from '../utils/types.js';
 import { Logger } from '../utils/logger.js';
 import { defaultRegistry } from '../utils/registry.js';
 
+// Security utilities for path validation
+function sanitizeFileName(fileName: string): string {
+  // Remove any path traversal attempts and dangerous characters
+  return fileName
+    .replace(/\.\./g, '') // Remove .. path traversal
+    .replace(/[<>:"|?*]/g, '') // Remove invalid filename characters
+    .replace(/^\.+/, '') // Remove leading dots
+    .replace(/\s+/g, '-') // Replace spaces with dashes
+    .toLowerCase();
+}
+
+function validatePath(targetPath: string, basePath: string): boolean {
+  // Resolve both paths to absolute paths
+  const resolvedTarget = path.resolve(targetPath);
+  const resolvedBase = path.resolve(basePath);
+  
+  // Check if the target path is within the base path
+  const relativePath = path.relative(resolvedBase, resolvedTarget);
+  
+  // If the relative path starts with .. or is an absolute path, it's outside the base
+  return !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+}
+
+function isValidComponentType(componentType: string): boolean {
+  const validTypes = ['chart', 'ui', 'layout', 'filter', 'primitive'];
+  return validTypes.includes(componentType);
+}
+
 const logger = new Logger();
 
 export async function addComponents(components: string[], options: AddOptions = {}) {
   const cwd = options.cwd || process.cwd();
   
   // Verificar se o projeto foi inicializado
-  const config = await getConfig(cwd);
+  let config = await getConfig(cwd);
   if (!config) {
-    logger.error('Mario Charts not initialized. Run `mario-charts init` first.');
-    return;
+    // Auto-init like shadcn
+    const { shouldInit } = await inquirer.prompt({
+      type: 'confirm',
+      name: 'shouldInit',
+      message: 'You need to create a mario-charts.json file to add components. Proceed?',
+      default: true,
+    });
+
+    if (!shouldInit) {
+      logger.info('Installation cancelled.');
+      return;
+    }
+
+    // Create default config
+    const defaultConfig = {
+      style: 'default',
+      rsc: false,
+      tsx: true,
+      tailwind: {
+        config: 'tailwind.config.ts',
+        css: 'src/app/globals.css',
+        baseColor: 'slate',
+        cssVariables: true,
+        prefix: '',
+      },
+      aliases: {
+        components: '@/components',
+        utils: '@/lib/utils',
+        ui: '@/components/ui',
+        charts: '@/components/charts',
+      },
+    };
+
+    const configPath = path.join(cwd, 'mario-charts.json');
+    await fs.writeJSON(configPath, defaultConfig, { spaces: 2 });
+    logger.success('Created mario-charts.json');
+    
+    config = defaultConfig;
   }
 
   const resolvedConfig = await resolveConfigPaths(cwd, config);
@@ -238,29 +302,62 @@ async function installComponent(
 }
 
 function resolveComponentPath(fileName: string, componentType: string, config: any, cwd: string): string {
-  let basePath: string;
-
-  switch (componentType) {
-    case 'chart':
-      basePath = config.aliases.charts.replace('@/', '');
-      break;
-    case 'ui':
-      basePath = config.aliases.ui.replace('@/', '');
-      break;
-    case 'layout':
-      basePath = config.aliases.components.replace('@/', '') + '/layout';
-      break;
-    case 'filter':
-      basePath = config.aliases.components.replace('@/', '') + '/filters';
-      break;
-    case 'primitive':
-      basePath = config.aliases.components.replace('@/', '') + '/primitives';
-      break;
-    default:
-      basePath = config.aliases.components.replace('@/', '');
+  // Security: Validate component type
+  if (!isValidComponentType(componentType)) {
+    throw new Error(`Invalid component type: ${componentType}`);
   }
 
-  return path.resolve(cwd, basePath, fileName);
+  // Security: Sanitize filename to prevent path traversal
+  const sanitizedFileName = sanitizeFileName(fileName);
+  if (!sanitizedFileName || sanitizedFileName !== fileName.toLowerCase().replace(/[^a-z0-9\-]/g, '-')) {
+    logger.warn(`Filename was sanitized from "${fileName}" to "${sanitizedFileName}"`);
+  }
+
+  // Detect if project uses src/ directory
+  const usesSrcDir = fs.existsSync(path.join(cwd, 'src'));
+  const srcPrefix = usesSrcDir ? 'src/' : '';
+
+  // Resolve base path based on component type
+  let basePath: string;
+  switch (componentType) {
+    case 'chart':
+      basePath = config.aliases.charts.replace('@/', srcPrefix);
+      break;
+    case 'ui':
+      basePath = config.aliases.ui.replace('@/', srcPrefix);
+      break;
+    case 'layout':
+      basePath = config.aliases.components.replace('@/', srcPrefix) + '/layout';
+      break;
+    case 'filter':
+      basePath = config.aliases.components.replace('@/', srcPrefix) + '/filters';
+      break;
+    case 'primitive':
+      basePath = config.aliases.components.replace('@/', srcPrefix) + '/primitives';
+      break;
+    default:
+      basePath = config.aliases.components.replace('@/', srcPrefix);
+  }
+
+  // Security: Ensure basePath is clean
+  basePath = path.normalize(basePath);
+  
+  // Create the target path
+  const targetPath = path.resolve(cwd, basePath, sanitizedFileName);
+  
+  // Security: Validate that the resolved path is within the project directory
+  const projectRoot = path.resolve(cwd);
+  if (!validatePath(targetPath, projectRoot)) {
+    throw new Error(`Security violation: Path ${targetPath} is outside project directory ${projectRoot}`);
+  }
+
+  // Security: Additional check - ensure we're not writing to system directories
+  const resolvedBasePath = path.resolve(cwd, basePath);
+  if (!validatePath(targetPath, resolvedBasePath)) {
+    throw new Error(`Security violation: Path ${targetPath} is outside intended directory ${resolvedBasePath}`);
+  }
+
+  return targetPath;
 }
 
 function getComponentImportPath(component: any, config: any): string {

@@ -54,8 +54,26 @@ export const registryItemSchema = z.object({
 
 export type RegistryItem = z.infer<typeof registryItemSchema>;
 
+// Schema para itens do index (sem files)
+export const registryIndexItemSchema = z.object({
+  name: z.string(),
+  type: z.enum(['chart', 'ui', 'layout', 'filter', 'primitive']),
+  category: z.string(),
+  subcategory: z.string().optional(),
+  description: z.string(),
+  dependencies: z.array(z.string()).default([]),
+  devDependencies: z.array(z.string()).default([]),
+  registryDependencies: z.array(z.string()).default([]),
+  peerDependencies: z.array(z.string()).default([]),
+  meta: z.object({
+    importName: z.string().optional(),
+    exportName: z.string().optional(),
+    displayName: z.string().optional(),
+  }).optional(),
+});
+
 // Resposta da API do registry
-export const registryIndexSchema = z.array(registryItemSchema);
+export const registryIndexSchema = z.array(registryIndexItemSchema);
 export type RegistryIndex = z.infer<typeof registryIndexSchema>;
 
 // Comandos CLI
