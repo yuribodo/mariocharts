@@ -57,25 +57,39 @@ export const MacbookScroll = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Official Aceternity values - exact match
   const scaleX = useTransform(
     scrollYProgress,
-    [0, isMobile ? 0.5 : 0.4],
+    [0, 0.3],
     [1.2, isMobile ? 1 : 1.5],
   );
   const scaleY = useTransform(
     scrollYProgress,
-    [0, isMobile ? 0.5 : 0.4],
+    [0, 0.3],
     [0.6, isMobile ? 1 : 1.5],
   );
-  const translate = useTransform(scrollYProgress, [0, 0.6, 1], [0, isMobile ? 400 : 600, isMobile ? 800 : 1200]);
-  const rotate = useTransform(scrollYProgress, [0.05, 0.1, isMobile ? 0.5 : 0.3], [-28, -28, 0]);
+  
+  // Official translation values
+  const translate = useTransform(
+    scrollYProgress, 
+    [0, 1], 
+    [0, 1500]
+  );
+  
+  // Official rotation - holds at -28, then snaps to 0
+  const rotate = useTransform(
+    scrollYProgress, 
+    [0.1, 0.12, 0.3], 
+    [-28, -28, 0]
+  );
+  
   const textTransform = useTransform(scrollYProgress, [0, isMobile ? 0.25 : 0.2], [0, 100]);
   const textOpacity = useTransform(scrollYProgress, [0, isMobile ? 0.15 : 0.12], [1, 0]);
 
   return (
     <div
       ref={ref}
-      className="flex min-h-[150vh] shrink-0 scale-[0.6] transform flex-col items-center justify-start py-8 [perspective:800px] sm:min-h-[180vh] sm:scale-[0.7] md:min-h-[180vh] md:scale-100 md:py-60"
+      className="flex min-h-[300vh] shrink-0 scale-[0.6] transform flex-col items-center justify-start py-8 [perspective:800px] sm:min-h-[300vh] sm:scale-[0.7] md:min-h-[300vh] md:scale-100 md:py-60"
     >
       <motion.h2
         style={{
@@ -173,9 +187,9 @@ export const Lid = ({
           transformOrigin: "top",
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden',
-          WebkitFontSmoothing: 'subpixel-antialiased',
-          MozOsxFontSmoothing: 'auto',
-          imageRendering: 'crisp-edges'
+          WebkitFontSmoothing: 'antialiased',
+          willChange: 'transform',
+          contain: 'layout style paint'
         }}
         className="absolute inset-0 h-96 w-[26rem] sm:w-[30rem] md:w-[32rem] rounded-2xl bg-gradient-to-br from-slate-400 to-slate-500 dark:from-[#272729] dark:to-[#1a1a1a] p-2 border border-slate-400/30 dark:border-gray-700/30"
       >
