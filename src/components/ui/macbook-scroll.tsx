@@ -189,15 +189,11 @@ export const Lid = ({
         ) : children ? (
           <div className="absolute inset-1 h-[calc(100%-0.5rem)] w-[calc(100%-0.5rem)] rounded-lg overflow-hidden" style={{ 
             backfaceVisibility: 'hidden', 
-            WebkitBackfaceVisibility: 'hidden',
             transform: 'translateZ(0)',
-            WebkitTransform: 'translateZ(0)',
             willChange: 'transform',
             imageRendering: 'crisp-edges',
-            WebkitImageRendering: 'crisp-edges',
             textRendering: 'optimizeLegibility',
-            WebkitFontSmoothing: 'subpixel-antialiased'
-          }}>
+          } as React.CSSProperties}>
             {children}
           </div>
         ) : null}

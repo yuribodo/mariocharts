@@ -55,7 +55,7 @@ export function SimpleSelect({
       case "Enter":
       case " ":
         e.preventDefault();
-        if (isOpen && highlightedIndex >= 0) {
+        if (isOpen && highlightedIndex >= 0 && options[highlightedIndex]) {
           onValueChange(options[highlightedIndex].value);
           setIsOpen(false);
           setHighlightedIndex(-1);

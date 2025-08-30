@@ -57,8 +57,10 @@ export function AnimatedCheckbox({
             : "bg-transparent border-border hover:border-primary/50",
           disabled && "cursor-not-allowed"
         )}
-        whileHover={!disabled ? { scale: 1.05 } : undefined}
-        whileTap={!disabled ? { scale: 0.95 } : undefined}
+        {...(!disabled && {
+          whileHover: { scale: 1.05 },
+          whileTap: { scale: 0.95 }
+        })}
         transition={{ duration: 0.15 }}
       >
         {/* Checkmark */}

@@ -61,7 +61,9 @@ export function StyledSelect({
           // Smooth transitions
           "transition-all duration-200 ease-out"
         )}
-        whileHover={!disabled ? { scale: 1.01 } : undefined}
+        {...(!disabled && {
+          whileHover: { scale: 1.01 }
+        })}
         whileFocus={{ scale: 1.02 }}
         transition={{ duration: 0.15 }}
       >
