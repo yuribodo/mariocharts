@@ -29,7 +29,7 @@ const DEFAULT_COLORS = [
 ] as const;
 
 const DEFAULT_HEIGHT = 300;
-const MARGIN = { top: 10, right: 15, bottom: 25, left: 25 }; // Optimized margins
+const MARGIN = { top: 10, right: 15, bottom: 25, left: 25 };
 
 // Utilities
 function formatValue(value: unknown): string {
@@ -93,10 +93,8 @@ function LoadingState({
     <div className="relative w-full" style={{ height }}>
       <div className={`flex items-center justify-center h-full p-6`}>
         <div className="w-full max-w-full">
-          {/* Loading title skeleton */}
           <div className="animate-pulse bg-muted rounded h-4 w-32 mb-4" />
           
-          {/* Chart area with proper margins */}
           <div 
             className="relative border-l border-b border-muted/30"
             style={{
@@ -106,7 +104,6 @@ function LoadingState({
               marginBottom: MARGIN.bottom,
             }}
           >
-            {/* Loading bars */}
             <div className={`flex ${isVertical ? 'items-end space-x-2 h-full' : 'flex-col justify-center space-y-2 w-full'}`}>
               {Array.from({ length: 5 }).map((_, i) => {
                 const barSize = isVertical 
@@ -127,7 +124,6 @@ function LoadingState({
               })}
             </div>
             
-            {/* Axis labels skeleton */}
             <div className={`absolute ${isVertical ? 'bottom-0 left-0 right-0 flex justify-around mt-2' : 'left-0 top-0 bottom-0 flex flex-col justify-around -ml-8'}`}>
               {Array.from({ length: 5 }).map((_, i) => (
                 <div
@@ -192,7 +188,7 @@ function BarChartComponent<T extends ChartDataItem>({
   const processedBars = useMemo(() => {
     if (!data.length || chartWidth <= 0 || chartHeight <= 0) return [];
     
-    // 1. Extract numeric values
+    // Extract numeric values
     const values = data.map(d => getNumericValue(d, y as string));
     const maxValue = Math.max(...values);
     
@@ -204,7 +200,7 @@ function BarChartComponent<T extends ChartDataItem>({
     const barSpacing = barSize * 0.2;
     const actualBarSize = barSize * 0.8;
     
-    // 2. If all values are 0 or negative, use dimension 0
+    // If all values are 0 or negative, use dimension 0
     if (maxValue <= 0) {
       return data.map((item, index) => ({
         data: item,
@@ -220,7 +216,7 @@ function BarChartComponent<T extends ChartDataItem>({
       }));
     }
     
-    // 3. Process bars normally - using available space efficiently
+    // Process bars normally
     return data.map((item, index) => {
       const value = values[index] || 0;
       
@@ -279,10 +275,9 @@ function BarChartComponent<T extends ChartDataItem>({
     >
       <svg width="100%" height={height} className="overflow-hidden">
         <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
-          {/* Axes - adapt to orientation */}
+          {/* Axes */}
           {orientation === 'vertical' ? (
             <>
-              {/* Y Axis */}
               <line 
                 x1={0} 
                 y1={0} 
@@ -291,8 +286,6 @@ function BarChartComponent<T extends ChartDataItem>({
                 stroke="currentColor" 
                 opacity={0.1} 
               />
-              
-              {/* X Axis - base */}
               <line 
                 x1={0} 
                 y1={chartHeight} 
@@ -305,7 +298,6 @@ function BarChartComponent<T extends ChartDataItem>({
             </>
           ) : (
             <>
-              {/* Y Axis - left side */}
               <line 
                 x1={0} 
                 y1={0} 
@@ -315,8 +307,6 @@ function BarChartComponent<T extends ChartDataItem>({
                 opacity={0.3} 
                 strokeWidth={1.5}
               />
-              
-              {/* X Axis */}
               <line 
                 x1={0} 
                 y1={chartHeight} 
@@ -345,12 +335,12 @@ function BarChartComponent<T extends ChartDataItem>({
             } : {};
             
             const transformOrigin = isVertical 
-              ? `${bar.x + bar.width/2}px ${bar.y + bar.height}px` // Vertical: origin at base
-              : `${bar.x}px ${bar.y + bar.height/2}px`; // Horizontal: origin at left center
+              ? `${bar.x + bar.width/2}px ${bar.y + bar.height}px`
+              : `${bar.x}px ${bar.y + bar.height/2}px`;
             
             return (
               <g key={bar.index}>
-                {/* Invisible hit area for outline variant - captures mouse events across entire bar */}
+                {/* Invisible hit area for outline variant */}
                 {!isFilled && (
                   <rect
                     x={bar.x}
@@ -388,7 +378,7 @@ function BarChartComponent<T extends ChartDataItem>({
             );
           })}
           
-          {/* Labels - adapt to orientation */}
+          {/* Labels */}
           {processedBars.map((bar) => {
             const isVertical = orientation === 'vertical';
             

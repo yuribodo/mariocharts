@@ -1,0 +1,32 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "mario-charts",
+  "description": "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box",
+  "homepage": "https://mariocharts.com",
+  "items": [
+    {
+      "name": "bar-chart",
+      "type": "registry:component",
+      "title": "Bar Chart",
+      "description": "A responsive and customizable bar chart component with animations and TypeScript support",
+      "registryDependencies": [],
+      "dependencies": [
+        "framer-motion",
+        "class-variance-authority",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "devDependencies": [],
+      "files": [
+        {
+          "path": "components/charts/bar-chart.tsx",
+          "type": "registry:component"
+        }
+      ],
+      "meta": {
+        "category": "charts",
+        "subcategory": "basic"
+      }
+    }
+  ]
+}
