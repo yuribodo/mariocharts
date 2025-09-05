@@ -147,7 +147,7 @@ npx mario-charts@latest add bar-chart line-chart kpi-card`,
 ];
 
 export default function BarChartPage() {
-  const [selectedBar, setSelectedBar] = useState<any>(null);
+  const [selectedBar, setSelectedBar] = useState<Record<string, unknown> | null>(null);
   const [showAnimation, setShowAnimation] = useState(true);
   const [chartKey, setChartKey] = useState(0);
   const [variant, setVariant] = useState<'filled' | 'outline'>('filled');
@@ -243,7 +243,7 @@ export default function BarChartPage() {
             {/* Interactive feedback */}
             <div className="p-3 bg-muted/50 rounded-lg border text-sm">
               <div className="font-medium">
-                Selected: {selectedBar ? `${selectedBar.month} - $${selectedBar.revenue.toLocaleString()}` : 'Click a bar to select'}
+                Selected: {selectedBar ? `${selectedBar.month} - $${(selectedBar.revenue as number).toLocaleString()}` : 'Click a bar to select'}
               </div>
             </div>
             
