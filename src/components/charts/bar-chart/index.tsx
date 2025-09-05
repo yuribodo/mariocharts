@@ -161,7 +161,7 @@ function EmptyState() {
       <div className="text-center space-y-2">
         <div className="text-muted-foreground">No Data</div>
         <div className="text-sm text-muted-foreground">
-          There's no data to display
+          There&apos;s no data to display
         </div>
       </div>
     </div>
