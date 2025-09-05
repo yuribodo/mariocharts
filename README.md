@@ -115,7 +115,7 @@ export function Dashboard() {
 ### Phase 1: Essential Core
 - ✅ **BarChart** - Responsive bar charts with filled/outline variants, vertical/horizontal orientations, and smooth animations
 - ⏳ **LineChart** - Time series line charts
-- ✅ **KPICard** - Metric cards with sparklines
+- ⏳ **KPICard** - Metric cards with sparklines
 - ⏳ **AreaChart** - Area charts for cumulative data
 
 ### Phase 2: Fundamental Expansion  
@@ -126,7 +126,6 @@ export function Dashboard() {
 
 ### Phase 3: Advanced Features
 - ⏳ **ScatterPlot** - Correlation analysis charts
-- ⏳ **FunnelChart** - Conversion funnel visualization
 - ⏳ **Heatmap** - Pattern recognition charts
 - ⏳ **ProgressBar** - Custom progress indicators
 
@@ -249,29 +248,6 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ## 📖 Documentation
 
 - 📚 [Component Documentation](https://mario-charts.dev/docs)
-- 🎮 [Interactive Playground](https://mario-charts.dev/playground)
-- 📘 [API Reference](https://mario-charts.dev/api)
-- 💡 [Examples](https://mario-charts.dev/examples)
-
-## 🗺️ Roadmap
-
-### Q1 2024
-- [ ] Complete Phase 1 components (LineChart, AreaChart)
-- [ ] CLI tooling improvements
-- [ ] Storybook documentation
-- [ ] Performance optimizations
-
-### Q2 2024  
-- [ ] Phase 2 components (PieChart, DataTable, StackedBar, Gauge)
-- [ ] Theme customization UI
-- [ ] Advanced animations
-- [ ] Mobile optimizations
-
-### Q3 2024
-- [ ] Phase 3 components (Scatter, Funnel, Heatmap)
-- [ ] Plugin system
-- [ ] Advanced filtering
-- [ ] Accessibility audit
 
 ## 📄 License
 
@@ -291,4 +267,4 @@ Mario Charts is built on top of these amazing open source projects:
 
 **Made with ❤️ by the Mario Charts team**
 
-[📧 Contact](mailto:hello@mario-charts.dev) · [🐦 Twitter](https://twitter.com/mariocharts) · [💬 Discord](https://discord.gg/mariocharts)
+[🐦 Twitter](https://twitter.com/marioyuriofc)
