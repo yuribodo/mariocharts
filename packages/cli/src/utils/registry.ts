@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 import path from 'path';
 import fs from 'fs-extra';
-import { z } from 'zod';
+// Removed unused 'z' import
 import { RegistryIndex, RegistryItem, registryIndexSchema, registryItemSchema } from './types.js';
 import { Logger } from './logger.js';
 
@@ -991,13 +991,11 @@ function findLocalRegistryPath(): string | null {
 
 export class RegistryClient {
   private baseUrl: string;
-  private version: string;
   private useLocal: boolean;
   private localPath: string;
 
-  constructor(baseUrl = DEFAULT_REGISTRY_URL, version = 'latest', useLocal = false) {
+  constructor(baseUrl = DEFAULT_REGISTRY_URL, useLocal = false) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
-    this.version = version;
     
     const localPath = findLocalRegistryPath();
     this.useLocal = useLocal || (localPath !== null);
