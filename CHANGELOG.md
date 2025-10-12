@@ -5,6 +5,26 @@ All notable changes to Mario Charts will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-01-12
+
+### Fixed
+- **StackedBarChart [CRITICAL]** - Fixed per-bar normalization bug where all bars appeared same size regardless of actual values
+  - Now uses global scale across all bars for accurate magnitude comparison
+  - Bars with totals of 20 vs 200 now correctly show proportional heights
+- **StackedBarChart [CRITICAL]** - Stabilized baseline calculation for mixed positive/negative values
+  - Baseline now uses globalMaxNegative instead of per-bar negativeSum
+  - Prevents baseline from jumping between bars
+- **StackedBarChart** - Added segment boundary clamping to prevent overflow outside SVG bounds
+  - All x/y/width/height values clamped to chart dimensions
+- **StackedBarChart** - Added error boundaries for malformed data
+  - Try-catch wrapper around calculations
+  - Validates dimensions and sums are finite
+  - Returns empty array gracefully on errors
+- **Documentation** - Fixed TypeScript errors in docs page
+  - Corrected import paths
+  - Added proper SegmentSelection interface
+  - Typed all callbacks explicitly
+
 ## [0.2.0] - 2025-01-12
 
 ### Added
