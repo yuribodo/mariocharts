@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChartBar, ChartLine } from "@phosphor-icons/react";
+import { ChartBar, ChartLine, ChartBarHorizontal } from "@phosphor-icons/react";
 
 const availableComponents = [
   {
@@ -15,6 +15,12 @@ const availableComponents = [
     href: "/docs/components/line-chart",
     description: "Interactive line charts for time series and trend analysis",
     icon: ChartLine,
+  },
+  {
+    name: "Stacked Bar Chart",
+    href: "/docs/components/stacked-bar-chart",
+    description: "Multi-category stacked bars for composition analysis",
+    icon: ChartBarHorizontal,
   },
 ];
 
