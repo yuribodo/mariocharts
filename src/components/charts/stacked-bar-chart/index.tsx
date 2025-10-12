@@ -231,22 +231,42 @@ function StackedBarChartComponent<T extends ChartDataItem>({
       // 1. Extract values for all y-keys
       const stackValues = y.map(key => getNumericValue(item, key as string));
 
-      // 2. Calculate total value for this bar
-      const totalValue = stackValues.reduce((sum, val) => sum + val, 0);
+      // 2. Separate positive and negative values for proper stacking
+      const positiveSum = stackValues.reduce((sum, val) => sum + Math.max(0, val), 0);
+      const negativeSum = stackValues.reduce((sum, val) => sum + Math.min(0, val), 0);
+      const totalValue = positiveSum + negativeSum;
+      const maxAbsValue = Math.max(positiveSum, Math.abs(negativeSum));
 
-      // 3. Calculate cumulative positions for stacking
-      let cumulativeValue = 0;
+      // 3. Calculate cumulative positions for stacking with baseline support
+      let cumulativePositive = 0;
+      let cumulativeNegative = 0;
+
       const segments: StackSegment[] = y.map((key, stackIndex) => {
         const value = stackValues[stackIndex] || 0;
-        const startValue = cumulativeValue;
-        cumulativeValue += value;
+        const isPositive = value >= 0;
 
         if (isVertical) {
-          // Vertical: stack from bottom to top
-          const segmentHeight = totalValue > 0 ? (value / totalValue) * chartHeight : 0;
-          const segmentY = totalValue > 0
-            ? chartHeight - (cumulativeValue / totalValue) * chartHeight
-            : chartHeight;
+          // Vertical: positive values stack upward from baseline, negative downward
+          let segmentHeight: number;
+          let segmentY: number;
+
+          if (maxAbsValue === 0) {
+            // All values are zero
+            segmentHeight = 0;
+            segmentY = chartHeight / 2; // Center baseline
+          } else if (isPositive) {
+            // Positive segment: stack upward from baseline
+            const baseline = negativeSum === 0 ? chartHeight : chartHeight * (Math.abs(negativeSum) / maxAbsValue);
+            segmentHeight = (value / maxAbsValue) * chartHeight;
+            segmentY = baseline - cumulativePositive - segmentHeight;
+            cumulativePositive += segmentHeight;
+          } else {
+            // Negative segment: stack downward from baseline
+            const baseline = negativeSum === 0 ? chartHeight : chartHeight * (Math.abs(negativeSum) / maxAbsValue);
+            segmentHeight = (Math.abs(value) / maxAbsValue) * chartHeight;
+            segmentY = baseline + cumulativeNegative;
+            cumulativeNegative += segmentHeight;
+          }
 
           return {
             key: String(key),
@@ -260,9 +280,27 @@ function StackedBarChartComponent<T extends ChartDataItem>({
             stackIndex,
           };
         } else {
-          // Horizontal: stack from left to right
-          const segmentWidth = totalValue > 0 ? (value / totalValue) * chartWidth : 0;
-          const segmentX = totalValue > 0 ? (startValue / totalValue) * chartWidth : 0;
+          // Horizontal: positive values stack rightward from baseline, negative leftward
+          let segmentWidth: number;
+          let segmentX: number;
+
+          if (maxAbsValue === 0) {
+            // All values are zero
+            segmentWidth = 0;
+            segmentX = 0;
+          } else if (isPositive) {
+            // Positive segment: stack rightward from baseline
+            const baseline = negativeSum === 0 ? 0 : chartWidth * (Math.abs(negativeSum) / maxAbsValue);
+            segmentWidth = (value / maxAbsValue) * chartWidth;
+            segmentX = baseline + cumulativePositive;
+            cumulativePositive += segmentWidth;
+          } else {
+            // Negative segment: stack leftward from baseline
+            const baseline = negativeSum === 0 ? 0 : chartWidth * (Math.abs(negativeSum) / maxAbsValue);
+            segmentWidth = (Math.abs(value) / maxAbsValue) * chartWidth;
+            segmentX = baseline - cumulativeNegative - segmentWidth;
+            cumulativeNegative += segmentWidth;
+          }
 
           return {
             key: String(key),
@@ -370,19 +408,47 @@ function StackedBarChartComponent<T extends ChartDataItem>({
                 const lastSegment = bar.segments[bar.segments.length - 1];
                 const isVertical = orientation === 'vertical';
 
+                // Calculate full bar dimensions for both orientations
+                const hitAreaX = firstSegment?.x ?? 0;
+                const hitAreaY = isVertical ? (lastSegment?.y ?? 0) : (firstSegment?.y ?? 0);
+
+                // For horizontal, sum all segment widths; for vertical, use segment width
+                const hitAreaWidth = isVertical
+                  ? (firstSegment?.width ?? 0)
+                  : bar.segments.reduce((sum, seg) => sum + seg.width, 0);
+
+                // For vertical, calculate height from first to last; for horizontal, use segment height
+                const hitAreaHeight = isVertical
+                  ? ((firstSegment?.y ?? 0) + (firstSegment?.height ?? 0) - (lastSegment?.y ?? 0))
+                  : (firstSegment?.height ?? 0);
+
                 return (
                   <rect
-                    x={firstSegment?.x ?? 0}
-                    y={isVertical ? (lastSegment?.y ?? 0) : (firstSegment?.y ?? 0)}
-                    width={firstSegment?.width ?? 0}
-                    height={isVertical
-                      ? ((firstSegment?.y ?? 0) + (firstSegment?.height ?? 0) - (lastSegment?.y ?? 0))
-                      : (firstSegment?.height ?? 0)
-                    }
+                    x={hitAreaX}
+                    y={hitAreaY}
+                    width={hitAreaWidth}
+                    height={hitAreaHeight}
                     fill="transparent"
                     className="cursor-pointer"
                     onMouseEnter={() => setHoveredBar(bar.barIndex)}
                     onMouseLeave={() => setHoveredBar(null)}
+                    onClick={() => {
+                      // Trigger callback with the first segment's data
+                      if (onSegmentClick && firstSegment) {
+                        onSegmentClick(bar.data, firstSegment.key, bar.barIndex);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Enter' || e.key === ' ') && firstSegment) {
+                        e.preventDefault();
+                        onSegmentClick?.(bar.data, firstSegment.key, bar.barIndex);
+                      }
+                    }}
+                    onFocus={() => setHoveredBar(bar.barIndex)}
+                    onBlur={() => setHoveredBar(null)}
+                    tabIndex={0}
+                    role="graphics-symbol"
+                    aria-label={`${bar.label}: ${bar.formattedTotal}`}
                   />
                 );
               })()}
@@ -420,15 +486,17 @@ function StackedBarChartComponent<T extends ChartDataItem>({
                     rx={2}
                     className="cursor-pointer"
                     style={{ transformOrigin, pointerEvents: isFilled ? 'auto' : 'none' }}
-                    tabIndex={0}
+                    tabIndex={isFilled ? 0 : -1}
                     role="graphics-symbol"
                     aria-label={`${segment.key}: ${segment.formattedValue}`}
                     {...motionProps}
                     onMouseEnter={() => isFilled && setHoveredBar(bar.barIndex)}
                     onMouseLeave={() => isFilled && setHoveredBar(null)}
-                    onClick={() => onSegmentClick?.(bar.data, segment.key, bar.barIndex)}
+                    onFocus={() => isFilled && setHoveredBar(bar.barIndex)}
+                    onBlur={() => isFilled && setHoveredBar(null)}
+                    onClick={() => isFilled && onSegmentClick?.(bar.data, segment.key, bar.barIndex)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
+                      if (isFilled && (e.key === 'Enter' || e.key === ' ')) {
                         e.preventDefault();
                         onSegmentClick?.(bar.data, segment.key, bar.barIndex);
                       }
