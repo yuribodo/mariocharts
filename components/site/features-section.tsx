@@ -35,7 +35,8 @@ const features = [
   {
     icon: Code,
     title: "Local Code",
-    description: "Components live in your project. Total flexibility."
+    description: "Components live in your project. Total flexibility.",
+    codeSnippet: true
   },
   {
     icon: ChartBar,
