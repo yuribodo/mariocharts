@@ -223,7 +223,7 @@ export default function Home() {
       </section>
 
       {/* MacBook Scroll Demo */}
-      <section className="snap-center">
+      {/* <section className="snap-center">
         <MacbookScroll
         title={
           <div className="text-center">
@@ -231,7 +231,7 @@ export default function Home() {
               See it in action
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Interactive dashboard built with Mario Charts components. 
+              Interactive dashboard built with Mario Charts components.
               Responsive, accessible, and ready to customize.
             </p>
           </div>
@@ -240,7 +240,6 @@ export default function Home() {
       >
         <div className="bg-background p-4 rounded-xl border shadow-lg max-w-full overflow-hidden">
           <div className="space-y-4">
-            {/* Premium Header */}
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -264,7 +263,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* KPI Cards Grid */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-card border rounded-lg p-3 space-y-1 hover:shadow-md transition-shadow">
                 <div className="text-xs text-muted-foreground">Revenue</div>
@@ -283,14 +281,13 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Main Revenue Trend */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-semibold">Monthly Revenue Trend</h4>
                 <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded">12 months</span>
               </div>
               <div className="bg-card p-3 rounded-lg border">
-                <BarChart 
+                <BarChart
                   data={[
                     { month: 'Jan', revenue: 78000 },
                     { month: 'Feb', revenue: 85000 },
@@ -317,14 +314,13 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Categories Performance */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-semibold">Top Categories</h4>
                 <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded">YTD Performance</span>
               </div>
               <div className="bg-card p-3 rounded-lg border">
-                <BarChart 
+                <BarChart
                   data={[
                     { category: 'Electronics', sales: 425000, growth: 28 },
                     { category: 'Fashion', sales: 312000, growth: 15 },
@@ -347,9 +343,8 @@ export default function Home() {
         </div>
         </MacbookScroll>
       </section>
-      
-      {/* Additional scroll space for desktop centering */}
-      <div className="h-0 md:h-[80vh]"></div>
+
+      <div className="h-0 md:h-[80vh]"></div> */}
     </div>
   );
 }
