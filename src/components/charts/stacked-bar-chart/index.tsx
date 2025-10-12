@@ -226,18 +226,33 @@ function StackedBarChartComponent<T extends ChartDataItem>({
     const barSpacing = barSize * 0.2;
     const actualBarSize = barSize * 0.8;
 
-    // Process each bar with stacked segments
+    // 1. Calculate GLOBAL maximum across ALL bars to maintain proportional scaling
+    let globalMaxPositive = 0;
+    let globalMaxNegative = 0;
+
+    data.forEach(item => {
+      const stackValues = y.map(key => getNumericValue(item, key as string));
+      const positiveSum = stackValues.reduce((sum, val) => sum + Math.max(0, val), 0);
+      const negativeSum = stackValues.reduce((sum, val) => sum + Math.min(0, val), 0);
+
+      globalMaxPositive = Math.max(globalMaxPositive, positiveSum);
+      globalMaxNegative = Math.min(globalMaxNegative, negativeSum);
+    });
+
+    // Global scale factor - use the larger of positive or negative extent
+    const globalMaxAbsValue = Math.max(globalMaxPositive, Math.abs(globalMaxNegative));
+
+    // Process each bar with stacked segments using GLOBAL scale
     return data.map((item, barIndex) => {
-      // 1. Extract values for all y-keys
+      // 2. Extract values for all y-keys
       const stackValues = y.map(key => getNumericValue(item, key as string));
 
-      // 2. Separate positive and negative values for proper stacking
+      // 3. Separate positive and negative values for this bar
       const positiveSum = stackValues.reduce((sum, val) => sum + Math.max(0, val), 0);
       const negativeSum = stackValues.reduce((sum, val) => sum + Math.min(0, val), 0);
       const totalValue = positiveSum + negativeSum;
-      const maxAbsValue = Math.max(positiveSum, Math.abs(negativeSum));
 
-      // 3. Calculate cumulative positions for stacking with baseline support
+      // 4. Calculate cumulative positions for stacking with baseline support
       let cumulativePositive = 0;
       let cumulativeNegative = 0;
 
@@ -250,20 +265,20 @@ function StackedBarChartComponent<T extends ChartDataItem>({
           let segmentHeight: number;
           let segmentY: number;
 
-          if (maxAbsValue === 0) {
+          if (globalMaxAbsValue === 0) {
             // All values are zero
             segmentHeight = 0;
             segmentY = chartHeight / 2; // Center baseline
           } else if (isPositive) {
             // Positive segment: stack upward from baseline
-            const baseline = negativeSum === 0 ? chartHeight : chartHeight * (Math.abs(negativeSum) / maxAbsValue);
-            segmentHeight = (value / maxAbsValue) * chartHeight;
+            const baseline = globalMaxNegative === 0 ? chartHeight : chartHeight * (Math.abs(globalMaxNegative) / globalMaxAbsValue);
+            segmentHeight = (value / globalMaxAbsValue) * chartHeight;
             segmentY = baseline - cumulativePositive - segmentHeight;
             cumulativePositive += segmentHeight;
           } else {
             // Negative segment: stack downward from baseline
-            const baseline = negativeSum === 0 ? chartHeight : chartHeight * (Math.abs(negativeSum) / maxAbsValue);
-            segmentHeight = (Math.abs(value) / maxAbsValue) * chartHeight;
+            const baseline = globalMaxNegative === 0 ? chartHeight : chartHeight * (Math.abs(globalMaxNegative) / globalMaxAbsValue);
+            segmentHeight = (Math.abs(value) / globalMaxAbsValue) * chartHeight;
             segmentY = baseline + cumulativeNegative;
             cumulativeNegative += segmentHeight;
           }
@@ -284,20 +299,20 @@ function StackedBarChartComponent<T extends ChartDataItem>({
           let segmentWidth: number;
           let segmentX: number;
 
-          if (maxAbsValue === 0) {
+          if (globalMaxAbsValue === 0) {
             // All values are zero
             segmentWidth = 0;
             segmentX = 0;
           } else if (isPositive) {
             // Positive segment: stack rightward from baseline
-            const baseline = negativeSum === 0 ? 0 : chartWidth * (Math.abs(negativeSum) / maxAbsValue);
-            segmentWidth = (value / maxAbsValue) * chartWidth;
+            const baseline = globalMaxNegative === 0 ? 0 : chartWidth * (Math.abs(globalMaxNegative) / globalMaxAbsValue);
+            segmentWidth = (value / globalMaxAbsValue) * chartWidth;
             segmentX = baseline + cumulativePositive;
             cumulativePositive += segmentWidth;
           } else {
             // Negative segment: stack leftward from baseline
-            const baseline = negativeSum === 0 ? 0 : chartWidth * (Math.abs(negativeSum) / maxAbsValue);
-            segmentWidth = (Math.abs(value) / maxAbsValue) * chartWidth;
+            const baseline = globalMaxNegative === 0 ? 0 : chartWidth * (Math.abs(globalMaxNegative) / globalMaxAbsValue);
+            segmentWidth = (Math.abs(value) / globalMaxAbsValue) * chartWidth;
             segmentX = baseline - cumulativeNegative - segmentWidth;
             cumulativeNegative += segmentWidth;
           }
