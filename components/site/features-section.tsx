@@ -187,8 +187,8 @@ export function FeaturesSection() {
                     style={{
                       transformStyle: "preserve-3d",
                       boxShadow: hoveredCard === index
-                        ? "0 25px 60px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(var(--primary), 0.1)"
-                        : "0 15px 40px -8px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(var(--border), 0.08)"
+                        ? "0 25px 60px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px hsl(var(--primary) / 0.1)"
+                        : "0 15px 40px -8px rgba(0, 0, 0, 0.12), 0 0 0 1px hsl(var(--border) / 0.08)"
                     }}
                     whileHover={shouldReduceMotion ? {} : {
                       rotateY: 3,
@@ -239,11 +239,11 @@ export function FeaturesSection() {
                       {/* Code Snippet */}
                       {feature.codeSnippet && (
                         <motion.div
-                          className="mt-auto rounded-xl border border-border/40 bg-muted/40 px-4 py-3 font-mono text-xs backdrop-blur-sm"
+                          className="mt-auto rounded-xl border bg-muted/40 px-4 py-3 font-mono text-xs backdrop-blur-sm"
                           style={{
                             borderColor: hoveredCard === index
-                              ? 'rgba(var(--primary), 0.2)'
-                              : 'rgba(var(--border), 0.4)'
+                              ? 'hsl(var(--primary) / 0.2)'
+                              : 'hsl(var(--border) / 0.4)'
                           }}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
