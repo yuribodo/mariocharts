@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Breadcrumbs } from "../../../../components/site/breadcrumbs";
-import { StackedBarChart } from "@/src/components/charts/stacked-bar-chart";
+import { StackedBarChart } from "../../../../src/components/charts/stacked-bar-chart";
 import { ExampleShowcase } from "../../../../components/ui/example-showcase";
 import { APIReference } from "../../../../components/ui/api-reference";
 import { InstallationGuide } from "../../../../components/ui/installation-guide";
@@ -182,12 +182,15 @@ const data = [
   }
 ];
 
+// Type for segment selection with proper data structure
+interface SegmentSelection {
+  data: { month: string; [key: string]: string | number };
+  key: string;
+  index: number;
+}
+
 export default function StackedBarChartPage() {
-  const [selectedSegment, setSelectedSegment] = useState<{
-    data: Record<string, unknown>;
-    key: string;
-    index: number;
-  } | null>(null);
+  const [selectedSegment, setSelectedSegment] = useState<SegmentSelection | null>(null);
 
   // Basic example controls
   const [showAnimation, setShowAnimation] = useState(true);
@@ -288,7 +291,7 @@ export default function StackedBarChartPage() {
                 showLegend={showLegend}
                 animation={showAnimation}
                 colors={['#3b82f6', '#10b981', '#f59e0b']}
-                onSegmentClick={(data, stackKey, index) => {
+                onSegmentClick={(data: SegmentSelection['data'], stackKey: string, index: number) => {
                   setSelectedSegment({ data, key: stackKey, index });
                   console.log('Clicked segment:', { data, stackKey, index });
                 }}
@@ -299,7 +302,11 @@ export default function StackedBarChartPage() {
             <div className="p-3 bg-muted/50 rounded-lg border text-sm">
               <div className="font-medium">
                 Selected: {selectedSegment
-                  ? `${selectedSegment.data.month} - ${selectedSegment.key}: $${(selectedSegment.data[selectedSegment.key] as number).toLocaleString()}`
+                  ? (() => {
+                      const value = selectedSegment.data[selectedSegment.key];
+                      const formattedValue = typeof value === 'number' ? value.toLocaleString() : String(value);
+                      return `${selectedSegment.data.month} - ${selectedSegment.key}: $${formattedValue}`;
+                    })()
                   : 'Click a segment to select'}
               </div>
             </div>
@@ -383,7 +390,7 @@ export function RevenueBreakdownChart() {
       y={["desktop", "mobile", "services"]}
       colors={['#3b82f6', '#10b981', '#f59e0b']}
       showLegend
-      onSegmentClick={(data, stackKey, index) => {
+      onSegmentClick={(data: SegmentSelection['data'], stackKey: string, index: number) => {
         setSelected({ data, stackKey, index });
         console.log('Clicked:', { data, stackKey, index });
       }}
