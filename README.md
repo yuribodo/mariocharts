@@ -114,14 +114,14 @@ export function Dashboard() {
 
 ### Phase 1: Essential Core
 - ✅ **BarChart** - Responsive bar charts with filled/outline variants, vertical/horizontal orientations, and smooth animations
-- ⏳ **LineChart** - Time series line charts
+- ✅ **LineChart** - Time series line charts
 - ⏳ **KPICard** - Metric cards with sparklines
 - ⏳ **AreaChart** - Area charts for cumulative data
 
 ### Phase 2: Fundamental Expansion  
 - ⏳ **PieChart/DonutChart** - Pie and donut charts
 - ⏳ **DataTable** - Data tables with filters and sorting
-- ⏳ **StackedBarChart** - Multi-series bar charts
+- ✅ **StackedBarChart** - Multi-series bar charts
 - ⏳ **GaugeChart** - Progress and goal indicators
 
 ### Phase 3: Advanced Features
@@ -257,7 +257,6 @@ Mario Charts is licensed under the [MIT License](LICENSE).
 
 Mario Charts is built on top of these amazing open source projects:
 
-- [Recharts](https://recharts.org/) - Chart rendering engine
 - [Radix UI](https://radix-ui.com/) - Accessible component primitives  
 - [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
 - [Framer Motion](https://framer.com/motion/) - Animation library
