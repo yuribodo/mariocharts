@@ -9,6 +9,8 @@ import { MiniBarChart } from "../components/ui/mini-bar-chart";
 import { MiniLineChart } from "../components/ui/mini-line-chart";
 import { BarChart } from "../src/components/charts/bar-chart";
 import { Logo } from "../components/site/logo";
+import { ProblemSection } from "../components/site/problem-section";
+import { FeaturesSection } from "../components/site/features-section";
 
 export default function Home() {
   const [copySuccess, setCopySuccess] = useState(false);
@@ -222,129 +224,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* MacBook Scroll Demo */}
-      {/* <section className="snap-center">
-        <MacbookScroll
-        title={
-          <div className="text-center">
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              See it in action
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Interactive dashboard built with Mario Charts components.
-              Responsive, accessible, and ready to customize.
-            </p>
-          </div>
-        }
-        showGradient={true}
-      >
-        <div className="bg-background p-4 rounded-xl border shadow-lg max-w-full overflow-hidden">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                    Revenue Analytics
-                  </h3>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    <span className="text-xs text-green-600 font-medium">Live</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span>Last 12 months</span>
-                  <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full font-medium">🔥 Hot</span>
-                  <span className="px-2 py-0.5 bg-green-500/10 text-green-600 rounded-full font-medium">📈 +22% Growth</span>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-xl font-bold text-primary">$1.2M</div>
-                <div className="text-xs text-green-600 font-medium">↗ +22.4%</div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-card border rounded-lg p-3 space-y-1 hover:shadow-md transition-shadow">
-                <div className="text-xs text-muted-foreground">Revenue</div>
-                <div className="text-sm font-bold">$1.2M</div>
-                <div className="text-xs text-green-600 font-medium">+22%</div>
-              </div>
-              <div className="bg-card border rounded-lg p-3 space-y-1 hover:shadow-md transition-shadow">
-                <div className="text-xs text-muted-foreground">Orders</div>
-                <div className="text-sm font-bold">8,549</div>
-                <div className="text-xs text-blue-600 font-medium">+18%</div>
-              </div>
-              <div className="bg-card border rounded-lg p-3 space-y-1 hover:shadow-md transition-shadow">
-                <div className="text-xs text-muted-foreground">AOV</div>
-                <div className="text-sm font-bold">$142</div>
-                <div className="text-xs text-orange-600 font-medium">+3.2%</div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold">Monthly Revenue Trend</h4>
-                <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded">12 months</span>
-              </div>
-              <div className="bg-card p-3 rounded-lg border">
-                <BarChart
-                  data={[
-                    { month: 'Jan', revenue: 78000 },
-                    { month: 'Feb', revenue: 85000 },
-                    { month: 'Mar', revenue: 92000 },
-                    { month: 'Apr', revenue: 98000 },
-                    { month: 'May', revenue: 105000 },
-                    { month: 'Jun', revenue: 112000 },
-                    { month: 'Jul', revenue: 118000 },
-                    { month: 'Aug', revenue: 125000 },
-                    { month: 'Sep', revenue: 132000 },
-                    { month: 'Oct', revenue: 128000 },
-                    { month: 'Nov', revenue: 145000 },
-                    { month: 'Dec', revenue: 152000 },
-                  ]}
-                  x="month"
-                  y="revenue"
-                  height={140}
-                  variant="filled"
-                  orientation="vertical"
-                  colors={['#3b82f6', '#1d4ed8', '#2563eb', '#1e40af', '#1e3a8a', '#312e81', '#4c1d95', '#5b21b6', '#7c3aed', '#8b5cf6', '#a855f7', '#c084fc']}
-                  animation={true}
-                  className="w-full"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-semibold">Top Categories</h4>
-                <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded">YTD Performance</span>
-              </div>
-              <div className="bg-card p-3 rounded-lg border">
-                <BarChart
-                  data={[
-                    { category: 'Electronics', sales: 425000, growth: 28 },
-                    { category: 'Fashion', sales: 312000, growth: 15 },
-                    { category: 'Home & Living', sales: 287000, growth: 22 },
-                    { category: 'Sports', sales: 195000, growth: 35 },
-                    { category: 'Books', sales: 89000, growth: 8 },
-                  ]}
-                  x="category"
-                  y="sales"
-                  height={120}
-                  variant="outline"
-                  orientation="horizontal"
-                  colors={['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6']}
-                  animation={true}
-                  className="w-full"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-        </MacbookScroll>
-      </section>
-
-      <div className="h-0 md:h-[80vh]"></div> */}
+      {/* Sticky Scroll Sections */}
+      <ProblemSection />
+      <FeaturesSection />
     </div>
   );
 }
