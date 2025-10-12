@@ -364,6 +364,29 @@ function StackedBarChartComponent<T extends ChartDataItem>({
           {/* Render stacked bars */}
           {processedBars.map((bar) => (
             <g key={bar.barIndex}>
+              {/* Invisible hit area for outline variant - captures mouse events */}
+              {variant === 'outline' && bar.segments.length > 0 && (() => {
+                const firstSegment = bar.segments[0];
+                const lastSegment = bar.segments[bar.segments.length - 1];
+                const isVertical = orientation === 'vertical';
+
+                return (
+                  <rect
+                    x={firstSegment?.x ?? 0}
+                    y={isVertical ? (lastSegment?.y ?? 0) : (firstSegment?.y ?? 0)}
+                    width={firstSegment?.width ?? 0}
+                    height={isVertical
+                      ? ((firstSegment?.y ?? 0) + (firstSegment?.height ?? 0) - (lastSegment?.y ?? 0))
+                      : (firstSegment?.height ?? 0)
+                    }
+                    fill="transparent"
+                    className="cursor-pointer"
+                    onMouseEnter={() => setHoveredBar(bar.barIndex)}
+                    onMouseLeave={() => setHoveredBar(null)}
+                  />
+                );
+              })()}
+
               {/* Render each segment in the stack */}
               {bar.segments.map((segment) => {
                 const isFilled = variant === 'filled';
@@ -396,13 +419,13 @@ function StackedBarChartComponent<T extends ChartDataItem>({
                     strokeWidth={isFilled ? 0 : 2}
                     rx={2}
                     className="cursor-pointer"
-                    style={{ transformOrigin }}
+                    style={{ transformOrigin, pointerEvents: isFilled ? 'auto' : 'none' }}
                     tabIndex={0}
                     role="graphics-symbol"
                     aria-label={`${segment.key}: ${segment.formattedValue}`}
                     {...motionProps}
-                    onMouseEnter={() => setHoveredBar(bar.barIndex)}
-                    onMouseLeave={() => setHoveredBar(null)}
+                    onMouseEnter={() => isFilled && setHoveredBar(bar.barIndex)}
+                    onMouseLeave={() => isFilled && setHoveredBar(null)}
                     onClick={() => onSegmentClick?.(bar.data, segment.key, bar.barIndex)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
