@@ -116,6 +116,54 @@
   }
 }
 
+/* Theme Toggle Animation - Shigure UI Dance Style */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-group(root) {
+    animation-timing-function: var(--expo-in);
+  }
+
+  ::view-transition-new(root) {
+    mask: url('https://media.tenor.com/cyORI7kwShQAAAAi/shigure-ui-dance.gif') center / 0 no-repeat;
+    animation: scale 3s;
+    animation-fill-mode: both;
+  }
+
+  ::view-transition-old(root),
+  .dark::view-transition-old(root) {
+    animation: scale 3s;
+    animation-fill-mode: both;
+  }
+
+  @keyframes scale {
+    0% {
+      mask-size: 0;
+    }
+    10% {
+      mask-size: 50vmax;
+    }
+    90% {
+      mask-size: 50vmax;
+    }
+    100% {
+      mask-size: 2000vmax;
+    }
+  }
+}
+
+/* Theme Toggle Icon Optimization */
+.theme-toggle-icon {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Reduced motion fallback for theme toggle icons */
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle-icon {
+    transition: opacity 0.1s ease !important;
+    transform: none !important;
+  }
+}
+
 /* Reduced motion fallbacks */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -432,6 +480,8 @@ code {
 
 :root {
   --radius: 0.625rem;
+  /* Easing function for theme toggle animation */
+  --expo-in: cubic-bezier(0.95, 0.05, 0.795, 0.035);
   /* Mario Charts Off-White Theme */
   --background: #FEFEFE;
   --foreground: #1A1D23;
