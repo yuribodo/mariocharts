@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { cn } from "../../lib/utils";
 
 interface TOCItem {
@@ -15,6 +16,7 @@ interface TableOfContentsProps {
 }
 
 export function TableOfContents({ className = "" }: TableOfContentsProps) {
+  const pathname = usePathname();
   const [toc, setToc] = useState<TOCItem[]>([]);
   const [activeId, setActiveId] = useState<string>("");
 
@@ -66,21 +68,25 @@ export function TableOfContents({ className = "" }: TableOfContentsProps) {
   }, []);
 
   // Intersection Observer for active section tracking
+  // Re-run when pathname changes to regenerate TOC for new page
   useEffect(() => {
-    generateTOC();
+    // Small delay to ensure DOM is updated after navigation
+    const timeoutId = setTimeout(() => {
+      generateTOC();
+    }, 100);
 
     const headings = document.querySelectorAll('h2, h3, h4');
-    
+
     const observer = new IntersectionObserver(
       (entries) => {
         const visibleEntries = entries.filter(entry => entry.isIntersecting);
-        
+
         if (visibleEntries.length > 0) {
           // Find the topmost visible heading
-          const topEntry = visibleEntries.reduce((top, entry) => 
+          const topEntry = visibleEntries.reduce((top, entry) =>
             entry.boundingClientRect.top < top.boundingClientRect.top ? entry : top
           );
-          
+
           setActiveId(topEntry.target.id);
         }
       },
@@ -92,8 +98,11 @@ export function TableOfContents({ className = "" }: TableOfContentsProps) {
 
     headings.forEach(heading => observer.observe(heading));
 
-    return () => observer.disconnect();
-  }, [generateTOC]);
+    return () => {
+      clearTimeout(timeoutId);
+      observer.disconnect();
+    };
+  }, [generateTOC, pathname]);
 
   // Smooth scroll to heading
   const scrollToHeading = (id: string) => {
