@@ -899,6 +899,63 @@ export { DEFAULT_COLORS, formatValue };`}
 />`}
       />
 
+      {/* Performance Considerations */}
+      <ExampleShowcase
+        title="Performance Considerations"
+        description="Tips for optimal performance when working with large datasets"
+        preview={
+          <div className="space-y-4 text-sm">
+            <div className="p-4 rounded-lg border bg-muted/30">
+              <h4 className="font-medium mb-3">Best Practices</h4>
+              <ul className="space-y-2 text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary">•</span>
+                  <span>For datasets with 50+ slices, aggregate smaller values into an &ldquo;Others&rdquo; category</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary">•</span>
+                  <span>Disable animations with <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">animation=&#123;false&#125;</code> for faster rendering</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary">•</span>
+                  <span>The component uses <code className="px-1 py-0.5 rounded bg-muted font-mono text-xs">useMemo</code> to cache expensive slice calculations</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary">•</span>
+                  <span>ResizeObserver ensures efficient responsive behavior without constant re-renders</span>
+                </li>
+              </ul>
+            </div>
+            <div className="p-4 rounded-lg border border-amber-500/20 bg-amber-500/5">
+              <h4 className="font-medium mb-2 text-amber-600 dark:text-amber-400">Development Warnings</h4>
+              <p className="text-muted-foreground">
+                In development mode, the component logs warnings for invalid data values (NaN, Infinity, or non-numeric types).
+                Check the browser console if your chart displays unexpected results.
+              </p>
+            </div>
+          </div>
+        }
+        code={`// Aggregating small values for better performance
+const aggregatedData = data.reduce((acc, item) => {
+  if (item.percentage < 2) {
+    const others = acc.find(d => d.label === 'Others');
+    if (others) others.value += item.value;
+    else acc.push({ label: 'Others', value: item.value });
+  } else {
+    acc.push(item);
+  }
+  return acc;
+}, []);
+
+// Disable animations for large datasets
+<PieChart
+  data={aggregatedData}
+  value="value"
+  label="label"
+  animation={false}  // Faster rendering
+/>`}
+      />
+
       {/* API Reference */}
       <APIReference
         title="API Reference"

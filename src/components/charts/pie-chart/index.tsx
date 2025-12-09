@@ -47,6 +47,8 @@ const DEFAULT_COLORS = [
 const DEFAULT_HEIGHT = 300;
 const DEFAULT_INNER_RADIUS = 0.6;
 const PADDING = 20;
+const FULL_CIRCLE_THRESHOLD = 360 - 1e-6;
+const ARC_EPSILON = 1e-4;
 
 // Utilities
 function formatValue(value: unknown): string {
@@ -61,12 +63,42 @@ function formatValue(value: unknown): string {
   return String(value);
 }
 
-function getNumericValue(data: ChartDataItem, key: keyof ChartDataItem): number {
+function getNumericValue(
+  data: ChartDataItem,
+  key: keyof ChartDataItem,
+  index?: number
+): number {
   const value = data[key];
-  if (typeof value === 'number' && isFinite(value)) return value;
+
+  if (typeof value === 'number') {
+    if (!isFinite(value)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(
+          `[PieChart] Invalid value at index ${index ?? 'unknown'}: ${value}. Using 0.`
+        );
+      }
+      return 0;
+    }
+    return value;
+  }
+
   if (typeof value === 'string') {
     const parsed = parseFloat(value.replace(/[,$%\s]/g, ''));
-    return isFinite(parsed) ? parsed : 0;
+    if (!isFinite(parsed)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(
+          `[PieChart] Could not parse value at index ${index ?? 'unknown'}: "${value}". Using 0.`
+        );
+      }
+      return 0;
+    }
+    return parsed;
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(
+      `[PieChart] Unexpected value type at index ${index ?? 'unknown'}: ${typeof value}. Using 0.`
+    );
   }
   return 0;
 }
@@ -109,8 +141,8 @@ function describeArc(
   startAngle: number,
   endAngle: number
 ): string {
-  // Handle full circle case (360 degrees)
-  const isFullCircle = Math.abs(endAngle - startAngle) >= 359.99;
+  // Handle full circle case (360 degrees) - use precise threshold for floating-point safety
+  const isFullCircle = Math.abs(endAngle - startAngle) >= FULL_CIRCLE_THRESHOLD;
 
   if (isFullCircle) {
     // For full circle, we draw two arcs
@@ -120,10 +152,10 @@ function describeArc(
       // Full donut
       const outerStart = polarToCartesian(cx, cy, outerRadius, startAngle);
       const outerMid = polarToCartesian(cx, cy, outerRadius, midAngle);
-      const outerEnd = polarToCartesian(cx, cy, outerRadius, endAngle - 0.01);
+      const outerEnd = polarToCartesian(cx, cy, outerRadius, endAngle - ARC_EPSILON);
       const innerStart = polarToCartesian(cx, cy, innerRadius, startAngle);
       const innerMid = polarToCartesian(cx, cy, innerRadius, midAngle);
-      const innerEnd = polarToCartesian(cx, cy, innerRadius, endAngle - 0.01);
+      const innerEnd = polarToCartesian(cx, cy, innerRadius, endAngle - ARC_EPSILON);
 
       return [
         `M ${outerStart.x} ${outerStart.y}`,
@@ -138,7 +170,7 @@ function describeArc(
       // Full pie
       const start = polarToCartesian(cx, cy, outerRadius, startAngle);
       const mid = polarToCartesian(cx, cy, outerRadius, midAngle);
-      const end = polarToCartesian(cx, cy, outerRadius, endAngle - 0.01);
+      const end = polarToCartesian(cx, cy, outerRadius, endAngle - ARC_EPSILON);
 
       return [
         `M ${cx} ${cy}`,
@@ -261,7 +293,7 @@ function PieChartComponent<T extends ChartDataItem>({
     }
 
     // Extract and validate values
-    const values = data.map(d => Math.max(0, getNumericValue(d, value as string)));
+    const values = data.map((d, i) => Math.max(0, getNumericValue(d, value as string, i)));
     const totalValue = values.reduce((sum, v) => sum + v, 0);
 
     if (totalValue <= 0) {
@@ -314,7 +346,7 @@ function PieChartComponent<T extends ChartDataItem>({
 
   // Check for negative values
   const hasNegativeValues = useMemo(() => {
-    return data.some(d => getNumericValue(d, value as string) < 0);
+    return data.some((d, i) => getNumericValue(d, value as string, i) < 0);
   }, [data, value]);
 
   if (loading) return <LoadingState height={height} />;
