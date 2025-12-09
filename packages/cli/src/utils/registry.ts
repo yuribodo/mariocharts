@@ -1033,6 +1033,8 @@ const DEFAULT_COLORS = [
 const DEFAULT_HEIGHT = 300;
 const DEFAULT_INNER_RADIUS = 0.6;
 const PADDING = 20;
+const FULL_CIRCLE_THRESHOLD = 360 - 1e-6;
+const ARC_EPSILON = 1e-4;
 
 // Utilities
 function formatValue(value: unknown): string {
@@ -1047,12 +1049,29 @@ function formatValue(value: unknown): string {
   return String(value);
 }
 
-function getNumericValue(data: ChartDataItem, key: keyof ChartDataItem): number {
+function getNumericValue(data: ChartDataItem, key: keyof ChartDataItem, index?: number): number {
   const value = data[key];
-  if (typeof value === 'number' && isFinite(value)) return value;
+  if (typeof value === 'number') {
+    if (!isFinite(value)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(\`[PieChart] Invalid value at index \${index ?? 'unknown'}: \${value}. Using 0.\`);
+      }
+      return 0;
+    }
+    return value;
+  }
   if (typeof value === 'string') {
     const parsed = parseFloat(value.replace(/[,$%\\s]/g, ''));
-    return isFinite(parsed) ? parsed : 0;
+    if (!isFinite(parsed)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(\`[PieChart] Could not parse value at index \${index ?? 'unknown'}: "\${value}". Using 0.\`);
+      }
+      return 0;
+    }
+    return parsed;
+  }
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(\`[PieChart] Unexpected value type at index \${index ?? 'unknown'}: \${typeof value}. Using 0.\`);
   }
   return 0;
 }
@@ -1088,22 +1107,22 @@ function polarToCartesian(cx: number, cy: number, radius: number, angleInDegrees
 }
 
 function describeArc(cx: number, cy: number, outerRadius: number, innerRadius: number, startAngle: number, endAngle: number): string {
-  const isFullCircle = Math.abs(endAngle - startAngle) >= 359.99;
+  const isFullCircle = Math.abs(endAngle - startAngle) >= FULL_CIRCLE_THRESHOLD;
 
   if (isFullCircle) {
     const midAngle = startAngle + 180;
     if (innerRadius > 0) {
       const outerStart = polarToCartesian(cx, cy, outerRadius, startAngle);
       const outerMid = polarToCartesian(cx, cy, outerRadius, midAngle);
-      const outerEnd = polarToCartesian(cx, cy, outerRadius, endAngle - 0.01);
+      const outerEnd = polarToCartesian(cx, cy, outerRadius, endAngle - ARC_EPSILON);
       const innerStart = polarToCartesian(cx, cy, innerRadius, startAngle);
       const innerMid = polarToCartesian(cx, cy, innerRadius, midAngle);
-      const innerEnd = polarToCartesian(cx, cy, innerRadius, endAngle - 0.01);
+      const innerEnd = polarToCartesian(cx, cy, innerRadius, endAngle - ARC_EPSILON);
       return \`M \${outerStart.x} \${outerStart.y} A \${outerRadius} \${outerRadius} 0 0 1 \${outerMid.x} \${outerMid.y} A \${outerRadius} \${outerRadius} 0 0 1 \${outerEnd.x} \${outerEnd.y} L \${innerEnd.x} \${innerEnd.y} A \${innerRadius} \${innerRadius} 0 0 0 \${innerMid.x} \${innerMid.y} A \${innerRadius} \${innerRadius} 0 0 0 \${innerStart.x} \${innerStart.y} Z\`;
     } else {
       const start = polarToCartesian(cx, cy, outerRadius, startAngle);
       const mid = polarToCartesian(cx, cy, outerRadius, midAngle);
-      const end = polarToCartesian(cx, cy, outerRadius, endAngle - 0.01);
+      const end = polarToCartesian(cx, cy, outerRadius, endAngle - ARC_EPSILON);
       return \`M \${cx} \${cy} L \${start.x} \${start.y} A \${outerRadius} \${outerRadius} 0 0 1 \${mid.x} \${mid.y} A \${outerRadius} \${outerRadius} 0 0 1 \${end.x} \${end.y} Z\`;
     }
   }
@@ -1173,7 +1192,7 @@ function PieChartComponent<T extends ChartDataItem>({
 
   const { processedSlices, total } = useMemo(() => {
     if (!data.length || chartSize <= 0) return { processedSlices: [] as any[], total: 0 };
-    const values = data.map(d => Math.max(0, getNumericValue(d, value as string)));
+    const values = data.map((d, i) => Math.max(0, getNumericValue(d, value as string, i)));
     const totalValue = values.reduce((sum, v) => sum + v, 0);
     if (totalValue <= 0) return { processedSlices: [] as any[], total: 0 };
 
@@ -1200,7 +1219,7 @@ function PieChartComponent<T extends ChartDataItem>({
     return { processedSlices: slices, total: totalValue };
   }, [data, value, label, colors, chartSize, cx, cy, outerRadius, actualInnerRadius, isSemi]);
 
-  const hasNegativeValues = useMemo(() => data.some(d => getNumericValue(d, value as string) < 0), [data, value]);
+  const hasNegativeValues = useMemo(() => data.some((d, i) => getNumericValue(d, value as string, i) < 0), [data, value]);
 
   if (loading) return <LoadingState height={height} />;
   if (error) return <ErrorState error={error} />;
