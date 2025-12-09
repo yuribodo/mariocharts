@@ -50,7 +50,7 @@
     "framer-motion": "^11.11.17",
     "lucide-react": "^0.468.0",
     "motion": "^12.23.12",
-    "next": "15.5.0",
+    "next": "^15.5.7",
     "next-themes": "^0.3.0",
     "prismjs": "^1.30.0",
     "react": ">=18.0.0",
