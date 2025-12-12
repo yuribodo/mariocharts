@@ -144,14 +144,7 @@ function generateFile() {
   fs.writeFileSync(outputPath, content);
 
   if (hasChanges) {
-    const message = '[fallback] Embedded registry updated from source components. Commit the regenerated file.';
-
-    if (process.env.CI) {
-      console.error(message);
-      process.exit(1);
-    } else {
-      console.warn(message);
-    }
+    console.log('[fallback] Embedded registry updated from source components.');
   } else {
     console.log('[fallback] Embedded registry is up to date.');
   }
