@@ -47,6 +47,10 @@ const sidebarNavItems: SidebarNavItem[] = [
         href: "/docs/components/pie-chart"
       },
       {
+        title: "Scatter Plot",
+        href: "/docs/components/scatter-plot"
+      },
+      {
         title: "Stacked Bar Chart",
         href: "/docs/components/stacked-bar-chart"
       }
