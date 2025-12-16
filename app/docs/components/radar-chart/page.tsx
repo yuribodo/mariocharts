@@ -338,10 +338,7 @@ export default function RadarChartPage() {
                 axes={skillsAxes}
                 showDots={showDots}
                 animation={showAnimation}
-                onSeriesClick={(series) => {
-                  setSelectedSeries(series.id);
-                  console.log('Clicked series:', series);
-                }}
+                onSeriesClick={(series) => setSelectedSeries(series.id)}
               />
             </div>
 
