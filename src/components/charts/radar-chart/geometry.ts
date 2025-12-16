@@ -36,6 +36,7 @@ export function polarToCartesian(
  * @returns Angle in radians
  */
 export function calculateAxisAngle(axisIndex: number, totalAxes: number): number {
+  if (totalAxes <= 0) return 0;
   return (2 * Math.PI * axisIndex) / totalAxes;
 }
 
@@ -55,14 +56,15 @@ export function generatePolygonPath(
 
   if (points.length === 1) {
     // Single point - return a small circle marker
-    const { x, y } = firstPoint;
+    const x = firstPoint.x.toFixed(2);
+    const y = firstPoint.y.toFixed(2);
     return `M ${x} ${y} m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0`;
   }
 
   const secondPoint = points[1];
   if (points.length === 2 && secondPoint) {
     // Two points - return a line
-    return `M ${firstPoint.x} ${firstPoint.y} L ${secondPoint.x} ${secondPoint.y}`;
+    return `M ${firstPoint.x.toFixed(2)} ${firstPoint.y.toFixed(2)} L ${secondPoint.x.toFixed(2)} ${secondPoint.y.toFixed(2)}`;
   }
 
   const pathParts = [`M ${firstPoint.x.toFixed(2)} ${firstPoint.y.toFixed(2)}`];

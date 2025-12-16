@@ -74,6 +74,14 @@ export function calculateAxisBounds<T extends ChartDataItem>(
     return { min: axis.min, max: axis.max };
   }
 
+  // Handle empty series - return sensible defaults
+  if (series.length === 0) {
+    return {
+      min: axis.min ?? 0,
+      max: axis.max ?? 1,
+    };
+  }
+
   // Calculate bounds from data
   const values = series.map(s => getNumericValue(s.data, axis.key));
   const dataMin = Math.min(...values);
