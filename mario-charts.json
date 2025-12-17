@@ -26,10 +26,11 @@
   "components": {
     "charts": [
       "bar-chart",
-      "line-chart", 
+      "line-chart",
       "pie-chart",
       "area-chart",
       "scatter-plot",
+      "radar-chart",
       "funnel-chart",
       "gauge-chart",
       "heatmap"

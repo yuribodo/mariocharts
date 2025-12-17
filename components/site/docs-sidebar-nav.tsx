@@ -47,6 +47,10 @@ const sidebarNavItems: SidebarNavItem[] = [
         href: "/docs/components/pie-chart"
       },
       {
+        title: "Radar Chart",
+        href: "/docs/components/radar-chart"
+      },
+      {
         title: "Scatter Plot",
         href: "/docs/components/scatter-plot"
       },
