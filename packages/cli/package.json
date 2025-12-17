@@ -1,6 +1,6 @@
 {
   "name": "mario-charts",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "CLI for Mario Charts - Modern React component library for charts and dashboards",
   "main": "dist/index.js",
   "bin": {

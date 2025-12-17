@@ -83,6 +83,12 @@ export async function init(options: InitOptions = {}) {
       await fs.writeFile(utilsPath, getUtilsContent());
     }
 
+    // Criar arquivo hooks.ts se não existir
+    const hooksPath = path.resolve(cwd, utilsDir, 'hooks.ts');
+    if (!await fs.pathExists(hooksPath)) {
+      await fs.writeFile(hooksPath, getHooksContent());
+    }
+
     spinner.succeed('Project structure created');
   } catch (error) {
     spinner.fail('Failed to create project structure');
@@ -266,5 +272,17 @@ import { twMerge } from 'tailwind-merge'
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+`;
+}
+
+function getHooksContent(): string {
+  return `import { useEffect, useLayoutEffect } from 'react';
+
+/**
+ * Isomorphic useLayoutEffect that falls back to useEffect on the server.
+ * Use for DOM measurements that may run during SSR.
+ */
+export const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 `;
 }
