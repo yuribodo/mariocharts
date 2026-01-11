@@ -88,8 +88,8 @@ export default function Home() {
             transition={{ duration: 0.5 }}
             className="space-y-8"
           >
-            <motion.h1 
-              className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.1]"
+            <motion.h1
+              className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-extrabold tracking-tight leading-[1.1]"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
@@ -112,8 +112,8 @@ export default function Home() {
               </span>
             </motion.h1>
             
-            <motion.p 
-              className="max-w-3xl mx-auto text-xl lg:text-2xl text-muted-foreground leading-relaxed"
+            <motion.p
+              className="max-w-3xl mx-auto text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground leading-relaxed"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -145,8 +145,8 @@ export default function Home() {
               </Link>
             </motion.div>
 
-            <motion.div 
-              className="group relative flex items-center justify-between rounded-lg bg-muted/60 border-2 border-border/60 p-3 font-mono text-sm max-w-lg mx-auto mt-8 backdrop-blur-sm hover:bg-muted/80 hover:border-border/90 hover:shadow-md transition-all duration-300 cursor-pointer"
+            <motion.div
+              className="group relative flex items-center justify-between rounded-lg bg-muted/60 border-2 border-border/60 p-3 font-mono text-xs sm:text-sm max-w-lg mx-auto mt-8 backdrop-blur-sm hover:bg-muted/80 hover:border-border/90 hover:shadow-md transition-all duration-300 cursor-pointer touch-manipulation active:bg-muted/80"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
