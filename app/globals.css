@@ -551,6 +551,113 @@ code {
   --sidebar-ring: hsl(0 0% 98%);
 }
 
+/* Mobile UX Utilities */
+.touch-manipulation {
+  touch-action: manipulation;
+}
+
+/* Prevent hover effects on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .hover-only:hover {
+    transform: none !important;
+    background: inherit !important;
+  }
+}
+
+/* Safe area insets for modern phones */
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.safe-area-inset-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+/* Mobile input styles - prevent iOS zoom */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Sheet animations */
+@keyframes slide-in-from-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-from-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-from-top {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-from-bottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-out-to-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes slide-out-to-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes slide-out-to-top {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes slide-out-to-bottom {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -118,7 +118,7 @@ export function FeaturesSection() {
         {/* Header */}
         <div className="text-center mb-12">
           <motion.h2
-            className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] text-foreground mb-6"
+            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] text-foreground mb-6"
             variants={shouldReduceMotion ? {} : itemVariants}
           >
             Simple. Local.{" "}
@@ -138,7 +138,7 @@ export function FeaturesSection() {
           </motion.h2>
 
           <motion.p
-            className="text-xl md:text-2xl text-muted-foreground leading-relaxed max-w-3xl mx-auto"
+            className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground leading-relaxed max-w-3xl mx-auto"
             variants={shouldReduceMotion ? {} : itemVariants}
           >
             Build modern charts with{" "}
@@ -147,9 +147,64 @@ export function FeaturesSection() {
           </motion.p>
         </div>
 
-        {/* Phantom Expansion Cards */}
+        {/* Mobile Cards - Vertical Stack */}
+        <div className="grid grid-cols-1 gap-6 mb-16 md:hidden">
+          {features.map((feature, index) => (
+            <motion.div
+              key={feature.title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/40 bg-card/95 backdrop-blur-xl shadow-lg">
+                {/* Media block */}
+                <div className="h-48 px-6 pt-6">
+                  <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-xl border border-border/50 bg-muted/40">
+                    <div
+                      className="absolute inset-0 opacity-[0.12]"
+                      style={{
+                        backgroundImage: "radial-gradient(circle at 50% 35%, rgba(148, 163, 184, 0.18), transparent 65%)"
+                      }}
+                    />
+                    {feature.icon && (
+                      <feature.icon className="relative h-16 w-16 text-muted-foreground/70" weight="fill" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Card Content */}
+                <div className="relative flex flex-col gap-3 px-6 py-6">
+                  <h3 className="text-lg font-semibold text-foreground tracking-tight">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {feature.description}
+                  </p>
+
+                  {/* Code Snippet */}
+                  {feature.codeSnippet && (
+                    <div className="mt-2 rounded-xl border border-border/40 bg-muted/40 px-4 py-3 font-mono text-xs">
+                      <code className="text-foreground">
+                        <span className="text-muted-foreground">&lt;</span>
+                        <span className="text-primary font-semibold">BarChart</span>
+                        <span className="text-muted-foreground"> </span>
+                        <span className="text-foreground/80">data</span>
+                        <span className="text-muted-foreground">=&#123;</span>
+                        <span className="text-foreground/80">data</span>
+                        <span className="text-muted-foreground">&#125; /&gt;</span>
+                      </code>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Desktop Cards - Phantom Expansion */}
         <div
-          className="relative min-h-[480px] mb-16 flex items-center justify-center"
+          className="relative min-h-[480px] mb-16 items-center justify-center hidden md:flex"
           style={{ perspective: "1500px" }}
         >
           <div className="relative w-full flex items-center justify-center">

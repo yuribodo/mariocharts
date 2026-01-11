@@ -43,7 +43,7 @@ export function ProblemSection() {
         animate="visible"
       >
         <motion.h2
-          className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] text-foreground mb-6"
+          className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] text-foreground mb-6"
           variants={shouldReduceMotion ? {} : itemVariants}
         >
           Building charts shouldn't be{" "}
@@ -62,14 +62,14 @@ export function ProblemSection() {
         </motion.h2>
 
         <motion.p
-          className="text-xl md:text-2xl text-muted-foreground leading-relaxed mb-4 max-w-3xl mx-auto"
+          className="text-base sm:text-lg md:text-xl lg:text-2xl text-muted-foreground leading-relaxed mb-4 max-w-3xl mx-auto"
           variants={shouldReduceMotion ? {} : itemVariants}
         >
           Most chart libraries are bloated, over-abstracted, or hard to customize.
         </motion.p>
 
         <motion.p
-          className="text-xl md:text-2xl text-foreground font-medium leading-relaxed max-w-3xl mx-auto"
+          className="text-base sm:text-lg md:text-xl lg:text-2xl text-foreground font-medium leading-relaxed max-w-3xl mx-auto"
           variants={shouldReduceMotion ? {} : itemVariants}
         >
           MarioCharts gives you{" "}

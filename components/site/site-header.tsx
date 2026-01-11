@@ -9,6 +9,7 @@ import { useState } from "react";
 import { cn } from "../../lib/utils";
 import { ThemeToggle } from "./theme-toggle";
 import { Logo } from "./logo";
+import { MobileDocsDrawer } from "./mobile-docs-drawer";
 
 const navigation = [
   { name: "Docs", href: "/docs" },
@@ -68,37 +69,41 @@ export function SiteHeader() {
           </nav>
         </div>
 
-        {/* Mobile menu button */}
-        <motion.button
-          className="inline-flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors hover:bg-muted hover:text-muted-foreground md:hidden"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          whileTap={{ scale: 0.95 }}
-        >
-          <span className="sr-only">Open main menu</span>
-          <AnimatePresence mode="wait">
-            {isMenuOpen ? (
-              <motion.div
-                key="close"
-                initial={{ rotate: -90, opacity: 0 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                exit={{ rotate: 90, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <X size={24} aria-hidden="true" />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="menu"
-                initial={{ rotate: 90, opacity: 0 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                exit={{ rotate: -90, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <List size={24} aria-hidden="true" />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.button>
+        {/* Mobile menu - Docs Drawer for docs pages, regular menu for others */}
+        {pathname?.startsWith("/docs") ? (
+          <MobileDocsDrawer />
+        ) : (
+          <motion.button
+            className="inline-flex items-center justify-center rounded-md p-2.5 min-h-11 min-w-11 text-sm font-medium transition-colors hover:bg-muted hover:text-muted-foreground md:hidden touch-manipulation active:bg-muted/80"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            whileTap={{ scale: 0.95 }}
+          >
+            <span className="sr-only">Open main menu</span>
+            <AnimatePresence mode="wait">
+              {isMenuOpen ? (
+                <motion.div
+                  key="close"
+                  initial={{ rotate: -90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: 90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <X size={24} aria-hidden="true" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="menu"
+                  initial={{ rotate: 90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: -90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <List size={24} aria-hidden="true" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.button>
+        )}
 
         {/* Mobile logo */}
         <div className="flex md:hidden">
@@ -132,9 +137,9 @@ export function SiteHeader() {
                 href="https://github.com/yuribodo/mariocharts"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center justify-center rounded-md p-2 text-sm font-medium transition-colors hover:bg-muted hover:text-muted-foreground"
+                className="inline-flex items-center justify-center rounded-md p-2.5 min-h-11 min-w-11 md:min-h-10 md:min-w-10 text-sm font-medium transition-colors hover:bg-muted hover:text-muted-foreground touch-manipulation active:bg-muted/80"
               >
-                <GithubLogo size={16} weight="fill" />
+                <GithubLogo size={20} weight="fill" />
                 <span className="sr-only">GitHub</span>
               </Link>
             </motion.div>
@@ -168,7 +173,7 @@ export function SiteHeader() {
                   <Link
                     href={item.href}
                     className={cn(
-                      "block rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-muted hover:text-muted-foreground",
+                      "block rounded-md px-4 py-3 min-h-11 text-sm font-medium transition-colors hover:bg-muted hover:text-muted-foreground touch-manipulation active:bg-muted/80",
                       pathname?.startsWith(item.href)
                         ? "bg-muted text-muted-foreground"
                         : "text-foreground"
