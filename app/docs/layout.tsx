@@ -2,6 +2,7 @@
 
 import { DocsSidebarNav } from "../../components/site/docs-sidebar-nav";
 import { DocsRightSidebar } from "../../components/site/docs-right-sidebar";
+import { MobileTocFab } from "../../components/site/mobile-toc-fab";
 
 interface DocsLayoutProps {
   children: React.ReactNode;
@@ -30,6 +31,9 @@ export default function DocsLayout({ children }: DocsLayoutProps) {
           </div>
         </aside>
       </div>
+
+      {/* Mobile TOC FAB - only visible on mobile/tablet */}
+      <MobileTocFab />
     </div>
   );
 }
