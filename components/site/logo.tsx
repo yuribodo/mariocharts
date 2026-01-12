@@ -8,7 +8,7 @@ interface LogoProps {
 export function Logo({ size = 24, className }: LogoProps) {
   return (
     <Image
-      src="/mario-charts-logo.svg"
+      src="/mario-charts-logo-peak.svg"
       alt="Mario Charts"
       width={size}
       height={size}
