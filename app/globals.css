@@ -36,11 +36,17 @@
     color: #24292f !important;
   }
 
-  /* Ultra-fast transitions */
+  /* Ultra-fast transitions - excludes transform/opacity/scale to not conflict with GSAP/Framer Motion */
   * {
-    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
-    transition-timing-function: linear; /* Linear for speed */
-    transition-duration: 80ms; /* Ultra fast */
+    transition-property: color, background-color, border-color, text-decoration-color, box-shadow;
+    transition-timing-function: linear;
+    transition-duration: 80ms;
+  }
+
+  /* Disable CSS transitions on animated SVG elements to let GSAP/Framer Motion control them */
+  svg,
+  svg * {
+    transition: none !important;
   }
 
   /* Enhanced smooth scrolling */
@@ -109,10 +115,9 @@
     animation-timing-function: linear;
   }
 
-  /* Force hardware acceleration for instant transitions */
-  main {
-    transform: translateZ(0);
-    will-change: transform, opacity;
+  /* Keep view transitions snappy without breaking sticky positioning */
+  html:has(view-transition) main {
+    will-change: opacity;
   }
 }
 
@@ -485,6 +490,7 @@ code {
   /* Mario Charts Off-White Theme */
   --background: #FEFEFE;
   --foreground: #1A1D23;
+  --pattern-fg: 26 29 35;
   --card: #FFFFFF;
   --card-foreground: #1A1D23;
   --popover: #FFFFFF;
@@ -514,12 +520,21 @@ code {
   --sidebar-accent-foreground: #1A1D23;
   --sidebar-border: #E5E7EB;
   --sidebar-ring: hsl(0 0% 3.9%);
+
+  /* Syntax highlighting colors for code demo */
+  --syntax-keyword: 340 82% 52%;
+  --syntax-component: 200 95% 48%;
+  --syntax-string: 142 70% 40%;
+  --syntax-prop: 270 65% 55%;
+  --syntax-variable: 32 95% 50%;
+  --syntax-muted: 220 10% 50%;
 }
 
 .dark {
   /* Mario Charts Dark Theme */
   --background: #0A0A0A;
   --foreground: #FAFAFA;
+  --pattern-fg: 250 250 250;
   --card: #1A1A1A;
   --card-foreground: #FAFAFA;
   --popover: #1A1A1A;
@@ -549,6 +564,14 @@ code {
   --sidebar-accent-foreground: #FAFAFA;
   --sidebar-border: #3A3A3A;
   --sidebar-ring: hsl(0 0% 98%);
+
+  /* Syntax highlighting colors for code demo (dark mode) */
+  --syntax-keyword: 340 90% 65%;
+  --syntax-component: 190 100% 65%;
+  --syntax-string: 142 70% 55%;
+  --syntax-prop: 270 80% 70%;
+  --syntax-variable: 32 100% 65%;
+  --syntax-muted: 220 10% 60%;
 }
 
 /* Mobile UX Utilities */
