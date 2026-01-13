@@ -25,9 +25,9 @@ export const SHOWCASE_CONTENT: Record<ChartType, ChartInfo> = {
     href: "/docs/components/bar-chart",
   },
   area: {
-    title: "Area Chart",
-    description: "Visualize trends and patterns over time with filled areas. Ideal for showing cumulative totals, volume changes, and time-series data.",
-    href: "/docs/components/area-chart",
+    title: "Line Chart",
+    description: "Visualize trends and patterns over time with smooth lines. Ideal for showing progress, changes over time, and time-series data.",
+    href: "/docs/components/line-chart",
   },
   pie: {
     title: "Pie Chart",
@@ -59,18 +59,18 @@ export function ShowcaseContent({ activeChart, className }: ShowcaseContentProps
       <AnimatePresence mode="wait">
         <motion.div
           key={activeChart}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0, y: 12, filter: "blur(10px)", scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)", scale: 1 }}
+          exit={{ opacity: 0, y: -8, filter: "blur(10px)", scale: 0.98 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="flex flex-col items-center gap-6 text-center lg:items-start lg:text-left"
         >
           {/* Title */}
           <motion.h2
             className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0, y: 10, filter: "blur(12px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: 0.5, delay: 0.0, ease: [0.22, 1, 0.36, 1] }}
           >
             {content.title}
           </motion.h2>
@@ -78,18 +78,18 @@ export function ShowcaseContent({ activeChart, className }: ShowcaseContentProps
           {/* Description */}
           <motion.p
             className="max-w-md text-base text-muted-foreground lg:text-lg"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0, y: 10, filter: "blur(10px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
           >
             {content.description}
           </motion.p>
 
           {/* CTA Button */}
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: 0.5, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
           >
             <Link
               href={content.href}
