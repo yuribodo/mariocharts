@@ -26,7 +26,8 @@
     "paths": {
       "@/*": ["./*"],
       "@/components": ["./src/components"],
-      "@/hooks": ["./src/hooks"],
+      "@/hooks": ["./hooks"],
+      "@/hooks/*": ["./hooks/*"],
       "@/utils": ["./src/utils"],
       "@/types": ["./src/types"],
       "@/themes": ["./src/themes"],
