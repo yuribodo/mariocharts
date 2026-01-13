@@ -6,42 +6,6 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Animation variants for icon transitions
-const iconVariants = {
-  initial: {
-    scale: 0,
-    rotate: -180,
-    opacity: 0,
-  },
-  animate: {
-    scale: 1,
-    rotate: 0,
-    opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 200,
-      damping: 20,
-    },
-  },
-  exit: {
-    scale: 0,
-    rotate: 180,
-    opacity: 0,
-    transition: {
-      duration: 0.2,
-    },
-  },
-  hover: {
-    scale: 1.1,
-    rotate: 15,
-    transition: {
-      type: "spring",
-      stiffness: 400,
-      damping: 10,
-    },
-  },
-};
-
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
@@ -50,12 +14,11 @@ export function ThemeToggle({ className }: { className?: string }) {
     setMounted(true);
   }, []);
 
-  // Prevent hydration mismatch
   if (!mounted) {
     return (
-      <div 
+      <div
         className={cn(
-          "h-9 w-9 rounded-md border border-input bg-background shadow-sm",
+          "h-10 w-10 rounded-full",
           className
         )}
       />
@@ -65,55 +28,55 @@ export function ThemeToggle({ className }: { className?: string }) {
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
 
-    // Check if View Transitions API is supported
     if (!document.startViewTransition) {
       setTheme(newTheme);
       return;
     }
 
-    // Use View Transitions API - CSS will handle the animation
     document.startViewTransition(() => {
-      document.documentElement.classList.toggle('dark', newTheme === 'dark');
+      document.documentElement.classList.toggle("dark", newTheme === "dark");
       setTheme(newTheme);
     });
   };
+
+  const isDark = theme === "dark";
 
   return (
     <motion.button
       onClick={toggleTheme}
       className={cn(
-        "relative hover:cursor-pointer inline-flex h-9 w-9 items-center justify-center rounded-md border border-input bg-background text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+        "relative inline-flex h-10 w-10 items-center justify-center",
+        "rounded-full cursor-pointer",
+        "text-foreground/70 hover:text-foreground",
+        "hover:bg-foreground/5 active:bg-foreground/10",
+        "transition-colors duration-200",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         className
       )}
       type="button"
-      aria-label={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+      aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
+      whileTap={{ scale: 0.92 }}
     >
       <AnimatePresence mode="wait" initial={false}>
-        {theme === "light" ? (
+        {isDark ? (
           <motion.div
-            key="sun"
-            variants={iconVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            whileHover="hover"
-            className="absolute theme-toggle-icon"
+            key="moon"
+            initial={{ opacity: 0, rotate: -90, scale: 0.5 }}
+            animate={{ opacity: 1, rotate: 0, scale: 1 }}
+            exit={{ opacity: 0, rotate: 90, scale: 0.5 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
           >
-            <Sun className="h-4 w-4" />
+            <Moon className="h-5 w-5" strokeWidth={1.5} />
           </motion.div>
         ) : (
           <motion.div
-            key="moon"
-            variants={iconVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            whileHover="hover"
-            className="absolute theme-toggle-icon"
+            key="sun"
+            initial={{ opacity: 0, rotate: 90, scale: 0.5 }}
+            animate={{ opacity: 1, rotate: 0, scale: 1 }}
+            exit={{ opacity: 0, rotate: -90, scale: 0.5 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
           >
-            <Moon className="h-4 w-4" />
+            <Sun className="h-5 w-5" strokeWidth={1.5} />
           </motion.div>
         )}
       </AnimatePresence>
