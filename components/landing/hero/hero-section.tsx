@@ -87,8 +87,9 @@ export function HeroSection({ className }: HeroSectionProps) {
             className="mt-8 w-full max-w-md"
           >
             <div
+              onClick={handleCopy}
               className={cn(
-                "group relative flex items-center gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3 backdrop-blur-sm transition-all",
+                "group relative flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3 backdrop-blur-sm transition-all",
                 "hover:border-border/80 hover:bg-muted",
                 copied && "border-green-500/50 bg-green-500/10"
               )}
