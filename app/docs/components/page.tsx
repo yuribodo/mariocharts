@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ChartBar, ChartLine, ChartBarHorizontal } from "@phosphor-icons/react";
+import {
+  ChartBar,
+  ChartBarHorizontal,
+  ChartLine,
+  ChartPie,
+  ChartPolar,
+  ChartScatter,
+} from "@phosphor-icons/react";
 
 const availableComponents = [
   {
@@ -15,6 +22,24 @@ const availableComponents = [
     href: "/docs/components/line-chart",
     description: "Interactive line charts for time series and trend analysis",
     icon: ChartLine,
+  },
+  {
+    name: "Pie Chart",
+    href: "/docs/components/pie-chart",
+    description: "Pie and donut charts for parts-to-whole insights",
+    icon: ChartPie,
+  },
+  {
+    name: "Radar Chart",
+    href: "/docs/components/radar-chart",
+    description: "Radar charts for multi-metric comparisons",
+    icon: ChartPolar,
+  },
+  {
+    name: "Scatter Plot",
+    href: "/docs/components/scatter-plot",
+    description: "Scatter and bubble plots for correlation analysis",
+    icon: ChartScatter,
   },
   {
     name: "Stacked Bar Chart",
