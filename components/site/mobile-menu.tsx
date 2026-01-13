@@ -147,7 +147,7 @@ export function MobileMenu({ navigation }: MobileMenuProps) {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="fixed inset-0 z-50 bg-background md:hidden"
+            className="fixed inset-0 z-[60] bg-background md:hidden"
             variants={menuVariants}
             initial="closed"
             animate="open"
