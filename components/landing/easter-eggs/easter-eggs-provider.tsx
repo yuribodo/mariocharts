@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
-import { useKonamiCode, useBadges, useAudio } from "@/hooks";
+import { useBadges } from "@/hooks";
 import { PartyMode, usePartyMode } from "./party-mode";
 
 interface EasterEggsContextValue {
@@ -28,7 +28,6 @@ interface EasterEggsProviderProps {
  * Easter Eggs Provider
  *
  * Manages all easter eggs and their states:
- * - Konami Code (party mode)
  * - Console message
  * - Speed scroll detection
  * - Time-based badges
@@ -37,23 +36,12 @@ export function EasterEggsProvider({ children }: EasterEggsProviderProps) {
   const [isPartyMode, setIsPartyMode] = useState(false);
   const badges = useBadges();
   const { activate: activateParty } = usePartyMode();
-  const { play } = useAudio();
-
-  // Konami code detection
-  useKonamiCode({
-    onActivate: () => {
-      if (!isPartyMode) {
-        setIsPartyMode(true);
-        activateParty();
-      }
-    },
-    enabled: !isPartyMode,
-  });
 
   // Console message on mount
   useEffect(() => {
     printConsoleMessage();
-    setupConsoleCommands(badges.unlock);
+    const cleanup = setupConsoleCommands(badges.unlock);
+    return cleanup;
   }, [badges.unlock]);
 
   // Speed scroll detection
@@ -139,12 +127,15 @@ function printConsoleMessage() {
 
 /**
  * Set up hidden console commands
+ * Returns cleanup function to remove commands on unmount
  */
-function setupConsoleCommands(unlock: (id: string) => boolean) {
-  if (typeof window === "undefined") return;
+function setupConsoleCommands(unlock: (id: string) => boolean): () => void {
+  if (typeof window === "undefined") return () => {};
+
+  const win = window as unknown as Record<string, unknown>;
 
   // Mario power-up command
-  (window as unknown as Record<string, unknown>).mario = () => {
+  win.mario = () => {
     console.log("%c🍄 Power Up!", "font-size: 40px;");
 
     // Visual effect
@@ -162,14 +153,13 @@ function setupConsoleCommands(unlock: (id: string) => boolean) {
   };
 
   // Party command
-  (window as unknown as Record<string, unknown>).party = () => {
+  win.party = () => {
     console.log("%c🎉 Party Mode!", "font-size: 30px;");
-    // This would need access to setIsPartyMode
-    return "Use the Konami code for full party mode!";
+    return "Party mode activated!";
   };
 
   // Stats command
-  (window as unknown as Record<string, unknown>).stats = () => {
+  win.stats = () => {
     const badgesEarned = JSON.parse(
       localStorage.getItem("mario-charts-badges") || "[]"
     );
@@ -177,5 +167,12 @@ function setupConsoleCommands(unlock: (id: string) => boolean) {
     console.log(`Badges earned: ${badgesEarned.length}`);
     console.log("Badges:", badgesEarned);
     return { badges: badgesEarned };
+  };
+
+  // Return cleanup function
+  return () => {
+    delete win.mario;
+    delete win.party;
+    delete win.stats;
   };
 }

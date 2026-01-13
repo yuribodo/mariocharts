@@ -23,7 +23,7 @@ import { LandingBackground } from "@/components/landing/shared/landing-backgroun
 export default function LandingPage() {
   return (
     <EasterEggsProvider>
-      <main className="relative min-h-screen w-full bg-background">
+      <main className="landing-page relative min-h-screen w-full bg-background">
         <LandingBackground className="z-0" />
 
         <div className="relative z-10">

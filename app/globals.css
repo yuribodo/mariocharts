@@ -43,9 +43,9 @@
     transition-duration: 80ms;
   }
 
-  /* Disable CSS transitions on animated SVG elements to let GSAP/Framer Motion control them */
-  svg,
-  svg * {
+  /* Disable CSS transitions on animated SVG elements in landing page to let GSAP/Framer Motion control them */
+  .landing-page svg,
+  .landing-page svg * {
     transition: none !important;
   }
 

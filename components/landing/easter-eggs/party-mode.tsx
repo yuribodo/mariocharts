@@ -3,7 +3,7 @@
 import { useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
-import { useKonamiCode, useBadges, useAudio } from "@/hooks";
+import { useBadges, useAudio } from "@/hooks";
 import { confettiConfig } from "@/lib/animations";
 
 interface PartyModeProps {
@@ -13,8 +13,6 @@ interface PartyModeProps {
 
 /**
  * Party Mode Component
- *
- * Activated by the Konami Code (↑↑↓↓←→←→BA)
  *
  * Effects:
  * - Rainbow color cycling on charts
@@ -178,8 +176,7 @@ export function usePartyMode() {
   const { play } = useAudio();
 
   const activate = useCallback(() => {
-    // Unlock badges
-    unlock("konami-master");
+    // Unlock badge
     unlock("party-animal");
 
     // Play achievement sound
