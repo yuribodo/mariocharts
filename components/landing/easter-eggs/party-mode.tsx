@@ -1,10 +1,23 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useCallback, useState, useMemo } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { useBadges, useAudio } from "@/hooks";
 import { confettiConfig } from "@/lib/animations";
+
+// Pre-generated emoji data to avoid hydration mismatch
+interface EmojiData {
+  id: number;
+  emoji: string;
+  leftPercent: number;
+  rotation: number;
+  duration: number;
+  delay: number;
+  repeatDelay: number;
+}
+
+const EMOJIS = ["🎮", "🎉", "🎊", "✨", "🌟", "🎈", "🎁", "🪩"];
 
 interface PartyModeProps {
   isActive: boolean;
@@ -22,9 +35,36 @@ interface PartyModeProps {
  */
 export function PartyMode({ isActive, onEnd }: PartyModeProps) {
   const { play } = useAudio();
+  const shouldReduceMotion = useReducedMotion();
+  const [emojiData, setEmojiData] = useState<EmojiData[]>([]);
+
+  // Generate emoji data client-side only to avoid hydration mismatch
+  useEffect(() => {
+    if (!isActive || shouldReduceMotion) {
+      setEmojiData([]);
+      return;
+    }
+
+    const data: EmojiData[] = Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      emoji: EMOJIS[Math.floor(Math.random() * EMOJIS.length)] ?? "🎉",
+      leftPercent: Math.random() * 100,
+      rotation: Math.random() * 720 - 360,
+      duration: 3 + Math.random() * 2,
+      delay: Math.random() * 2,
+      repeatDelay: Math.random() * 3,
+    }));
+    setEmojiData(data);
+  }, [isActive, shouldReduceMotion]);
 
   useEffect(() => {
     if (!isActive) return;
+
+    // Skip confetti if user prefers reduced motion
+    if (shouldReduceMotion) {
+      const endTimer = setTimeout(onEnd, 10000);
+      return () => clearTimeout(endTimer);
+    }
 
     // Play party sound
     play.party();
@@ -66,7 +106,7 @@ export function PartyMode({ isActive, onEnd }: PartyModeProps) {
       clearInterval(confettiInterval);
       clearTimeout(endTimer);
     };
-  }, [isActive, onEnd, play]);
+  }, [isActive, onEnd, play, shouldReduceMotion]);
 
   return (
     <AnimatePresence>
@@ -106,36 +146,33 @@ export function PartyMode({ isActive, onEnd }: PartyModeProps) {
             </div>
           </motion.div>
 
-          {/* Floating emojis */}
-          {Array.from({ length: 20 }).map((_, i) => (
+          {/* Floating emojis - generated client-side to avoid hydration mismatch */}
+          {emojiData.map((data) => (
             <motion.div
-              key={i}
+              key={data.id}
               initial={{
                 opacity: 0,
-                x: Math.random() * window.innerWidth,
-                y: window.innerHeight + 50,
+                y: "100vh",
               }}
               animate={{
                 opacity: [0, 1, 1, 0],
-                y: -100,
-                rotate: Math.random() * 720 - 360,
+                y: "-100px",
+                rotate: data.rotation,
               }}
               transition={{
-                duration: 3 + Math.random() * 2,
-                delay: Math.random() * 2,
+                duration: data.duration,
+                delay: data.delay,
                 repeat: Infinity,
-                repeatDelay: Math.random() * 3,
+                repeatDelay: data.repeatDelay,
               }}
               className="pointer-events-none fixed z-[99] text-3xl"
-              style={{ left: `${Math.random() * 100}%` }}
+              style={{ left: `${data.leftPercent}%`, bottom: 0 }}
             >
-              {["🎮", "🎉", "🎊", "✨", "🌟", "🎈", "🎁", "🪩"][
-                Math.floor(Math.random() * 8)
-              ]}
+              {data.emoji}
             </motion.div>
           ))}
 
-          {/* CSS for rainbow animation */}
+          {/* CSS for rainbow animation with reduced-motion support */}
           <style jsx global>{`
             @keyframes rainbow-bg {
               0% {
@@ -149,16 +186,22 @@ export function PartyMode({ isActive, onEnd }: PartyModeProps) {
               }
             }
 
-            .party-mode-active * {
-              animation: hue-rotate 2s linear infinite !important;
-            }
-
             @keyframes hue-rotate {
               from {
                 filter: hue-rotate(0deg);
               }
               to {
                 filter: hue-rotate(360deg);
+              }
+            }
+
+            .party-mode-active > * {
+              animation: hue-rotate 2s linear infinite;
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+              .party-mode-active > * {
+                animation: none;
               }
             }
           `}</style>
