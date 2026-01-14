@@ -241,7 +241,7 @@ export function InteractiveCode({
         </div>
 
         {/* Code content - fixed 9 lines */}
-        <div className="flex-1 py-4 pl-4 pr-4">
+        <div className="flex-1 min-w-0 overflow-x-auto py-4 pl-4 pr-4">
           <pre className="font-mono text-sm leading-6">
             <code className="flex flex-col">
               {/* Line 1: import */}
