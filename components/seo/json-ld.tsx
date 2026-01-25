@@ -1,3 +1,5 @@
+import { SITE_CONFIG } from "@/lib/constants";
+
 interface OrganizationSchemaProps {
   readonly name?: string;
   readonly url?: string;
@@ -6,10 +8,10 @@ interface OrganizationSchemaProps {
 }
 
 export function OrganizationSchema({
-  name = "Mario Charts",
-  url = "https://mario-charts.dev",
-  logo = "https://mario-charts.dev/mario-charts-logo-peak.svg",
-  description = "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box.",
+  name = SITE_CONFIG.name,
+  url = SITE_CONFIG.url,
+  logo = `${SITE_CONFIG.url}/mario-charts-logo-peak.svg`,
+  description = SITE_CONFIG.description,
 }: OrganizationSchemaProps) {
   const schema = {
     "@context": "https://schema.org",
@@ -18,7 +20,7 @@ export function OrganizationSchema({
     url,
     logo,
     description,
-    sameAs: ["https://github.com/yuribodo/mariocharts"],
+    sameAs: [SITE_CONFIG.github],
   };
 
   return (
@@ -39,10 +41,10 @@ interface SoftwareSourceCodeSchemaProps {
 }
 
 export function SoftwareSourceCodeSchema({
-  name = "Mario Charts",
-  description = "A modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box. Zero lock-in, copy-paste components.",
-  url = "https://mario-charts.dev",
-  codeRepository = "https://github.com/yuribodo/mariocharts",
+  name = SITE_CONFIG.name,
+  description = `${SITE_CONFIG.description} Zero lock-in, copy-paste components.`,
+  url = SITE_CONFIG.url,
+  codeRepository = SITE_CONFIG.github,
   programmingLanguage = "TypeScript",
   runtimePlatform = "Node.js",
 }: SoftwareSourceCodeSchemaProps) {
@@ -58,8 +60,8 @@ export function SoftwareSourceCodeSchema({
     license: "https://opensource.org/licenses/MIT",
     author: {
       "@type": "Organization",
-      name: "Mario Charts",
-      url: "https://mario-charts.dev",
+      name: SITE_CONFIG.name,
+      url: SITE_CONFIG.url,
     },
     offers: {
       "@type": "Offer",
@@ -86,6 +88,9 @@ interface FAQSchemaProps {
 }
 
 export function FAQSchema({ items }: FAQSchemaProps) {
+  // Don't render if no items
+  if (!items.length) return null;
+
   const schema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -117,6 +122,9 @@ interface BreadcrumbSchemaProps {
 }
 
 export function BreadcrumbSchema({ items }: BreadcrumbSchemaProps) {
+  // Don't render if no items or only one item
+  if (items.length < 2) return null;
+
   const schema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -143,9 +151,9 @@ interface WebSiteSchemaProps {
 }
 
 export function WebSiteSchema({
-  name = "Mario Charts",
-  url = "https://mario-charts.dev",
-  description = "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box.",
+  name = SITE_CONFIG.name,
+  url = SITE_CONFIG.url,
+  description = SITE_CONFIG.description,
 }: WebSiteSchemaProps) {
   const schema = {
     "@context": "https://schema.org",
