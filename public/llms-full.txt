@@ -1,0 +1,383 @@
+# Mario Charts - Complete Documentation for LLMs
+
+> A modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box.
+
+## Overview
+
+Mario Charts provides production-ready, copy-paste chart components for React applications. Built with TypeScript, Tailwind CSS, and Framer Motion for animations.
+
+## Installation
+
+### CLI Installation (Recommended)
+```bash
+# Initialize project
+npx mario-charts@latest init
+
+# Add components
+npx mario-charts@latest add bar-chart
+npx mario-charts@latest add line-chart
+npx mario-charts@latest add pie-chart
+```
+
+### Manual Dependencies
+```bash
+npm install recharts framer-motion @radix-ui/react-tooltip class-variance-authority clsx tailwind-merge
+```
+
+---
+
+## Components Reference
+
+### 1. BarChart
+
+**Description:** Vertical and horizontal bar charts for comparing categorical data.
+
+**Import:**
+```tsx
+import { BarChart } from "@/components/charts/bar-chart";
+```
+
+**Props:**
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| data | T[] | required | Array of data objects |
+| x | keyof T | required | Key for x-axis labels |
+| y | keyof T | "value" | Key for y-axis values |
+| colors | string[] | DEFAULT_COLORS | Bar colors |
+| variant | "filled" \| "outline" | "filled" | Visual style |
+| orientation | "vertical" \| "horizontal" | "vertical" | Bar direction |
+| height | number | 300 | Chart height in pixels |
+| animation | boolean | true | Enable animations |
+| loading | boolean | false | Show loading state |
+| error | string \| null | null | Error message |
+| onBarClick | (data: T, index: number) => void | - | Click handler |
+| className | string | - | Additional CSS classes |
+
+**Example:**
+```tsx
+const data = [
+  { month: "Jan", revenue: 4500 },
+  { month: "Feb", revenue: 5200 },
+  { month: "Mar", revenue: 4800 },
+];
+
+<BarChart
+  data={data}
+  x="month"
+  y="revenue"
+  colors={["#3b82f6"]}
+  variant="filled"
+  orientation="vertical"
+/>
+```
+
+---
+
+### 2. LineChart
+
+**Description:** Line charts for time series and continuous data visualization with multiple series support.
+
+**Import:**
+```tsx
+import { LineChart } from "@/components/charts/line-chart";
+```
+
+**Props:**
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| data | T[] | required | Array of data objects |
+| x | keyof T | required | Key for x-axis labels |
+| y | keyof T \| (keyof T)[] | required | Key(s) for y-axis values |
+| colors | string[] | DEFAULT_COLORS | Line colors |
+| curve | "linear" \| "monotone" \| "natural" \| "step" | "monotone" | Curve interpolation |
+| showDots | boolean | true | Show data points |
+| showArea | boolean | false | Fill area under line |
+| connectNulls | boolean | true | Connect across null values |
+| strokeWidth | number | 2 | Line width |
+| height | number | 300 | Chart height |
+| animation | boolean | true | Enable animations |
+| onPointClick | (data: T, index: number, series?: string) => void | - | Click handler |
+
+**Example:**
+```tsx
+const data = [
+  { month: "Jan", revenue: 4500, users: 1200 },
+  { month: "Feb", revenue: 5200, users: 1400 },
+];
+
+// Single line
+<LineChart data={data} x="month" y="revenue" />
+
+// Multiple lines
+<LineChart
+  data={data}
+  x="month"
+  y={["revenue", "users"]}
+  colors={["#3b82f6", "#10b981"]}
+  curve="monotone"
+  showArea={true}
+/>
+```
+
+---
+
+### 3. PieChart
+
+**Description:** Pie, donut, and semi-circle charts for visualizing proportions and distributions.
+
+**Import:**
+```tsx
+import { PieChart } from "@/components/charts/pie-chart";
+```
+
+**Props:**
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| data | T[] | required | Array of data objects |
+| value | keyof T | required | Key for slice values |
+| label | keyof T | required | Key for slice labels |
+| variant | "pie" \| "donut" \| "semi" | "donut" | Chart style |
+| innerRadius | number | 0.6 | Inner radius (0-1) for donut |
+| centerContent | ReactNode \| ((data) => ReactNode) | - | Center content |
+| colors | string[] | DEFAULT_COLORS | Slice colors |
+| height | number | 300 | Chart height |
+| animation | boolean | true | Enable animations |
+| onSliceClick | (data: T, index: number) => void | - | Click handler |
+
+**Example:**
+```tsx
+const data = [
+  { category: "Engineering", amount: 450000 },
+  { category: "Marketing", amount: 280000 },
+  { category: "Sales", amount: 320000 },
+];
+
+<PieChart
+  data={data}
+  value="amount"
+  label="category"
+  variant="donut"
+  centerContent={({ total }) => (
+    <div className="text-center">
+      <div className="text-2xl font-bold">${(total / 1000).toFixed(0)}K</div>
+      <div className="text-xs text-muted-foreground">Total</div>
+    </div>
+  )}
+/>
+```
+
+---
+
+### 4. RadarChart
+
+**Description:** Radar/spider charts for comparing multiple quantitative variables across categories.
+
+**Import:**
+```tsx
+import { RadarChart } from "@/components/charts/radar-chart";
+```
+
+**Props:**
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| series | RadarSeries[] | required | Array of data series |
+| axes | RadarAxis[] | required | Axis configurations |
+| colors | string[] | DEFAULT_COLORS | Series colors |
+| height | number | 400 | Chart height |
+| showAxisLabels | boolean | true | Show axis labels |
+| showDots | boolean | true | Show data point dots |
+| fillOpacity | number | 0.25 | Polygon fill opacity |
+| strokeWidth | number | 2 | Line stroke width |
+| animation | boolean | true | Enable animations |
+| onSeriesClick | (series, index) => void | - | Click handler |
+
+**Types:**
+```tsx
+interface RadarSeries<T> {
+  id: string;
+  name: string;
+  data: T;
+  color?: string;
+}
+
+interface RadarAxis {
+  key: string;
+  label: string;
+  min?: number;
+  max?: number;
+}
+```
+
+**Example:**
+```tsx
+const series = [
+  {
+    id: "player1",
+    name: "Player 1",
+    data: { pace: 85, shooting: 92, passing: 91, dribbling: 95 },
+  },
+];
+
+const axes = [
+  { key: "pace", label: "PAC" },
+  { key: "shooting", label: "SHO" },
+  { key: "passing", label: "PAS" },
+  { key: "dribbling", label: "DRI" },
+];
+
+<RadarChart series={series} axes={axes} fillOpacity={0.3} />
+```
+
+---
+
+### 5. ScatterPlot
+
+**Description:** Scatter plots and bubble charts for visualizing relationships between variables.
+
+**Import:**
+```tsx
+import { ScatterPlot } from "@/components/charts/scatter-plot";
+```
+
+**Props:**
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| data | T[] | required | Array of data objects |
+| x | keyof T | required | Key for x-axis values |
+| y | keyof T | required | Key for y-axis values |
+| series | keyof T | - | Key to group by series |
+| size | keyof T \| number | 6 | Point size or data key |
+| sizeRange | [number, number] | [4, 40] | Min/max bubble size |
+| colors | string[] | DEFAULT_COLORS | Point colors |
+| showTrendLine | boolean | false | Show regression line |
+| showLegend | boolean | false | Show legend |
+| showGrid | boolean | false | Show grid lines |
+| xDomain | [number, number] | - | Custom x-axis domain |
+| yDomain | [number, number] | - | Custom y-axis domain |
+| height | number | 300 | Chart height |
+| animation | boolean | true | Enable animations |
+| onPointClick | (data: T, index: number, series?: string) => void | - | Click handler |
+
+**Example:**
+```tsx
+// Basic scatter plot
+const data = [
+  { experience: 1, salary: 45000 },
+  { experience: 3, salary: 55000 },
+  { experience: 5, salary: 70000 },
+];
+
+<ScatterPlot
+  data={data}
+  x="experience"
+  y="salary"
+  showTrendLine={true}
+  showGrid={true}
+/>
+
+// Bubble chart
+const countries = [
+  { gdp: 63000, lifeExpectancy: 78.9, population: 331000000 },
+];
+
+<ScatterPlot
+  data={countries}
+  x="gdp"
+  y="lifeExpectancy"
+  size="population"
+  sizeRange={[10, 60]}
+/>
+```
+
+---
+
+### 6. StackedBarChart
+
+**Description:** Stacked bar charts for comparing composition across different groups.
+
+**Import:**
+```tsx
+import { StackedBarChart } from "@/components/charts/stacked-bar-chart";
+```
+
+**Props:**
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| data | T[] | required | Array of data objects |
+| x | keyof T | required | Key for x-axis labels |
+| y | (keyof T)[] | required | Keys to stack |
+| colors | string[] | DEFAULT_COLORS | Segment colors |
+| variant | "filled" \| "outline" | "filled" | Visual style |
+| orientation | "vertical" \| "horizontal" | "vertical" | Stacking direction |
+| showLegend | boolean | false | Show legend |
+| height | number | 300 | Chart height |
+| animation | boolean | true | Enable animations |
+| onSegmentClick | (data: T, stackKey: string, index: number) => void | - | Click handler |
+
+**Example:**
+```tsx
+const data = [
+  { month: "Jan", desktop: 4200, mobile: 2400, services: 1800 },
+  { month: "Feb", desktop: 5100, mobile: 2800, services: 2200 },
+];
+
+<StackedBarChart
+  data={data}
+  x="month"
+  y={["desktop", "mobile", "services"]}
+  colors={["#3b82f6", "#10b981", "#f59e0b"]}
+  showLegend={true}
+  variant="filled"
+  orientation="vertical"
+/>
+```
+
+---
+
+## Default Color Palette
+
+```typescript
+const DEFAULT_COLORS = [
+  "#3b82f6", // blue
+  "#10b981", // green
+  "#f59e0b", // amber
+  "#ef4444", // red
+  "#8b5cf6", // violet
+  "#06b6d4", // cyan
+];
+```
+
+---
+
+## Common Patterns
+
+### Loading State
+All charts support a `loading` prop that displays a skeleton animation:
+```tsx
+<BarChart data={data} x="month" y="revenue" loading={true} />
+```
+
+### Error State
+Display error messages with the `error` prop:
+```tsx
+<BarChart data={data} x="month" y="revenue" error="Failed to load data" />
+```
+
+### Empty State
+Charts automatically handle empty data arrays with a friendly message.
+
+### Responsive Behavior
+All charts use ResizeObserver to adapt to container size changes automatically.
+
+---
+
+## Links
+
+- Website: https://mario-charts.dev
+- Documentation: https://mario-charts.dev/docs
+- GitHub: https://github.com/yuribodo/mariocharts
+- NPM: https://www.npmjs.com/package/mario-charts
+
+## License
+
+MIT License - Free for personal and commercial use.
