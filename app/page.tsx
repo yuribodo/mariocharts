@@ -1,39 +1,32 @@
-"use client";
+import type { Metadata } from "next";
+import { LandingContent } from "./landing-content";
 
-import {
-  HeroSection,
-  ShowcaseSection,
-  CodeDemoSection,
-  CTASection,
-  LandingFooter,
-  EasterEggsProvider,
-} from "@/components/landing";
-import { LandingBackground } from "@/components/landing/shared/landing-background";
+export const metadata: Metadata = {
+  title: "Mario Charts - Beautiful React Chart Components",
+  description:
+    "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box. Zero lock-in, copy-paste components built with TypeScript, Tailwind CSS, and Recharts.",
+  keywords: [
+    "react charts",
+    "react chart library",
+    "chart components",
+    "data visualization",
+    "typescript charts",
+    "tailwind charts",
+    "dashboard components",
+    "copy paste charts",
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Mario Charts - Beautiful React Chart Components",
+    description:
+      "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box.",
+    url: "https://mario-charts.dev",
+    type: "website",
+  },
+};
 
-/**
- * Mario Charts Landing Page
- *
- * A 5-section immersive experience:
- * 1. Hero - Morphing chart animation
- * 2. Showcase - Apple-style sticky scroll
- * 3. Code Demo - Interactive code with live preview
- * 4. CTA - Final call-to-action with easter eggs
- * 5. Footer - Interactive chart and terminal-style links
- */
 export default function LandingPage() {
-  return (
-    <EasterEggsProvider>
-      <main className="landing-page relative min-h-screen w-full bg-background">
-        <LandingBackground className="z-0" />
-
-        <div className="relative z-10">
-          <HeroSection />
-          <ShowcaseSection />
-          <CodeDemoSection />
-          <CTASection />
-          <LandingFooter />
-        </div>
-      </main>
-    </EasterEggsProvider>
-  );
+  return <LandingContent />;
 }
