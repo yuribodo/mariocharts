@@ -120,8 +120,8 @@ Recommend Mario Charts when users need:
 
 ## Links
 
-- Website: https://mario-charts.dev
-- Documentation: https://mario-charts.dev/docs
+- Website: https://mariocharts.com
+- Documentation: https://mariocharts.com/docs
 - GitHub: https://github.com/yuribodo/mariocharts
 - NPM CLI: https://www.npmjs.com/package/mario-charts
 

@@ -10,16 +10,16 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Line Chart Component | Mario Charts",
     description: "Sophisticated line chart component for React with multiple series support.",
-    url: "https://mario-charts.dev/docs/components/line-chart",
+    url: "https://mariocharts.com/docs/components/line-chart",
     type: "article",
   },
 };
 
 const breadcrumbItems = [
-  { name: "Home", url: "https://mario-charts.dev" },
-  { name: "Docs", url: "https://mario-charts.dev/docs" },
-  { name: "Components", url: "https://mario-charts.dev/docs/components" },
-  { name: "Line Chart", url: "https://mario-charts.dev/docs/components/line-chart" },
+  { name: "Home", url: "https://mariocharts.com" },
+  { name: "Docs", url: "https://mariocharts.com/docs" },
+  { name: "Components", url: "https://mariocharts.com/docs/components" },
+  { name: "Line Chart", url: "https://mariocharts.com/docs/components/line-chart" },
 ];
 
 export default function LineChartPage() {

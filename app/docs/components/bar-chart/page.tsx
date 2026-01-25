@@ -10,16 +10,16 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Bar Chart Component | Mario Charts",
     description: "Production-ready bar chart component for React with TypeScript support.",
-    url: "https://mario-charts.dev/docs/components/bar-chart",
+    url: "https://mariocharts.com/docs/components/bar-chart",
     type: "article",
   },
 };
 
 const breadcrumbItems = [
-  { name: "Home", url: "https://mario-charts.dev" },
-  { name: "Docs", url: "https://mario-charts.dev/docs" },
-  { name: "Components", url: "https://mario-charts.dev/docs/components" },
-  { name: "Bar Chart", url: "https://mario-charts.dev/docs/components/bar-chart" },
+  { name: "Home", url: "https://mariocharts.com" },
+  { name: "Docs", url: "https://mariocharts.com/docs" },
+  { name: "Components", url: "https://mariocharts.com/docs/components" },
+  { name: "Bar Chart", url: "https://mariocharts.com/docs/components/bar-chart" },
 ];
 
 export default function BarChartPage() {

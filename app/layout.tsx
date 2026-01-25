@@ -21,7 +21,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://mario-charts.dev"),
+  metadataBase: new URL("https://mariocharts.com"),
   title: {
     default: "Mario Charts - Beautiful React Chart Components",
     template: "%s | Mario Charts",
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://mario-charts.dev",
+    url: "https://mariocharts.com",
     title: "Mario Charts - Beautiful React Chart Components",
     description:
       "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box. Zero lock-in, copy-paste components.",

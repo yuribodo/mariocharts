@@ -10,16 +10,16 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Pie Chart Component | Mario Charts",
     description: "Beautiful pie and donut chart component for React with center content support.",
-    url: "https://mario-charts.dev/docs/components/pie-chart",
+    url: "https://mariocharts.com/docs/components/pie-chart",
     type: "article",
   },
 };
 
 const breadcrumbItems = [
-  { name: "Home", url: "https://mario-charts.dev" },
-  { name: "Docs", url: "https://mario-charts.dev/docs" },
-  { name: "Components", url: "https://mario-charts.dev/docs/components" },
-  { name: "Pie Chart", url: "https://mario-charts.dev/docs/components/pie-chart" },
+  { name: "Home", url: "https://mariocharts.com" },
+  { name: "Docs", url: "https://mariocharts.com/docs" },
+  { name: "Components", url: "https://mariocharts.com/docs/components" },
+  { name: "Pie Chart", url: "https://mariocharts.com/docs/components/pie-chart" },
 ];
 
 export default function PieChartPage() {

@@ -2,7 +2,7 @@
  * Site configuration constants
  */
 export const SITE_CONFIG = {
-  url: process.env.NEXT_PUBLIC_SITE_URL || "https://mario-charts.dev",
+  url: process.env.NEXT_PUBLIC_SITE_URL || "https://mariocharts.com",
   name: "Mario Charts",
   description:
     "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box.",

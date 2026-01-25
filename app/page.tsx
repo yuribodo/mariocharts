@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     title: "Mario Charts - Beautiful React Chart Components",
     description:
       "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box.",
-    url: "https://mario-charts.dev",
+    url: "https://mariocharts.com",
     type: "website",
   },
 };

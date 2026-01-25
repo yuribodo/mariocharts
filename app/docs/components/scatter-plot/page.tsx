@@ -10,16 +10,16 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Scatter Plot Component | Mario Charts",
     description: "Versatile scatter plot and bubble chart component for React with trend line support.",
-    url: "https://mario-charts.dev/docs/components/scatter-plot",
+    url: "https://mariocharts.com/docs/components/scatter-plot",
     type: "article",
   },
 };
 
 const breadcrumbItems = [
-  { name: "Home", url: "https://mario-charts.dev" },
-  { name: "Docs", url: "https://mario-charts.dev/docs" },
-  { name: "Components", url: "https://mario-charts.dev/docs/components" },
-  { name: "Scatter Plot", url: "https://mario-charts.dev/docs/components/scatter-plot" },
+  { name: "Home", url: "https://mariocharts.com" },
+  { name: "Docs", url: "https://mariocharts.com/docs" },
+  { name: "Components", url: "https://mariocharts.com/docs/components" },
+  { name: "Scatter Plot", url: "https://mariocharts.com/docs/components/scatter-plot" },
 ];
 
 export default function ScatterPlotPage() {

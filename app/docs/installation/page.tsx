@@ -21,15 +21,15 @@ export const metadata: Metadata = {
     title: "Installation Guide | Mario Charts",
     description:
       "Install and configure Mario Charts in your React project with our CLI or manual setup guide.",
-    url: "https://mario-charts.dev/docs/installation",
+    url: "https://mariocharts.com/docs/installation",
     type: "article",
   },
 };
 
 const breadcrumbItems = [
-  { name: "Home", url: "https://mario-charts.dev" },
-  { name: "Docs", url: "https://mario-charts.dev/docs" },
-  { name: "Installation", url: "https://mario-charts.dev/docs/installation" },
+  { name: "Home", url: "https://mariocharts.com" },
+  { name: "Docs", url: "https://mariocharts.com/docs" },
+  { name: "Installation", url: "https://mariocharts.com/docs/installation" },
 ];
 
 export default function InstallationPage() {

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     title: "Introduction to Mario Charts",
     description:
       "Learn how to build beautiful, customizable dashboards for your React applications with Mario Charts.",
-    url: "https://mario-charts.dev/docs",
+    url: "https://mariocharts.com/docs",
     type: "article",
   },
 };

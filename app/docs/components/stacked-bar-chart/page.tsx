@@ -10,16 +10,16 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Stacked Bar Chart Component | Mario Charts",
     description: "Multi-category stacked bar chart component for React with composition analysis.",
-    url: "https://mario-charts.dev/docs/components/stacked-bar-chart",
+    url: "https://mariocharts.com/docs/components/stacked-bar-chart",
     type: "article",
   },
 };
 
 const breadcrumbItems = [
-  { name: "Home", url: "https://mario-charts.dev" },
-  { name: "Docs", url: "https://mario-charts.dev/docs" },
-  { name: "Components", url: "https://mario-charts.dev/docs/components" },
-  { name: "Stacked Bar Chart", url: "https://mario-charts.dev/docs/components/stacked-bar-chart" },
+  { name: "Home", url: "https://mariocharts.com" },
+  { name: "Docs", url: "https://mariocharts.com/docs" },
+  { name: "Components", url: "https://mariocharts.com/docs/components" },
+  { name: "Stacked Bar Chart", url: "https://mariocharts.com/docs/components/stacked-bar-chart" },
 ];
 
 export default function StackedBarChartPage() {

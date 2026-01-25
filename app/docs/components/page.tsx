@@ -23,15 +23,15 @@ export const metadata: Metadata = {
     title: "Chart Components | Mario Charts",
     description:
       "Explore the Mario Charts component library. Beautiful, accessible React chart components.",
-    url: "https://mario-charts.dev/docs/components",
+    url: "https://mariocharts.com/docs/components",
     type: "article",
   },
 };
 
 const breadcrumbItems = [
-  { name: "Home", url: "https://mario-charts.dev" },
-  { name: "Docs", url: "https://mario-charts.dev/docs" },
-  { name: "Components", url: "https://mario-charts.dev/docs/components" },
+  { name: "Home", url: "https://mariocharts.com" },
+  { name: "Docs", url: "https://mariocharts.com/docs" },
+  { name: "Components", url: "https://mariocharts.com/docs/components" },
 ];
 
 export default function ComponentsPage() {

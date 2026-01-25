@@ -373,8 +373,8 @@ All charts use ResizeObserver to adapt to container size changes automatically.
 
 ## Links
 
-- Website: https://mario-charts.dev
-- Documentation: https://mario-charts.dev/docs
+- Website: https://mariocharts.com
+- Documentation: https://mariocharts.com/docs
 - GitHub: https://github.com/yuribodo/mariocharts
 - NPM: https://www.npmjs.com/package/mario-charts
 

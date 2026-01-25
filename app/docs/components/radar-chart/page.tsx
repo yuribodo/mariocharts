@@ -10,16 +10,16 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Radar Chart Component | Mario Charts",
     description: "Versatile radar chart component for React. Perfect for multi-dimensional data visualization.",
-    url: "https://mario-charts.dev/docs/components/radar-chart",
+    url: "https://mariocharts.com/docs/components/radar-chart",
     type: "article",
   },
 };
 
 const breadcrumbItems = [
-  { name: "Home", url: "https://mario-charts.dev" },
-  { name: "Docs", url: "https://mario-charts.dev/docs" },
-  { name: "Components", url: "https://mario-charts.dev/docs/components" },
-  { name: "Radar Chart", url: "https://mario-charts.dev/docs/components/radar-chart" },
+  { name: "Home", url: "https://mariocharts.com" },
+  { name: "Docs", url: "https://mariocharts.com/docs" },
+  { name: "Components", url: "https://mariocharts.com/docs/components" },
+  { name: "Radar Chart", url: "https://mariocharts.com/docs/components/radar-chart" },
 ];
 
 export default function RadarChartPage() {
