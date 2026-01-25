@@ -20,7 +20,7 @@
     "themes": "@/themes"
   },
   "registry": {
-    "url": "https://mario-charts.dev/registry",
+    "url": "https://mariocharts.com/registry",
     "version": "latest"
   },
   "components": {
