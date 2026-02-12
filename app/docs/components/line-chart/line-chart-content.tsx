@@ -142,6 +142,24 @@ const lineChartProps = [
     description: "Callback fired when a point is clicked"
   },
   {
+    name: "showGrid",
+    type: "boolean",
+    default: "false",
+    description: "Show horizontal grid lines and Y-axis tick labels"
+  },
+  {
+    name: "gridStyle",
+    type: "'solid' | 'dashed' | 'dotted'",
+    default: "'dashed'",
+    description: "Style of the grid lines when showGrid is enabled"
+  },
+  {
+    name: "showLegend",
+    type: "boolean",
+    default: "false",
+    description: "Show legend below the chart for multi-series data"
+  },
+  {
     name: "className",
     type: "string",
     description: "Additional CSS classes to apply to the container"
@@ -253,6 +271,22 @@ export function LineChartContent() {
           </div>
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
+            Grid Lines & Y-Axis
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
+            Interactive Legend
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
+            Keyboard Accessible
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
+            Hover Glow
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
             Performance Optimized
           </div>
           <div className="flex items-center gap-2">
@@ -277,6 +311,7 @@ export function LineChartContent() {
                 curve={curve}
                 showDots={showDots}
                 showArea={showArea}
+                showGrid={true}
                 onPointClick={(data, index) => {
                   setSelectedPoint(data);
                   console.log('Clicked:', data, index);
@@ -366,7 +401,8 @@ export function RevenueLineChart() {
       x="month"
       y="revenue"
       curve="monotone"
-      showDots={true} // Triangular markers
+      showDots={true}
+      showGrid={true}
       onPointClick={(data, index) => {
         setSelectedPoint(data);
         console.log('Clicked:', data, index);
@@ -409,7 +445,9 @@ export function RevenueLineChart() {
                   y={["revenue", "users"]}
                   colors={['#3b82f6', '#10b981']}
                   curve="monotone"
-                  showDots={true} // Triangular markers
+                  showDots={true}
+                  showGrid={true}
+                  showLegend={true}
                   animation={showAnimation}
                 />
               </div>
@@ -434,7 +472,9 @@ export function MultiSeriesChart() {
       y={["revenue", "users"]}
       colors={['#3b82f6', '#10b981']}
       curve="monotone"
-      showDots={true} // Triangular markers
+      showDots={true}
+      showGrid={true}
+      showLegend={true}
     />
   );
 }`}
@@ -559,6 +599,8 @@ export function StockAreaChart() {
                   colors={['#3b82f6', '#10b981']}
                   curve="monotone"
                   showDots={false}
+                  showGrid={true}
+                  showLegend={true}
                   strokeWidth={2}
                   animation={showAnimation}
                   className="text-xs"
