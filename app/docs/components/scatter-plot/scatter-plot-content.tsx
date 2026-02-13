@@ -312,9 +312,8 @@ export function ScatterPlotContent() {
                 y="salary"
                 showGrid={showGrid}
                 showTrendLine={showTrendLine}
-                onPointClick={(data, index) => {
+                onPointClick={(data) => {
                   setSelectedPoint(data);
-                  console.log('Clicked:', data, index);
                 }}
                 animation={showAnimation}
               />

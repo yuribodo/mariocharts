@@ -258,7 +258,6 @@ export function BarChartContent() {
                 showGrid={true}
                 onBarClick={(data, index) => {
                   setSelectedBar(data);
-                  console.log('Clicked:', data, index);
                 }}
                 animation={showAnimation}
               />
@@ -321,7 +320,7 @@ export function BarChartContent() {
             </div>
           </div>
         }
-        code={`import { BarChart } from '@/components/ui/bar-chart';
+        code={`import { BarChart } from '@/components/charts/bar-chart';
 
 const monthlyRevenue = [
   { month: "Jan", revenue: 4500 },

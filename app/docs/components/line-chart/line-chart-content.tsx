@@ -312,9 +312,8 @@ export function LineChartContent() {
                 showDots={showDots}
                 showArea={showArea}
                 showGrid={true}
-                onPointClick={(data, index) => {
+                onPointClick={(data) => {
                   setSelectedPoint(data);
-                  console.log('Clicked:', data, index);
                 }}
                 animation={showAnimation}
               />
