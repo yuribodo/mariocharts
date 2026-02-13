@@ -13,4 +13,4 @@ export const SITE_CONFIG = {
  * Last content update date for sitemap
  * Update this when making significant content changes
  */
-export const LAST_CONTENT_UPDATE = new Date("2025-01-25");
+export const LAST_CONTENT_UPDATE = new Date("2026-02-12");
