@@ -490,7 +490,7 @@ function BarChartComponent<T extends ChartDataItem>({
                     width={bar.width}
                     height={bar.height}
                     fill="transparent"
-                    className="cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     tabIndex={0}
                     role="graphics-symbol"
                     aria-label={`${bar.label}: ${bar.value}`}
@@ -515,13 +515,13 @@ function BarChartComponent<T extends ChartDataItem>({
                   rx={4}
                   className={cn(
                     isFilled
-                      ? "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      ? "cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       : "pointer-events-none"
                   )}
                   style={{
                     transformOrigin,
-                    filter: isHovered ? `drop-shadow(0 0 6px ${bar.color})` : 'none',
-                    transition: `filter ${HOVER_DURATION}s ease-out`,
+                    filter: isHovered && !reduceMotion ? `drop-shadow(0 0 6px ${bar.color})` : 'none',
+                    transition: reduceMotion ? 'none' : `filter ${HOVER_DURATION}s ease-out`,
                   }}
                   {...motionProps}
                   {...(isFilled && {

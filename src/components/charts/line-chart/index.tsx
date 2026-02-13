@@ -504,8 +504,8 @@ function LineChartComponent<T extends ChartDataItem>({
                   strokeLinejoin="round"
                   className="pointer-events-none"
                   style={{
-                    filter: isSeriesHovered ? `drop-shadow(0 0 8px ${series.color})` : 'none',
-                    transition: `filter ${HOVER_DURATION}s ease-out`,
+                    filter: isSeriesHovered && !reduceMotion ? `drop-shadow(0 0 8px ${series.color})` : 'none',
+                    transition: reduceMotion ? 'none' : `filter ${HOVER_DURATION}s ease-out`,
                   }}
                   {...(shouldAnimate && {
                     initial: { pathLength: 0 },
@@ -533,7 +533,7 @@ function LineChartComponent<T extends ChartDataItem>({
                 width={sliceWidth}
                 height={chartHeight}
                 fill="transparent"
-                className="cursor-pointer"
+                className="cursor-pointer touch-manipulation"
                 onMouseEnter={() => handlePointMouseEnter(index)}
                 onMouseLeave={handlePointMouseLeave}
                 onClick={() => {
@@ -562,7 +562,7 @@ function LineChartComponent<T extends ChartDataItem>({
                     fill={series.color}
                     stroke="hsl(var(--background))"
                     strokeWidth={2}
-                    className="cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     tabIndex={0}
                     role="graphics-symbol"
                     aria-label={`${series.key}: ${point.label}, ${point.value}`}
@@ -573,8 +573,8 @@ function LineChartComponent<T extends ChartDataItem>({
                     onClick={() => handlePointClick(point.data, point.index, series.key)}
                     onKeyDown={(e) => handleKeyDown(e, point.data, point.index, series.key)}
                     style={{
-                      filter: isHovered ? `drop-shadow(0 0 6px ${series.color})` : 'none',
-                      transition: `filter ${HOVER_DURATION}s ease-out`,
+                      filter: isHovered && !reduceMotion ? `drop-shadow(0 0 6px ${series.color})` : 'none',
+                      transition: reduceMotion ? 'none' : `filter ${HOVER_DURATION}s ease-out`,
                     }}
                     {...(shouldAnimate && {
                       initial: { scale: 0, rotate: -180 },
