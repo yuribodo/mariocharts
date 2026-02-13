@@ -50,6 +50,8 @@ import { BarChart } from "@/components/charts/bar-chart";
 | animation | boolean | true | Enable animations |
 | loading | boolean | false | Show loading state |
 | error | string \| null | null | Error message |
+| showGrid | boolean | false | Show grid lines and Y-axis ticks |
+| gridStyle | "solid" \| "dashed" \| "dotted" | "dashed" | Grid line style |
 | onBarClick | (data: T, index: number) => void | - | Click handler |
 | className | string | - | Additional CSS classes |
 
@@ -94,6 +96,9 @@ import { LineChart } from "@/components/charts/line-chart";
 | showArea | boolean | false | Fill area under line |
 | connectNulls | boolean | true | Connect across null values |
 | strokeWidth | number | 2 | Line width |
+| showGrid | boolean | false | Show grid lines and Y-axis ticks |
+| gridStyle | "solid" \| "dashed" \| "dotted" | "dashed" | Grid line style |
+| showLegend | boolean | false | Show legend for multi-series |
 | height | number | 300 | Chart height |
 | animation | boolean | true | Enable animations |
 | onPointClick | (data: T, index: number, series?: string) => void | - | Click handler |

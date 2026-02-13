@@ -11,7 +11,7 @@ const faqItems = [
   },
   {
     question: "Do you plan to add more chart types?",
-    answer: "Absolutely. We're actively developing line charts, pie charts, area charts, and advanced visualizations like heatmaps and funnel charts."
+    answer: "Absolutely. We already ship bar charts, line charts, pie charts, radar charts, scatter plots, and stacked bar charts. We're actively developing area charts, heatmaps, and funnel charts."
   },
   {
     question: "Can I request a specific chart component?",
@@ -148,7 +148,7 @@ export function DocsContent() {
         <div className="grid gap-6 md:grid-cols-2">
           <Link
             href="/docs/installation"
-            className="group relative rounded-lg border p-8 hover:border-primary/50 hover:shadow-md transition-all duration-200"
+            className="group relative rounded-lg border p-8 hover:border-primary/50 hover:shadow-md transition-[border-color,box-shadow] duration-200"
           >
             <div className="space-y-4">
               <div className="flex items-center gap-3">
@@ -170,7 +170,7 @@ export function DocsContent() {
 
           <Link
             href="/docs/components/bar-chart"
-            className="group relative rounded-lg border p-8 hover:border-primary/50 hover:shadow-md transition-all duration-200"
+            className="group relative rounded-lg border p-8 hover:border-primary/50 hover:shadow-md transition-[border-color,box-shadow] duration-200"
           >
             <div className="space-y-4">
               <div className="flex items-center gap-3">

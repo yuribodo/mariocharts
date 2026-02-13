@@ -1,6 +1,7 @@
 "use client";
 
 import { CodeBlock } from "../../../components/ui/code-block";
+import Link from "next/link";
 import {
   CheckCircle,
   ArrowRight
@@ -74,12 +75,12 @@ export function Dashboard() {
             />
           </div>
 
-          <div className="border border-emerald-200 rounded-lg p-6 bg-emerald-50">
+          <div className="border border-emerald-200 dark:border-emerald-800 rounded-lg p-6 bg-emerald-50 dark:bg-emerald-950">
             <div className="flex items-center gap-3 mb-3">
-              <CheckCircle size={20} className="text-emerald-600" />
-              <h4 className="font-semibold text-emerald-900">You're all set!</h4>
+              <CheckCircle size={20} className="text-emerald-600 dark:text-emerald-400" />
+              <h4 className="font-semibold text-emerald-900 dark:text-emerald-100">You're all set!</h4>
             </div>
-            <p className="text-emerald-700 leading-relaxed">
+            <p className="text-emerald-700 dark:text-emerald-300 leading-relaxed">
               That's it! The CLI automatically installed dependencies, configured your project, and added the component files. You can now use Mario Charts components in your React application.
             </p>
           </div>
@@ -240,18 +241,18 @@ export function cn(...inputs: ClassValue[]) {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <a
+              <Link
                 href="/docs/components/bar-chart"
                 className="inline-flex items-center justify-center rounded-lg text-sm font-semibold ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6"
               >
                 Start with Bar Chart <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/docs/components"
                 className="inline-flex items-center justify-center rounded-lg text-sm font-semibold ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-6"
               >
                 Browse Components
-              </a>
+              </Link>
             </div>
 
             <div className="pt-4 border-t">

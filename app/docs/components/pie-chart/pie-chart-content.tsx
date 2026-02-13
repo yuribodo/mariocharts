@@ -231,9 +231,8 @@ export function PieChartContent() {
                 value="share"
                 label="company"
                 variant={variant}
-                onSliceClick={(data, index) => {
+                onSliceClick={(data) => {
                   setSelectedSlice(data);
-                  console.log('Clicked:', data, index);
                 }}
                 animation={showAnimation}
                 centerContent={({ total }) => (

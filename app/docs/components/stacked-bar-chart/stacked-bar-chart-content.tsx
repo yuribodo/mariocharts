@@ -49,13 +49,17 @@ const productMixByStore = [
   { store: "Seattle", electronics: 71000, apparel: 56000, home: 39000 }
 ] as const;
 
-// 5. Large Dataset - 20+ bars with 4+ categories
+// 5. Large Dataset - 20+ bars with 4+ categories (deterministic for SSR)
+function seededValue(seed: number): number {
+  const x = Math.sin(seed * 9301 + 49297) * 49297;
+  return x - Math.floor(x);
+}
 const largeDataset = Array.from({ length: 24 }, (_, i) => ({
   period: `Period ${i + 1}`,
-  categoryA: 1000 + (i * 50) + Math.random() * 500,
-  categoryB: 800 + (i * 40) + Math.random() * 400,
-  categoryC: 600 + (i * 30) + Math.random() * 300,
-  categoryD: 400 + (i * 20) + Math.random() * 200
+  categoryA: Math.round(1000 + (i * 50) + seededValue(i * 4) * 500),
+  categoryB: Math.round(800 + (i * 40) + seededValue(i * 4 + 1) * 400),
+  categoryC: Math.round(600 + (i * 30) + seededValue(i * 4 + 2) * 300),
+  categoryD: Math.round(400 + (i * 20) + seededValue(i * 4 + 3) * 200)
 }));
 
 // API Reference data
@@ -293,7 +297,6 @@ export function StackedBarChartContent() {
                 colors={['#3b82f6', '#10b981', '#f59e0b']}
                 onSegmentClick={(data: SegmentSelection['data'], stackKey: string, index: number) => {
                   setSelectedSegment({ data, key: stackKey, index });
-                  console.log('Clicked segment:', { data, stackKey, index });
                 }}
               />
             </div>
