@@ -67,6 +67,11 @@ packages/*/node_modules/
 CLAUDE.md
 .claude
 
+# eidos (spec-driven dev tool — local only)
+eidos/
+memory/
+.eidos-config.yaml
+
 # registry
 registry/
 registry/components/
