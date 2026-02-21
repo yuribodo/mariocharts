@@ -15,25 +15,47 @@ import {
   GAUGE_END_ANGLE,
 } from "./utils";
 
+/**
+ * Defines a colored zone region on the gauge arc.
+ */
 interface GaugeZone {
+  /** Data value where this zone begins (inclusive). */
   readonly from: number;
+  /** Data value where this zone ends (inclusive). */
   readonly to: number;
+  /** CSS color string for this zone's arc segment. */
   readonly color: string;
+  /** Optional label shown in the center when the needle is in this zone. */
   readonly label?: string;
 }
 
+/**
+ * Props for the {@link GaugeChart} component.
+ */
 interface GaugeChartProps {
+  /** The current value to display on the gauge. */
   readonly value: number;
+  /** Minimum value of the gauge range. @default 0 */
   readonly min?: number;
+  /** Maximum value of the gauge range. @default 100 */
   readonly max?: number;
+  /** Array of zone objects defining color regions. */
   readonly zones: readonly GaugeZone[];
+  /** Unit label shown next to the center value (e.g. `"%"`, `"GB"`). */
   readonly unit?: string;
+  /** Descriptive label shown below the center value. */
   readonly label?: string;
+  /** Thickness of the gauge arc stroke in pixels. @default 20 */
   readonly strokeWidth?: number;
+  /** Height of the chart container in pixels. @default 300 */
   readonly height?: number;
+  /** Show loading skeleton state. @default false */
   readonly loading?: boolean;
+  /** Error message to display in place of the chart. @default null */
   readonly error?: string | null;
+  /** Enable entrance animation for the progress arc. @default true */
   readonly animation?: boolean;
+  /** Additional CSS classes to apply to the container. */
   readonly className?: string;
 }
 
@@ -48,11 +70,18 @@ function useContainerDimensions() {
   useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const update = () => setWidth(el.getBoundingClientRect().width);
+    let rafId = 0;
+    const update = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => setWidth(el.getBoundingClientRect().width));
+    };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      cancelAnimationFrame(rafId);
+      ro.disconnect();
+    };
   }, []);
 
   return [ref, width] as const;
@@ -138,6 +167,11 @@ function GaugeChartComponent({
     [zoneArcs, valueAngle]
   );
 
+  const zoneArcPaths = useMemo(
+    () => zoneArcs.map((zone) => describeArcPath(cx, cy, midRadius, zone.startAngle, zone.endAngle - 0.01)),
+    [zoneArcs, cx, cy, midRadius]
+  );
+
   const bgArcPath = useMemo(
     () => (midRadius > 0 ? describeArcPath(cx, cy, midRadius, GAUGE_START_ANGLE, GAUGE_END_ANGLE - 0.01) : ''),
     [cx, cy, midRadius]
@@ -197,7 +231,7 @@ function GaugeChartComponent({
         {zoneArcs.map((zone, i) => (
           <path
             key={i}
-            d={describeArcPath(cx, cy, midRadius, zone.startAngle, zone.endAngle - 0.01)}
+            d={zoneArcPaths[i]}
             fill="none"
             stroke={zone.color}
             strokeWidth={strokeWidth}
