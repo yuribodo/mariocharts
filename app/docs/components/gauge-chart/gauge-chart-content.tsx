@@ -15,19 +15,19 @@ const cpuZones: readonly GaugeZone[] = [
   { from: 0, to: 60, color: "#22c55e", label: "Normal" },
   { from: 60, to: 80, color: "#f59e0b", label: "High" },
   { from: 80, to: 100, color: "#ef4444", label: "Critical" },
-] as const;
+];
 
 const memoryZones: readonly GaugeZone[] = [
   { from: 0, to: 16, color: "#22c55e", label: "Available" },
   { from: 16, to: 24, color: "#f59e0b", label: "Pressure" },
   { from: 24, to: 32, color: "#ef4444", label: "Critical" },
-] as const;
+];
 
 const performanceZones: readonly GaugeZone[] = [
   { from: 0, to: 50, color: "#ef4444", label: "Poor" },
   { from: 50, to: 80, color: "#f59e0b", label: "Needs Work" },
   { from: 80, to: 100, color: "#22c55e", label: "Good" },
-] as const;
+];
 
 // API Reference props
 const gaugeChartProps = [
@@ -157,6 +157,21 @@ const ZONE_PRESETS: Record<ZonePreset, { zones: readonly GaugeZone[]; max: numbe
   performance: { zones: performanceZones, max: 100, unit: "", label: "Performance Score" },
 };
 
+function ReplayButton({ onClick, disabled }: { onClick: () => void; disabled: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+    >
+      <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+      Replay Animation
+    </button>
+  );
+}
+
 export function GaugeChartContent() {
   const [liveValue, setLiveValue] = useState(72);
   const [preset, setPreset] = useState<ZonePreset>("cpu");
@@ -164,11 +179,11 @@ export function GaugeChartContent() {
   const [chartKey, setChartKey] = useState(0);
 
   // Memory example controls
-  const [memoryValue] = useState(20);
+  const memoryValue = 20;
   const [memoryAnimation, setMemoryAnimation] = useState(true);
 
   // Performance example controls
-  const [perfValue] = useState(85);
+  const perfValue = 85;
   const [perfAnimation, setPerfAnimation] = useState(true);
 
   const replayAnimation = () => {
@@ -294,8 +309,10 @@ export function GaugeChartContent() {
                     <StyledSelect
                       value={preset}
                       onValueChange={(value) => {
-                        setPreset(value as ZonePreset);
-                        setLiveValue(Math.round(ZONE_PRESETS[value as ZonePreset].max * 0.72));
+                        if (value in ZONE_PRESETS) {
+                          setPreset(value as ZonePreset);
+                          setLiveValue(Math.round(ZONE_PRESETS[value as ZonePreset].max * 0.72));
+                        }
                       }}
                       options={[
                         { value: "cpu", label: "CPU Usage" },
@@ -306,16 +323,7 @@ export function GaugeChartContent() {
                   </div>
                 </div>
 
-                <button
-                  onClick={replayAnimation}
-                  disabled={!showAnimation}
-                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-                >
-                  <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  Replay Animation
-                </button>
+                <ReplayButton onClick={replayAnimation} disabled={!showAnimation} />
               </div>
             </div>
           </div>
@@ -394,16 +402,7 @@ export function CpuGauge() {
                     />
                   </div>
 
-                  <button
-                    onClick={replayAnimation}
-                    disabled={!memoryAnimation}
-                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Replay Animation
-                  </button>
+                  <ReplayButton onClick={replayAnimation} disabled={!memoryAnimation} />
                 </div>
               </div>
             </div>
@@ -462,16 +461,7 @@ export function MemoryGauge() {
                     />
                   </div>
 
-                  <button
-                    onClick={replayAnimation}
-                    disabled={!perfAnimation}
-                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Replay Animation
-                  </button>
+                  <ReplayButton onClick={replayAnimation} disabled={!perfAnimation} />
                 </div>
               </div>
             </div>
