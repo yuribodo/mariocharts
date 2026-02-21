@@ -232,6 +232,7 @@ function GaugeChartComponent({
           x={minLabelPos.x}
           y={minLabelPos.y + strokeWidth}
           textAnchor="middle"
+          dominantBaseline="middle"
           fontSize={11}
           className="fill-muted-foreground"
         >
@@ -243,6 +244,7 @@ function GaugeChartComponent({
           x={maxLabelPos.x}
           y={maxLabelPos.y + strokeWidth}
           textAnchor="middle"
+          dominantBaseline="middle"
           fontSize={11}
           className="fill-muted-foreground"
         >
