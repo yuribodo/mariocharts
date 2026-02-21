@@ -12,9 +12,6 @@
 
 # testing
 /coverage
-/__tests__
-*.test.*
-*.spec.*
 
 # next.js
 /.next/
@@ -66,6 +63,11 @@ packages/*/node_modules/
 # claude
 CLAUDE.md
 .claude
+
+# eidos (spec-driven dev tool — local only)
+eidos/
+memory/
+.eidos-config.yaml
 
 # registry
 registry/
