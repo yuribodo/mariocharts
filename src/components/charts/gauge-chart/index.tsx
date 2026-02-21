@@ -214,16 +214,20 @@ function GaugeChartComponent({
             strokeWidth={strokeWidth}
             strokeLinecap="round"
             style={{
-              stroke: activeZone?.color ?? "currentColor",
               filter: activeZone ? `drop-shadow(0 0 8px ${activeZone.color})` : undefined,
             }}
-            {...(shouldAnimate
-              ? {
-                  initial: { pathLength: 0 },
-                  animate: { pathLength: 1 },
-                  transition: { duration: 1.2, ease: [0.4, 0, 0.2, 1] as const },
-                }
-              : {})}
+            initial={{
+              pathLength: shouldAnimate ? 0 : 1,
+              stroke: activeZone?.color ?? "currentColor",
+            }}
+            animate={{
+              pathLength: 1,
+              stroke: activeZone?.color ?? "currentColor",
+            }}
+            transition={{
+              pathLength: { duration: shouldAnimate ? 1.2 : 0, ease: [0.4, 0, 0.2, 1] as const },
+              stroke: { duration: 0 },
+            }}
           />
         )}
 
