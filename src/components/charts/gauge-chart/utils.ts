@@ -21,20 +21,23 @@ export interface ZoneArc {
   readonly startAngle: number;
   readonly endAngle: number;
   readonly color: string;
-  readonly label?: string;
+  readonly label?: string | undefined;
 }
 
 export function computeZoneArcs(
-  zones: readonly { from: number; to: number; color: string; label?: string }[],
+  zones: readonly { from: number; to: number; color: string; label?: string | undefined }[],
   min: number,
   max: number
 ): ZoneArc[] {
-  return zones.map((zone) => ({
-    startAngle: valueToAngle(zone.from, min, max),
-    endAngle: valueToAngle(zone.to, min, max),
-    color: zone.color,
-    label: zone.label,
-  }));
+  return zones.map((zone) => {
+    const arc: ZoneArc = {
+      startAngle: valueToAngle(zone.from, min, max),
+      endAngle: valueToAngle(zone.to, min, max),
+      color: zone.color,
+      ...(zone.label !== undefined ? { label: zone.label } : {}),
+    };
+    return arc;
+  });
 }
 
 export function describeArcPath(cx: number, cy: number, radius: number, startAngle: number, endAngle: number): string {
