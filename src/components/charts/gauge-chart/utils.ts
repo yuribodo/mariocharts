@@ -18,10 +18,10 @@ export function polarToCartesian(cx: number, cy: number, radius: number, angleDe
 }
 
 export interface ZoneArc {
-  startAngle: number;
-  endAngle: number;
-  color: string;
-  label?: string;
+  readonly startAngle: number;
+  readonly endAngle: number;
+  readonly color: string;
+  readonly label?: string;
 }
 
 export function computeZoneArcs(
