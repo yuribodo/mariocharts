@@ -211,10 +211,10 @@ function GaugeChartComponent({
           <motion.path
             d={progressArcPath}
             fill="none"
-            stroke={activeZone?.color ?? "currentColor"}
             strokeWidth={strokeWidth}
             strokeLinecap="round"
             style={{
+              stroke: activeZone?.color ?? "currentColor",
               filter: activeZone ? `drop-shadow(0 0 8px ${activeZone.color})` : undefined,
             }}
             {...(shouldAnimate
