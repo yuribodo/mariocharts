@@ -57,6 +57,10 @@ const sidebarNavItems: SidebarNavItem[] = [
       {
         title: "Stacked Bar Chart",
         href: "/docs/components/stacked-bar-chart"
+      },
+      {
+        title: "Gauge Chart",
+        href: "/docs/components/gauge-chart"
       }
     ]
   }
