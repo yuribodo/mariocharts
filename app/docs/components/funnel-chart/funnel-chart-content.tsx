@@ -29,7 +29,7 @@ const onboardingFunnel = [
   { stage: "Advocate", users: 620 },
 ] as const;
 
-// Dataset 3: Sales pipeline
+// Dataset 3: Sales pipeline (horizontal)
 const salesPipeline = [
   { stage: "Leads", value: 480000 },
   { stage: "Qualified", value: 320000 },
@@ -51,9 +51,9 @@ const funnelProps = [
   },
   {
     name: "variant",
-    type: "'tapered' | 'straight'",
+    type: "'tapered' | 'straight' | 'horizontal'",
     default: "'tapered'",
-    description: "Tapered shrinks width by value ratio; straight uses uniform width for all stages",
+    description: "Tapered shrinks by value ratio; straight uses uniform width; horizontal renders left-to-right chevrons",
   },
   { name: "showValues", type: "boolean", default: "true", description: "Show numeric values inside stages" },
   { name: "showPercentages", type: "boolean", default: "true", description: "Show % of total inside stages" },
@@ -61,7 +61,7 @@ const funnelProps = [
     name: "showConversionRates",
     type: "boolean",
     default: "false",
-    description: "Show conversion rate from previous stage above each stage",
+    description: "Show conversion rate badge between each stage",
   },
   { name: "height", type: "number", default: "400", description: "Height of the chart in pixels" },
   { name: "loading", type: "boolean", default: "false", description: "Show loading skeleton state" },
@@ -104,7 +104,7 @@ const installationSteps = [
 ];
 
 export function FunnelChartContent() {
-  const [variant, setVariant] = useState<"tapered" | "straight">("tapered");
+  const [variant, setVariant] = useState<"tapered" | "straight" | "horizontal">("tapered");
   const [showConversionRates, setShowConversionRates] = useState(false);
   const [showValues, setShowValues] = useState(true);
   const [showPercentages, setShowPercentages] = useState(true);
@@ -127,12 +127,12 @@ export function FunnelChartContent() {
         </div>
         <p className="text-xl text-muted-foreground leading-7 max-w-3xl">
           A production-ready funnel chart for visualizing conversion pipelines and stage-by-stage drop-off.
-          Perfect for sales funnels, onboarding flows, and marketing attribution.
+          Three variants — tapered, straight, and horizontal chevron — for any dashboard layout.
         </p>
         <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2 text-sm text-muted-foreground">
           {[
-            "Tapered & Straight Variants",
-            "Conversion Rates",
+            "Tapered, Straight & Horizontal",
+            "Conversion Rate Badges",
             "Stagger Animation",
             "Hover Tooltip",
             "Responsive",
@@ -147,13 +147,13 @@ export function FunnelChartContent() {
         </div>
       </div>
 
-      {/* Example 1: E-commerce */}
+      {/* Example 1: E-commerce with controls */}
       <ExampleShowcase
         title="E-commerce Conversion Funnel"
-        description="Classic conversion funnel from visitors to purchase with configurable options"
+        description="Classic conversion funnel from visitors to purchase — try all three variants and toggle conversion rate badges"
         preview={
           <div className="space-y-4">
-            <div style={{ height: 360 }}>
+            <div style={{ height: variant === "horizontal" ? 200 : 360 }}>
               <FunnelChart
                 key={chartKey}
                 data={ecommerceFunnel}
@@ -164,7 +164,7 @@ export function FunnelChartContent() {
                 showPercentages={showPercentages}
                 showConversionRates={showConversionRates}
                 animation={showAnimation}
-                height={360}
+                height={variant === "horizontal" ? 200 : 360}
                 colors={["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4"]}
               />
             </div>
@@ -175,10 +175,11 @@ export function FunnelChartContent() {
                     <span>Variant:</span>
                     <StyledSelect
                       value={variant}
-                      onValueChange={v => setVariant(v as "tapered" | "straight")}
+                      onValueChange={v => setVariant(v as "tapered" | "straight" | "horizontal")}
                       options={[
                         { value: "tapered", label: "Tapered" },
                         { value: "straight", label: "Straight" },
+                        { value: "horizontal", label: "Horizontal" },
                       ]}
                     />
                   </div>
@@ -235,10 +236,54 @@ export function EcommerceFunnel() {
           <p className="text-muted-foreground">Different use cases and configurations for the FunnelChart component.</p>
         </div>
 
-        {/* Example 2: SaaS onboarding */}
+        {/* Example 2: Horizontal chevron pipeline */}
+        <ExampleShowcase
+          title="Sales Pipeline — Horizontal Variant"
+          description="Left-to-right chevron pipeline — ideal for enterprise dashboards and process visualization"
+          preview={
+            <div style={{ height: 200 }}>
+              <FunnelChart
+                key={`pipeline-${chartKey}`}
+                data={salesPipeline}
+                label="stage"
+                value="value"
+                variant="horizontal"
+                showValues
+                showPercentages
+                showConversionRates
+                animation={showAnimation}
+                height={200}
+                colors={["#6366f1", "#8b5cf6", "#a855f7", "#c084fc", "#d8b4fe"]}
+              />
+            </div>
+          }
+          code={`import { FunnelChart } from '@/components/charts/funnel-chart';
+
+const salesPipeline = [
+  { stage: "Leads", value: 480000 },
+  { stage: "Qualified", value: 320000 },
+  { stage: "Proposal", value: 190000 },
+  { stage: "Negotiation", value: 120000 },
+  { stage: "Closed Won", value: 72000 },
+];
+
+export function SalesPipeline() {
+  return (
+    <FunnelChart
+      data={salesPipeline}
+      label="stage"
+      value="value"
+      variant="horizontal"
+      showConversionRates
+    />
+  );
+}`}
+        />
+
+        {/* Example 3: SaaS onboarding */}
         <ExampleShowcase
           title="SaaS Onboarding Flow"
-          description="6-stage onboarding funnel with conversion rates visible between each step"
+          description="6-stage onboarding funnel with conversion rate badges between each step"
           preview={
             <div style={{ height: 440 }}>
               <FunnelChart
@@ -273,50 +318,6 @@ export function OnboardingFunnel() {
       data={onboardingFunnel}
       label="stage"
       value="users"
-      showConversionRates
-    />
-  );
-}`}
-        />
-
-        {/* Example 3: Sales pipeline */}
-        <ExampleShowcase
-          title="Sales Pipeline — Straight Variant"
-          description="Revenue pipeline with uniform-width stages for clean comparison"
-          preview={
-            <div style={{ height: 360 }}>
-              <FunnelChart
-                key={`sales-${chartKey}`}
-                data={salesPipeline}
-                label="stage"
-                value="value"
-                variant="straight"
-                showValues
-                showPercentages
-                showConversionRates
-                animation={showAnimation}
-                height={360}
-                colors={["#10b981", "#22c55e", "#4ade80", "#86efac", "#bbf7d0"]}
-              />
-            </div>
-          }
-          code={`import { FunnelChart } from '@/components/charts/funnel-chart';
-
-const salesPipeline = [
-  { stage: "Leads", value: 480000 },
-  { stage: "Qualified", value: 320000 },
-  { stage: "Proposal", value: 190000 },
-  { stage: "Negotiation", value: 120000 },
-  { stage: "Closed Won", value: 72000 },
-];
-
-export function SalesPipeline() {
-  return (
-    <FunnelChart
-      data={salesPipeline}
-      label="stage"
-      value="value"
-      variant="straight"
       showConversionRates
     />
   );

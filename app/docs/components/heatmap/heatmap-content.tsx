@@ -9,22 +9,22 @@ import { InstallationGuide } from "../../../../components/ui/installation-guide"
 import { GridFour } from "@phosphor-icons/react";
 import { StyledSelect } from "../../../../components/ui/styled-select";
 import { AnimatedCheckbox } from "../../../../components/ui/animated-checkbox";
-import type { ColorScheme } from "@/src/components/charts/heatmap";
+import type { ColorScheme, HeatmapVariant } from "@/src/components/charts/heatmap";
 
-// Dataset 1: GitHub-style activity calendar (7 weeks × 7 days)
+// Dataset 1: Activity calendar (7 weeks × 7 days)
 const activityData = (() => {
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const weeks = Array.from({ length: 7 }, (_, i) => `W${i + 1}`);
   const data: { week: string; day: string; commits: number }[] = [];
+  const seed = [4, 9, 2, 11, 7, 1, 6, 3, 10, 5, 8, 0, 12, 2];
+  let si = 0;
   for (const week of weeks) {
     for (const day of days) {
       const isWeekend = day === "Sat" || day === "Sun";
       data.push({
         week,
         day,
-        commits: isWeekend
-          ? Math.floor(Math.random() * 3)
-          : Math.floor(Math.random() * 12),
+        commits: isWeekend ? (seed[si++ % seed.length]! % 3) : (seed[si++ % seed.length]! % 12),
       });
     }
   }
@@ -56,19 +56,44 @@ const correlationData = products.flatMap((productA, i) =>
   }))
 );
 
+// Dataset 4: Traffic by hour × day (radial)
+const hours = Array.from({ length: 24 }, (_, i) => `${i}h`);
+const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const trafficData = hours.flatMap((hour, hi) =>
+  weekdays.map((day, di) => ({
+    hour,
+    day,
+    traffic: Math.round(
+      Math.abs(Math.sin((hi * Math.PI) / 12)) * 100 *
+      (di < 5 ? 1 : 0.5) *
+      (hi >= 8 && hi <= 18 ? 1 : 0.3) +
+      Math.random() * 10
+    ),
+  }))
+);
+
 // API Reference
 const heatmapProps = [
   { name: "data", type: "readonly T[]", description: "Array of data objects to display", required: true },
-  { name: "x", type: "keyof T", description: "Key for column labels (x-axis)", required: true },
-  { name: "y", type: "keyof T", description: "Key for row labels (y-axis)", required: true },
+  { name: "x", type: "keyof T", description: "Key for column labels (x-axis / angular axis)", required: true },
+  { name: "y", type: "keyof T", description: "Key for row labels (y-axis / radial axis)", required: true },
   { name: "value", type: "keyof T", description: "Key for numeric cell values", required: true },
+  {
+    name: "variant",
+    type: "'grid' | 'calendar' | 'bubble' | 'radial'",
+    default: "'grid'",
+    description: "grid: standard heatmap with cross-highlight; calendar: GitHub-style; bubble: circle-sized cells; radial: polar clock",
+  },
   {
     name: "colorScheme",
     type: "'blue' | 'green' | 'amber' | 'purple' | 'diverging'",
     default: "'blue'",
-    description: "Color scheme for cell intensity. 'diverging' uses blue/red for low/high values",
+    description: "Built-in color scheme. 'diverging' interpolates through neutral midpoint",
   },
-  { name: "showLabels", type: "boolean", default: "true", description: "Show column and row labels" },
+  { name: "colorFrom", type: "string", description: "Override the low-value color (hex). Overrides colorScheme start." },
+  { name: "colorTo", type: "string", description: "Override the high-value color (hex). Overrides colorScheme end." },
+  { name: "showLabels", type: "boolean", default: "true", description: "Show axis labels" },
+  { name: "showLegend", type: "boolean", default: "false", description: "Show color legend (Less/More). Default true for calendar." },
   { name: "cellRadius", type: "number", default: "4", description: "Border radius of each cell in pixels" },
   { name: "height", type: "number", default: "320", description: "Height of the chart in pixels" },
   { name: "loading", type: "boolean", default: "false", description: "Show loading skeleton state" },
@@ -105,20 +130,24 @@ const installationSteps = [
   x="week"
   y="day"
   value="commits"
+  variant="calendar"
   colorScheme="green"
+  showLegend
 />`,
     language: "tsx",
   },
 ];
 
 export function HeatmapContent() {
+  const [variant, setVariant] = useState<HeatmapVariant>("grid");
   const [colorScheme, setColorScheme] = useState<ColorScheme>("green");
   const [showLabels, setShowLabels] = useState(true);
+  const [showLegend, setShowLegend] = useState(false);
   const [showAnimation, setShowAnimation] = useState(true);
   const [chartKey, setChartKey] = useState(0);
 
-  const [tempScheme, setTempScheme] = useState<ColorScheme>("amber");
   const [corrScheme, setCorrScheme] = useState<ColorScheme>("diverging");
+  const [tempScheme, setTempScheme] = useState<ColorScheme>("amber");
 
   const replay = () => setChartKey(prev => prev + 1);
 
@@ -135,18 +164,19 @@ export function HeatmapContent() {
           </h1>
         </div>
         <p className="text-xl text-muted-foreground leading-7 max-w-3xl">
-          A production-ready heatmap component for visualizing NxM grids with color-coded intensity.
-          Perfect for activity calendars, correlation matrices, and time-series patterns.
+          Four powerful heatmap variants — grid with crosshair highlight, GitHub-style calendar, bubble matrix, and radial polar clock.
+          Full color interpolation, legend, and zero external dependencies beyond Framer Motion.
         </p>
         <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2 text-sm text-muted-foreground">
           {[
-            "5 Color Schemes",
-            "Stagger Animation",
-            "Hover Tooltip",
-            "Responsive",
+            "4 Variants",
+            "Cross-Highlight",
+            "Color Interpolation",
+            "Calendar Mode",
+            "Bubble Matrix",
+            "Radial / Polar",
+            "Color Legend",
             "TypeScript",
-            "Keyboard Accessible",
-            "Reduced Motion",
           ].map(f => (
             <div key={f} className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 bg-foreground rounded-full" />
@@ -156,30 +186,45 @@ export function HeatmapContent() {
         </div>
       </div>
 
-      {/* Example 1: Activity calendar */}
+      {/* Example 1: All variants on activity data */}
       <ExampleShowcase
-        title="GitHub-Style Activity Calendar"
-        description="Weekly commit activity heatmap with configurable color scheme and labels"
+        title="Activity Heatmap — All Variants"
+        description="Switch between grid (with crosshair highlight), calendar, bubble, and radial — all using the same data format"
         preview={
           <div className="space-y-4">
-            <div className="h-64">
+            <div style={{ height: variant === "radial" ? 340 : 280 }}>
               <HeatmapChart
-                key={chartKey}
+                key={`${chartKey}-${variant}`}
                 data={activityData}
                 x="week"
                 y="day"
                 value="commits"
+                variant={variant}
                 colorScheme={colorScheme}
                 showLabels={showLabels}
+                showLegend={showLegend}
                 animation={showAnimation}
-                height={240}
+                height={variant === "radial" ? 340 : 280}
               />
             </div>
             <div className="space-y-3 pt-2 border-t">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-6 flex-wrap">
                   <div className="flex items-center gap-2 text-sm">
-                    <span>Color scheme:</span>
+                    <span>Variant:</span>
+                    <StyledSelect
+                      value={variant}
+                      onValueChange={v => setVariant(v as HeatmapVariant)}
+                      options={[
+                        { value: "grid", label: "Grid" },
+                        { value: "calendar", label: "Calendar" },
+                        { value: "bubble", label: "Bubble" },
+                        { value: "radial", label: "Radial" },
+                      ]}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span>Color:</span>
                     <StyledSelect
                       value={colorScheme}
                       onValueChange={v => setColorScheme(v as ColorScheme)}
@@ -193,6 +238,7 @@ export function HeatmapContent() {
                     />
                   </div>
                   <AnimatedCheckbox checked={showLabels} onChange={setShowLabels} label="Labels" id="heatmap-labels" />
+                  <AnimatedCheckbox checked={showLegend} onChange={setShowLegend} label="Legend" id="heatmap-legend" />
                   <AnimatedCheckbox checked={showAnimation} onChange={setShowAnimation} label="Animation" id="heatmap-anim" />
                 </div>
                 <button
@@ -208,22 +254,16 @@ export function HeatmapContent() {
         }
         code={`import { HeatmapChart } from '@/components/charts/heatmap';
 
-const activityData = weeks.flatMap(week =>
-  days.map(day => ({ week, day, commits: Math.floor(Math.random() * 12) }))
-);
-
-export function ActivityCalendar() {
-  return (
-    <HeatmapChart
-      data={activityData}
-      x="week"
-      y="day"
-      value="commits"
-      colorScheme="green"
-      showLabels
-    />
-  );
-}`}
+// Same data, four variants
+<HeatmapChart
+  data={activityData}
+  x="week"
+  y="day"
+  value="commits"
+  variant="calendar"   // "grid" | "calendar" | "bubble" | "radial"
+  colorScheme="green"
+  showLegend
+/>`}
       />
 
       <InstallationGuide
@@ -237,24 +277,26 @@ export function ActivityCalendar() {
       <div className="space-y-8">
         <div>
           <h2 className="text-3xl font-bold tracking-tight mb-2">Examples</h2>
-          <p className="text-muted-foreground">Different datasets and color schemes for the HeatmapChart component.</p>
+          <p className="text-muted-foreground">Variant-specific use cases and real-world datasets.</p>
         </div>
 
-        {/* Example 2: Temperature */}
+        {/* Example 2: Grid with cross-highlight */}
         <ExampleShowcase
-          title="Hourly Temperature Matrix"
-          description="Temperature readings by hour and day of week using amber color scheme"
+          title="Grid — Cross-Highlight on Hover"
+          description="Hover any cell to highlight its row and column with a crosshair effect. Unique to Mario Charts."
           preview={
             <div className="space-y-4">
-              <div className="h-64">
+              <div style={{ height: 260 }}>
                 <HeatmapChart
                   key={`temp-${chartKey}`}
                   data={temperatureData}
                   x="hour"
                   y="day"
                   value="temp"
+                  variant="grid"
                   colorScheme={tempScheme}
-                  height={240}
+                  showLegend
+                  height={260}
                   animation={showAnimation}
                 />
               </div>
@@ -275,39 +317,36 @@ export function ActivityCalendar() {
           }
           code={`import { HeatmapChart } from '@/components/charts/heatmap';
 
-const temperatureData = days.flatMap(day =>
-  hours.map(hour => ({ day, hour, temp: getTemp(day, hour) }))
-);
-
-export function TemperatureMatrix() {
-  return (
-    <HeatmapChart
-      data={temperatureData}
-      x="hour"
-      y="day"
-      value="temp"
-      colorScheme="amber"
-    />
-  );
-}`}
+// Hover a cell → its row + column dim out, crosshair appears
+<HeatmapChart
+  data={temperatureData}
+  x="hour"
+  y="day"
+  value="temp"
+  variant="grid"
+  colorScheme="amber"
+  showLegend
+/>`}
         />
 
-        {/* Example 3: Correlation matrix */}
+        {/* Example 3: Bubble matrix */}
         <ExampleShowcase
-          title="Product Correlation Matrix"
-          description="6×6 cross-sell correlation matrix with diverging color scheme"
+          title="Bubble Matrix — Size + Color Encoding"
+          description="Each cell's circle radius scales with value, doubling the information density of a standard heatmap"
           preview={
             <div className="space-y-4">
-              <div className="h-72">
+              <div style={{ height: 280 }}>
                 <HeatmapChart
                   key={`corr-${chartKey}`}
                   data={correlationData}
                   x="productA"
                   y="productB"
                   value="correlation"
+                  variant="bubble"
                   colorScheme={corrScheme}
                   cellRadius={2}
-                  height={256}
+                  showLegend
+                  height={280}
                   animation={showAnimation}
                 />
               </div>
@@ -335,18 +374,50 @@ const correlationData = products.flatMap(productA =>
   }))
 );
 
-export function CorrelationMatrix() {
-  return (
-    <HeatmapChart
-      data={correlationData}
-      x="productA"
-      y="productB"
-      value="correlation"
-      colorScheme="diverging"
-      cellRadius={2}
-    />
-  );
-}`}
+<HeatmapChart
+  data={correlationData}
+  x="productA"
+  y="productB"
+  value="correlation"
+  variant="bubble"
+  colorScheme="diverging"
+  showLegend
+/>`}
+        />
+
+        {/* Example 4: Radial — traffic by hour × day */}
+        <ExampleShowcase
+          title="Radial / Polar Clock — Traffic by Hour & Day"
+          description="Cyclical data rendered as concentric rings — ideal for time-of-day × day-of-week patterns"
+          preview={
+            <div style={{ height: 360 }}>
+              <HeatmapChart
+                key={`radial-${chartKey}`}
+                data={trafficData}
+                x="hour"
+                y="day"
+                value="traffic"
+                variant="radial"
+                colorScheme="blue"
+                showLegend
+                height={360}
+                animation={showAnimation}
+              />
+            </div>
+          }
+          code={`import { HeatmapChart } from '@/components/charts/heatmap';
+
+// x = angular (hours), y = rings (days)
+<HeatmapChart
+  data={trafficData}
+  x="hour"
+  y="day"
+  value="traffic"
+  variant="radial"
+  colorScheme="blue"
+  showLegend
+  height={360}
+/>`}
         />
 
         {/* States */}
