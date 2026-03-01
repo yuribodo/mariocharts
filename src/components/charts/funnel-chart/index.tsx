@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { memo, useMemo, useState, useRef, useCallback } from "react";
+import { memo, useMemo, useCallback } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useIsomorphicLayoutEffect } from "../../../../lib/hooks";
 import { cn } from "../../../../lib/utils";
@@ -26,7 +26,7 @@ interface FunnelChartProps<T extends ChartDataItem> {
   readonly onClick?: (item: T, index: number) => void;
 }
 
-interface ProcessedStage<T> {
+interface ProcessedVerticalStage<T> {
   readonly data: T;
   readonly index: number;
   readonly labelText: string;
@@ -55,11 +55,11 @@ interface ProcessedHorizontalStage<T> {
   readonly pctOfTotal: number;
   readonly pctFromPrev: number | null;
   readonly color: string;
-  readonly sx: number;         // stage left x
-  readonly sw: number;         // stage width
-  readonly cy: number;         // center y
-  readonly halfH: number;      // half height of chevron
-  readonly points: string;     // SVG polygon points
+  readonly sx: number;    // stage left x
+  readonly sw: number;    // stage width
+  readonly sy: number;    // stage top y
+  readonly sh: number;    // stage height
+  readonly cy: number;    // center y of whole chart area
 }
 
 // Constants
@@ -71,9 +71,8 @@ const DEFAULT_HEIGHT = 400;
 const MARGIN = { top: 16, right: 24, bottom: 16, left: 24 };
 const STAGE_GAP = 6;
 const STAGE_GAP_WITH_RATES = 36;
-const MIN_STAGE_WIDTH_RATIO = 0.15;
-const H_STAGE_GAP = 8;      // horizontal gap between chevrons
-const CHEVRON_ARROW = 16;   // arrow point size
+const MIN_STAGE_RATIO = 0.15;
+const H_STAGE_GAP = 10;   // horizontal gap between stages
 
 // Utilities
 function getNumericValue(data: ChartDataItem, key: keyof ChartDataItem): number {
@@ -100,30 +99,11 @@ function buildPolygon(cx: number, topW: number, bottomW: number, y: number, h: n
   return `${tl},${y} ${tr},${y} ${br},${y + h} ${bl},${y + h}`;
 }
 
-function buildChevronPoints(sx: number, sw: number, cy: number, halfH: number, isFirst: boolean, aw: number): string {
-  const ex = sx + sw;
-  if (isFirst) {
-    return [
-      `${sx},${cy - halfH}`,
-      `${ex - aw},${cy - halfH}`,
-      `${ex},${cy}`,
-      `${ex - aw},${cy + halfH}`,
-      `${sx},${cy + halfH}`,
-    ].join(" ");
-  }
-  return [
-    `${sx},${cy - halfH}`,
-    `${ex - aw},${cy - halfH}`,
-    `${ex},${cy}`,
-    `${ex - aw},${cy + halfH}`,
-    `${sx},${cy + halfH}`,
-    `${sx + aw},${cy}`,
-  ].join(" ");
-}
+import { useRef } from "react";
 
 function useContainerDimensions() {
   const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
+  const [width, setWidth] = React.useState(0);
 
   useIsomorphicLayoutEffect(() => {
     const el = ref.current;
@@ -184,7 +164,7 @@ function EmptyState() {
   );
 }
 
-// ── Vertical funnel (tapered / straight) ────────────────────────────────────
+// ── Vertical funnel (tapered / straight) ─────────────────────────────────────
 
 function VerticalFunnel<T extends ChartDataItem>({
   processedStages,
@@ -199,7 +179,7 @@ function VerticalFunnel<T extends ChartDataItem>({
   height,
   stageGap,
 }: {
-  processedStages: ProcessedStage<T>[];
+  processedStages: ProcessedVerticalStage<T>[];
   hoveredIndex: number | null;
   setHoveredIndex: React.Dispatch<React.SetStateAction<number | null>>;
   showValues: boolean;
@@ -336,7 +316,7 @@ function VerticalFunnel<T extends ChartDataItem>({
   );
 }
 
-// ── Horizontal funnel (chevron pipeline) ────────────────────────────────────
+// ── Horizontal funnel (rectangles + trapezoid connectors) ────────────────────
 
 function HorizontalFunnel<T extends ChartDataItem>({
   processedH,
@@ -349,7 +329,6 @@ function HorizontalFunnel<T extends ChartDataItem>({
   onClick,
   handleKeyDown,
   height,
-  containerWidth,
 }: {
   processedH: ProcessedHorizontalStage<T>[];
   hoveredIndex: number | null;
@@ -361,11 +340,7 @@ function HorizontalFunnel<T extends ChartDataItem>({
   onClick: ((item: T, index: number) => void) | undefined;
   handleKeyDown: (e: React.KeyboardEvent, item: T, index: number) => void;
   height: number;
-  containerWidth: number;
 }) {
-  const labelAreaH = showValues || showPercentages ? 18 : 0;
-  const conversionAreaH = showConversionRates ? 18 : 0;
-
   return (
     <svg
       width="100%"
@@ -374,61 +349,53 @@ function HorizontalFunnel<T extends ChartDataItem>({
       role="img"
       aria-label={`Horizontal funnel chart with ${processedH.length} stages`}
     >
-      {processedH.map((stage) => {
+      {processedH.map((stage, i) => {
         const isHovered = hoveredIndex === stage.index;
-        const labelY = stage.cy - stage.halfH - 6;
-        const valueY = stage.cy + stage.halfH + labelAreaH;
-        const convY = stage.cy + stage.halfH + conversionAreaH + 6;
-        // Gap center for conversion badge (horizontal)
-        const gapCenterX = stage.sx - H_STAGE_GAP / 2;
+        const nextStage = processedH[i + 1];
+        const rectCx = stage.sx + stage.sw / 2;
+        const rectCy = stage.sy + stage.sh / 2;
+        const labelY = stage.sy - 6;
+        const valueY = stage.sy + stage.sh + 6;
 
         return (
           <g key={stage.index}>
-            {/* Conversion rate badge in horizontal gap */}
-            {showConversionRates && stage.pctFromPrev !== null && stage.index > 0 && (
-              <g>
-                <rect
-                  x={gapCenterX - 18}
-                  y={convY - 10}
-                  width={36}
-                  height={20}
-                  rx={10}
-                  ry={10}
-                  className="fill-muted stroke-border"
-                  strokeWidth={1}
-                />
-                <text
-                  x={gapCenterX}
-                  y={convY}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fontSize={9}
-                  className="fill-muted-foreground pointer-events-none"
-                  style={{ fontVariantNumeric: "tabular-nums" }}
-                >
-                  {stage.pctFromPrev.toFixed(0)}%
-                </text>
-              </g>
+            {/* Trapezoid connector to next stage */}
+            {nextStage && (
+              <polygon
+                points={[
+                  `${stage.sx + stage.sw},${stage.sy}`,
+                  `${nextStage.sx},${nextStage.sy}`,
+                  `${nextStage.sx},${nextStage.sy + nextStage.sh}`,
+                  `${stage.sx + stage.sw},${stage.sy + stage.sh}`,
+                ].join(" ")}
+                fill={stage.color}
+                fillOpacity={0.10}
+              />
             )}
 
-            {/* Chevron shape */}
-            <motion.polygon
-              points={stage.points}
+            {/* Stage rectangle */}
+            <motion.rect
+              x={stage.sx}
+              y={stage.sy}
+              width={stage.sw}
+              height={stage.sh}
+              rx={4}
+              ry={4}
               fill={stage.color}
               fillOpacity={isHovered ? 0.9 : 0.75}
               stroke={stage.color}
               strokeWidth={isHovered ? 2 : 0}
-              strokeOpacity={0.5}
+              strokeOpacity={0.6}
               className={cn("outline-none", onClick && "cursor-pointer")}
               style={{
-                transformOrigin: `${stage.sx}px ${stage.cy}px`,
+                transformOrigin: `${rectCx}px ${rectCy}px`,
                 filter: isHovered ? `drop-shadow(0 0 6px ${stage.color})` : "none",
               }}
-              initial={shouldAnimate ? { scaleX: 0, opacity: 0 } : { scaleX: 1, opacity: 1 }}
-              animate={{ scaleX: 1, opacity: 1 }}
+              initial={shouldAnimate ? { scaleY: 0, opacity: 0 } : { scaleY: 1, opacity: 1 }}
+              animate={{ scaleY: 1, opacity: 1 }}
               transition={
                 shouldAnimate
-                  ? { duration: 0.45, delay: stage.index * 0.08, ease: [0.4, 0, 0.2, 1] }
+                  ? { duration: 0.45, delay: stage.index * 0.07, ease: [0.4, 0, 0.2, 1] }
                   : { duration: 0 }
               }
               tabIndex={0}
@@ -442,9 +409,9 @@ function HorizontalFunnel<T extends ChartDataItem>({
               onKeyDown={(e) => handleKeyDown(e, stage.data, stage.index)}
             />
 
-            {/* Label above chevron */}
+            {/* Label above */}
             <text
-              x={stage.sx + stage.sw / 2}
+              x={rectCx}
               y={labelY}
               textAnchor="middle"
               dominantBaseline="auto"
@@ -455,15 +422,15 @@ function HorizontalFunnel<T extends ChartDataItem>({
               {stage.labelText}
             </text>
 
-            {/* Value + percentage below */}
+            {/* Value + pct below */}
             {(showValues || showPercentages) && (
               <text
-                x={stage.sx + stage.sw / 2}
+                x={rectCx}
                 y={valueY}
                 textAnchor="middle"
                 dominantBaseline="hanging"
                 fontSize={10}
-                className="fill-foreground/70 pointer-events-none"
+                className="fill-muted-foreground pointer-events-none"
                 style={{ fontVariantNumeric: "tabular-nums" }}
               >
                 {showValues && stage.formattedValue}
@@ -471,16 +438,35 @@ function HorizontalFunnel<T extends ChartDataItem>({
                 {showPercentages && `${stage.pctOfTotal.toFixed(1)}%`}
               </text>
             )}
+
+            {/* Conversion rate in connector gap */}
+            {showConversionRates && stage.pctFromPrev !== null && stage.index > 0 && (() => {
+              const prevStage = processedH[i - 1]!;
+              const gapCx = prevStage.sx + prevStage.sw + H_STAGE_GAP / 2;
+              const rateCy = stage.cy + stage.sh / 2 + 10;
+              return (
+                <text
+                  key="conv"
+                  x={gapCx}
+                  y={rateCy}
+                  textAnchor="middle"
+                  dominantBaseline="hanging"
+                  fontSize={9}
+                  className="fill-muted-foreground pointer-events-none"
+                  style={{ fontVariantNumeric: "tabular-nums" }}
+                >
+                  ↓{stage.pctFromPrev.toFixed(0)}%
+                </text>
+              );
+            })()}
           </g>
         );
       })}
-      {/* invisible hit area — unused but keeps SVG valid */}
-      <rect x={0} y={0} width={containerWidth} height={height} fill="none" />
     </svg>
   );
 }
 
-// ── Main component ───────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
 
 function FunnelChartComponent<T extends ChartDataItem>({
   data,
@@ -499,26 +485,23 @@ function FunnelChartComponent<T extends ChartDataItem>({
   onClick,
 }: FunnelChartProps<T>) {
   const [containerRef, containerWidth] = useContainerDimensions();
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
   const reduceMotion = useReducedMotion();
   const shouldAnimate = animation && !reduceMotion;
 
   const chartWidth = Math.max(0, containerWidth - MARGIN.left - MARGIN.right);
   const stageGap = showConversionRates ? STAGE_GAP_WITH_RATES : STAGE_GAP;
 
-  // Vertical stages (tapered / straight)
-  const processedStages = useMemo((): ProcessedStage<T>[] => {
+  // ── Vertical stages (tapered / straight) ──
+  const processedStages = useMemo((): ProcessedVerticalStage<T>[] => {
     if (variant === "horizontal" || !data.length || chartWidth <= 0) return [];
 
     const values = data.map(d => Math.max(0, getNumericValue(d, value as string)));
     const total = values[0] ?? 1;
     const stageCount = data.length;
-    const connectorCount = stageCount - 1;
 
     const availableHeight = height - MARGIN.top - MARGIN.bottom;
-    const totalConnectorHeight = connectorCount * stageGap;
-    const stageHeight = (availableHeight - totalConnectorHeight) / stageCount;
-
+    const stageHeight = (availableHeight - (stageCount - 1) * stageGap) / stageCount;
     const cx = containerWidth / 2;
 
     return data.map((item, i) => {
@@ -527,17 +510,13 @@ function FunnelChartComponent<T extends ChartDataItem>({
       const prevValue = i > 0 ? (values[i - 1] ?? 0) : null;
       const pctFromPrev = prevValue !== null && prevValue > 0 ? (rawValue / prevValue) * 100 : null;
 
-      let topWidth: number;
-      let bottomWidth: number;
-
+      let topWidth: number, bottomWidth: number;
       if (variant === "straight") {
         topWidth = chartWidth;
         bottomWidth = chartWidth;
       } else {
-        const clampedRatio = Math.max(MIN_STAGE_WIDTH_RATIO, ratio);
-        const clampedPrevRatio = i === 0
-          ? 1
-          : Math.max(MIN_STAGE_WIDTH_RATIO, (values[i - 1] ?? 0) / total);
+        const clampedRatio = Math.max(MIN_STAGE_RATIO, ratio);
+        const clampedPrevRatio = i === 0 ? 1 : Math.max(MIN_STAGE_RATIO, (values[i - 1] ?? 0) / total);
         topWidth = chartWidth * clampedPrevRatio;
         bottomWidth = chartWidth * clampedRatio;
       }
@@ -547,7 +526,7 @@ function FunnelChartComponent<T extends ChartDataItem>({
       const connectorBottomWidth = i < stageCount - 1
         ? variant === "straight"
           ? chartWidth
-          : chartWidth * Math.max(MIN_STAGE_WIDTH_RATIO, (values[i + 1] ?? 0) / total)
+          : chartWidth * Math.max(MIN_STAGE_RATIO, (values[i + 1] ?? 0) / total)
         : bottomWidth;
 
       return {
@@ -572,7 +551,7 @@ function FunnelChartComponent<T extends ChartDataItem>({
     });
   }, [data, label, value, colors, variant, chartWidth, height, containerWidth, stageGap]);
 
-  // Horizontal stages (chevron)
+  // ── Horizontal stages ──
   const processedH = useMemo((): ProcessedHorizontalStage<T>[] => {
     if (variant !== "horizontal" || !data.length || chartWidth <= 0) return [];
 
@@ -580,30 +559,25 @@ function FunnelChartComponent<T extends ChartDataItem>({
     const total = values[0] ?? 1;
     const n = data.length;
 
-    const labelAreaTop = 20;     // space for label above
-    const labelAreaBottom = showValues || showPercentages ? 20 : 0;
-    const convAreaBottom = showConversionRates ? 24 : 0;
+    const labelAreaTop = 22;
+    const labelAreaBottom = (showValues || showPercentages) ? 22 : 0;
+    const convAreaBottom = showConversionRates ? 18 : 0;
+    const innerHeight = height - MARGIN.top - MARGIN.bottom - labelAreaTop - labelAreaBottom - convAreaBottom;
+    const maxHalfH = Math.max(4, innerHeight / 2);
+    const cy = MARGIN.top + labelAreaTop + innerHeight / 2;
 
-    const chartH = height - MARGIN.top - MARGIN.bottom - labelAreaTop - labelAreaBottom - convAreaBottom;
-    const cy = MARGIN.top + labelAreaTop + chartH / 2;
-    const maxHalfH = chartH / 2;
-
-    const totalGap = (n - 1) * H_STAGE_GAP;
-    const sw = (chartWidth - totalGap) / n;
+    const sw = (chartWidth - (n - 1) * H_STAGE_GAP) / n;
 
     return data.map((item, i) => {
       const rawValue = values[i] ?? 0;
       const ratio = total > 0 ? rawValue / total : 0;
-      const clampedRatio = Math.max(MIN_STAGE_WIDTH_RATIO, ratio);
+      const clampedRatio = Math.max(MIN_STAGE_RATIO, ratio);
       const halfH = maxHalfH * clampedRatio;
+      const sh = halfH * 2;
 
       const prevValue = i > 0 ? (values[i - 1] ?? 0) : null;
       const pctFromPrev = prevValue !== null && prevValue > 0 ? (rawValue / prevValue) * 100 : null;
-
       const sx = MARGIN.left + i * (sw + H_STAGE_GAP);
-      const isFirst = i === 0;
-      const aw = Math.min(CHEVRON_ARROW, sw * 0.25);
-      const points = buildChevronPoints(sx, sw, cy, halfH, isFirst, aw);
 
       return {
         data: item,
@@ -616,9 +590,9 @@ function FunnelChartComponent<T extends ChartDataItem>({
         color: colors[i % colors.length] ?? DEFAULT_COLORS[0],
         sx,
         sw,
+        sy: cy - halfH,
+        sh,
         cy,
-        halfH,
-        points,
       };
     });
   }, [data, label, value, colors, variant, chartWidth, height, showValues, showPercentages, showConversionRates]);
@@ -643,22 +617,16 @@ function FunnelChartComponent<T extends ChartDataItem>({
   }
 
   const hoveredStage = hoveredIndex !== null
-    ? (variant === "horizontal"
-        ? processedH[hoveredIndex]
-        : processedStages[hoveredIndex])
+    ? (variant === "horizontal" ? processedH[hoveredIndex] : processedStages[hoveredIndex])
     : null;
 
-  // Tooltip position differs by variant
   const tooltipLeft = variant === "horizontal" && hoveredStage
     ? (hoveredStage as ProcessedHorizontalStage<T>).sx + (hoveredStage as ProcessedHorizontalStage<T>).sw / 2
-    : hoveredStage
-      ? (hoveredStage as ProcessedStage<T>).cx
-      : 0;
+    : hoveredStage ? (hoveredStage as ProcessedVerticalStage<T>).cx : 0;
+
   const tooltipTop = variant === "horizontal" && hoveredStage
-    ? Math.max(8, (hoveredStage as ProcessedHorizontalStage<T>).cy - (hoveredStage as ProcessedHorizontalStage<T>).halfH - 80)
-    : hoveredStage
-      ? Math.max(8, (hoveredStage as ProcessedStage<T>).stageY - 80)
-      : 0;
+    ? Math.max(8, (hoveredStage as ProcessedHorizontalStage<T>).sy - 80)
+    : hoveredStage ? Math.max(8, (hoveredStage as ProcessedVerticalStage<T>).stageY - 80) : 0;
 
   return (
     <div ref={containerRef} className={cn("relative w-full", className)} style={{ height }}>
@@ -674,7 +642,6 @@ function FunnelChartComponent<T extends ChartDataItem>({
           onClick={onClick}
           handleKeyDown={handleKeyDown}
           height={height}
-          containerWidth={containerWidth}
         />
       ) : (
         <VerticalFunnel
@@ -692,7 +659,6 @@ function FunnelChartComponent<T extends ChartDataItem>({
         />
       )}
 
-      {/* Tooltip */}
       <AnimatePresence>
         {hoveredStage && (
           <motion.div
