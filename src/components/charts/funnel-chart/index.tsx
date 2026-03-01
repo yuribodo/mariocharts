@@ -237,6 +237,7 @@ function VerticalFunnel<T extends ChartDataItem>({
               style={{
                 transformOrigin: `${stage.cx}px ${centerY}px`,
                 filter: isHovered ? `drop-shadow(0 0 6px ${stage.color})` : "none",
+                touchAction: "manipulation",
               }}
               initial={shouldAnimate ? { scaleY: 0, opacity: 0 } : { scaleY: 1, opacity: 1 }}
               animate={{ scaleY: 1, opacity: 1 }}
@@ -387,6 +388,7 @@ function HorizontalFunnel<T extends ChartDataItem>({
               style={{
                 transformOrigin: `${stage.barX}px ${barCenterY}px`,
                 filter: isHovered ? `drop-shadow(0 0 6px ${stage.color})` : "none",
+                touchAction: "manipulation",
               }}
               initial={shouldAnimate ? { scaleX: 0, opacity: 0 } : { scaleX: 1, opacity: 1 }}
               animate={{ scaleX: 1, opacity: 1 }}

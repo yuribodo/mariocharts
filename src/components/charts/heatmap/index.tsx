@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { memo, useMemo, useState, useRef, useCallback } from "react";
+import { memo, useMemo, useState, useRef, useCallback, useId } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useIsomorphicLayoutEffect } from "../../../../lib/hooks";
 import { cn } from "../../../../lib/utils";
@@ -345,6 +345,8 @@ function renderGrid<T extends ChartDataItem>({
   colorFrom,
   colorTo,
   svgWidth,
+  chartId,
+  onCellClick,
 }: {
   processedCells: ProcessedCell<T>[];
   colLabels: string[];
@@ -366,6 +368,8 @@ function renderGrid<T extends ChartDataItem>({
   colorFrom: string | undefined;
   colorTo: string | undefined;
   svgWidth: number;
+  chartId: string;
+  onCellClick: ((cell: ProcessedCell<T>) => void) | undefined;
 }) {
   const legendY = height - LEGEND_HEIGHT + 8;
 
@@ -391,6 +395,7 @@ function renderGrid<T extends ChartDataItem>({
       width="100%"
       height={height}
       className="overflow-visible cursor-default"
+      style={{ touchAction: "manipulation" }}
       role="img"
       aria-label={`Heatmap chart with ${colLabels.length} columns and ${rowLabels.length} rows`}
       onMouseMove={handleMouseMove}
@@ -428,10 +433,35 @@ function renderGrid<T extends ChartDataItem>({
         const isHovered = hoveredCell?.col === cell.colIndex && hoveredCell?.row === cell.rowIndex;
         const isCross = hoveredCell !== null && !isHovered &&
           (hoveredCell.row === cell.rowIndex || hoveredCell.col === cell.colIndex);
+        const cellId = `${chartId}-${cell.colIndex}-${cell.rowIndex}`;
+
+        function handleCellKeyDown(e: React.KeyboardEvent) {
+          const { colIndex: col, rowIndex: row } = cell;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onCellClick?.(cell);
+          } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            document.getElementById(`${chartId}-${col + 1}-${row}`)?.focus();
+          } else if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            document.getElementById(`${chartId}-${col - 1}-${row}`)?.focus();
+          } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            document.getElementById(`${chartId}-${col}-${row + 1}`)?.focus();
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            document.getElementById(`${chartId}-${col}-${row - 1}`)?.focus();
+          }
+        }
 
         return (
           <motion.rect
             key={`${cell.colIndex}-${cell.rowIndex}`}
+            id={cellId}
+            tabIndex={0}
+            role="gridcell"
+            aria-label={`${cell.rowLabel} / ${cell.colLabel}: ${cell.rawValue}`}
             x={cell.x}
             y={cell.y}
             width={cell.width}
@@ -443,6 +473,7 @@ function renderGrid<T extends ChartDataItem>({
             stroke={isHovered ? cell.fillColor : "transparent"}
             strokeWidth={isHovered ? 2 : 0}
             strokeOpacity={0.8}
+            className="outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
             style={{ filter: isHovered ? `drop-shadow(0 0 4px ${cell.fillColor})` : "none" }}
             initial={shouldAnimate ? { opacity: 0, scale: 0.5 } : { opacity: 0.9, scale: 1 }}
             animate={{ opacity: isCross ? 0.3 : isHovered ? 1 : 0.9, scale: 1 }}
@@ -451,6 +482,9 @@ function renderGrid<T extends ChartDataItem>({
                 ? { duration: 0.3, delay: cell.animDelay, ease: [0.4, 0, 0.2, 1] }
                 : { duration: 0 }
             }
+            onFocus={() => setHoveredCell({ col: cell.colIndex, row: cell.rowIndex })}
+            onBlur={() => setHoveredCell(null)}
+            onKeyDown={handleCellKeyDown}
           />
         );
       })}
@@ -705,6 +739,7 @@ function renderStock<T extends ChartDataItem>({
       width="100%"
       height={height}
       className="overflow-visible cursor-default"
+      style={{ touchAction: "manipulation" }}
       role="img"
       aria-label="Stock treemap heatmap"
       onMouseMove={handleMouseMove}
@@ -820,6 +855,7 @@ function HeatmapChartComponent<T extends ChartDataItem>({
   const svgRef = useRef<SVGSVGElement>(null);
   const reduceMotion = useReducedMotion();
   const shouldAnimate = animation && !reduceMotion;
+  const chartId = useId().replace(/:/g, "hm");
 
   const legendAreaH = showLegend ? LEGEND_HEIGHT : 0;
 
@@ -1022,6 +1058,8 @@ function HeatmapChartComponent<T extends ChartDataItem>({
           cellRadius,
           labelAreaLeft,
           labelAreaTop,
+          chartId,
+          onCellClick: onClick ? (cell) => onClick(cell.data, cell.colLabel, cell.rowLabel) : undefined,
         })
       )}
 

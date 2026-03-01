@@ -138,6 +138,7 @@ export function FunnelChartContent() {
             "Responsive",
             "TypeScript",
             "Keyboard Accessible",
+            "Reduced Motion",
           ].map(f => (
             <div key={f} className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 bg-foreground rounded-full" />
