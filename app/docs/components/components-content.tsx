@@ -8,6 +8,8 @@ import {
   ChartPie,
   ChartPolar,
   ChartScatter,
+  GridFour,
+  FunnelSimple,
 } from "@phosphor-icons/react";
 
 const availableComponents = [
@@ -46,6 +48,18 @@ const availableComponents = [
     href: "/docs/components/stacked-bar-chart",
     description: "Multi-category stacked bars for composition analysis",
     icon: ChartBarHorizontal,
+  },
+  {
+    name: "Heatmap",
+    href: "/docs/components/heatmap",
+    description: "Color-coded NxM grid for intensity and correlation patterns",
+    icon: GridFour,
+  },
+  {
+    name: "Funnel Chart",
+    href: "/docs/components/funnel-chart",
+    description: "Conversion pipeline visualization with stage-by-stage drop-off",
+    icon: FunnelSimple,
   },
 ];
 

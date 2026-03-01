@@ -61,6 +61,14 @@ const sidebarNavItems: SidebarNavItem[] = [
       {
         title: "Gauge Chart",
         href: "/docs/components/gauge-chart"
+      },
+      {
+        title: "Heatmap",
+        href: "/docs/components/heatmap"
+      },
+      {
+        title: "Funnel Chart",
+        href: "/docs/components/funnel-chart"
       }
     ]
   }
