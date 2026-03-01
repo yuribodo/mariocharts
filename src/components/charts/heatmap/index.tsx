@@ -74,21 +74,7 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * Math.max(0, Math.min(1, t));
 }
 
-function hexToRgb(hex: string): [number, number, number] {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
-    : [0, 0, 0];
-}
 
-function interpolateColor(colorA: string, colorB: string, t: number): string {
-  const [ar, ag, ab] = hexToRgb(colorA);
-  const [br, bg, bb] = hexToRgb(colorB);
-  const r = Math.round(lerp(ar, br, t));
-  const g = Math.round(lerp(ag, bg, t));
-  const b = Math.round(lerp(ab, bb, t));
-  return `rgb(${r},${g},${b})`;
-}
 
 function getCellColor(normalizedValue: number, scheme: ColorScheme): { color: string; opacity: number } {
   const schemeConfig = SCHEME_COLORS[scheme];
@@ -306,7 +292,7 @@ function HeatmapChartComponent<T extends ChartDataItem>({
     setHoveredCell(null);
   }, []);
 
-  const handleSvgClick = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+  const handleSvgClick = useCallback(() => {
     if (!hoveredCell || !onClick) return;
     const cell = processedCells.find(c => c.colIndex === hoveredCell.col && c.rowIndex === hoveredCell.row);
     if (cell) onClick(cell.data, cell.colLabel, cell.rowLabel);
