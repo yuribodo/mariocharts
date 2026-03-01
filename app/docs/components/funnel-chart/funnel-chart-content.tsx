@@ -153,7 +153,7 @@ export function FunnelChartContent() {
         description="Classic conversion funnel from visitors to purchase — try all three variants and toggle conversion rate badges"
         preview={
           <div className="space-y-4">
-            <div style={{ height: variant === "horizontal" ? 200 : 360 }}>
+            <div style={{ height: variant === "horizontal" ? 280 : 360 }}>
               <FunnelChart
                 key={chartKey}
                 data={ecommerceFunnel}
@@ -164,7 +164,7 @@ export function FunnelChartContent() {
                 showPercentages={showPercentages}
                 showConversionRates={showConversionRates}
                 animation={showAnimation}
-                height={variant === "horizontal" ? 200 : 360}
+                height={variant === "horizontal" ? 280 : 360}
                 colors={["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4"]}
               />
             </div>
@@ -236,12 +236,12 @@ export function EcommerceFunnel() {
           <p className="text-muted-foreground">Different use cases and configurations for the FunnelChart component.</p>
         </div>
 
-        {/* Example 2: Horizontal chevron pipeline */}
+        {/* Example 2: Horizontal bar pipeline */}
         <ExampleShowcase
           title="Sales Pipeline — Horizontal Variant"
-          description="Left-to-right chevron pipeline — ideal for enterprise dashboards and process visualization"
+          description="Stage-by-stage pipeline as diminishing horizontal bars — labels on the left, bars extending right"
           preview={
-            <div style={{ height: 200 }}>
+            <div style={{ height: 280 }}>
               <FunnelChart
                 key={`pipeline-${chartKey}`}
                 data={salesPipeline}
@@ -252,7 +252,7 @@ export function EcommerceFunnel() {
                 showPercentages
                 showConversionRates
                 animation={showAnimation}
-                height={200}
+                height={280}
                 colors={["#6366f1", "#8b5cf6", "#a855f7", "#c084fc", "#d8b4fe"]}
               />
             </div>
