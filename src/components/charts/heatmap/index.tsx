@@ -1,23 +1,28 @@
 "use client";
 
 import * as React from "react";
-import { memo, useMemo, useState, useRef, useCallback } from "react";
+import { memo, useMemo, useState, useRef, useCallback, useId } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useIsomorphicLayoutEffect } from "../../../../lib/hooks";
 import { cn } from "../../../../lib/utils";
 
 // Types
 type ChartDataItem = Record<string, unknown>;
-
 type ColorScheme = "blue" | "green" | "amber" | "purple" | "diverging";
+type HeatmapVariant = "grid" | "radial" | "stock";
 
 interface HeatmapChartProps<T extends ChartDataItem> {
   readonly data: readonly T[];
   readonly x: keyof T;
   readonly y: keyof T;
   readonly value: keyof T;
+  readonly weight?: keyof T;       // for stock: area size (e.g. market cap)
+  readonly variant?: HeatmapVariant;
   readonly colorScheme?: ColorScheme;
+  readonly colorFrom?: string;
+  readonly colorTo?: string;
   readonly showLabels?: boolean;
+  readonly showLegend?: boolean;
   readonly cellRadius?: number;
   readonly className?: string;
   readonly height?: number;
@@ -40,8 +45,20 @@ interface ProcessedCell<T> {
   readonly width: number;
   readonly height: number;
   readonly fillColor: string;
-  readonly fillOpacity: number;
   readonly animDelay: number;
+}
+
+interface StockCell<T> {
+  readonly data: T;
+  readonly index: number;
+  readonly labelText: string;
+  readonly rawValue: number;
+  readonly weightValue: number;
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+  readonly fillColor: string;
 }
 
 // Constants
@@ -49,17 +66,69 @@ const DEFAULT_HEIGHT = 320;
 const LABEL_SIZE = 60;
 const CELL_GAP = 2;
 const MAX_STAGGER_MS = 800;
+const LEGEND_HEIGHT = 28;
+const STOCK_GAP = 2;
 
-// Color scheme base colors
-const SCHEME_COLORS: Record<ColorScheme, { base: string; divergeLow: string; divergeHigh: string }> = {
-  blue: { base: "#3b82f6", divergeLow: "#3b82f6", divergeHigh: "#ef4444" },
-  green: { base: "#10b981", divergeLow: "#10b981", divergeHigh: "#ef4444" },
-  amber: { base: "#f59e0b", divergeLow: "#f59e0b", divergeHigh: "#ef4444" },
-  purple: { base: "#8b5cf6", divergeLow: "#8b5cf6", divergeHigh: "#ef4444" },
-  diverging: { base: "#3b82f6", divergeLow: "#3b82f6", divergeHigh: "#ef4444" },
+// Color scheme defaults: [from, to]
+const SCHEME_COLORS: Record<ColorScheme, [string, string]> = {
+  blue:      ["#dbeafe", "#1d4ed8"],
+  green:     ["#dcfce7", "#166534"],
+  amber:     ["#fef9c3", "#92400e"],
+  purple:    ["#f3e8ff", "#6b21a8"],
+  diverging: ["#1d4ed8", "#991b1b"],
 };
 
-// Utilities
+// ── Color utilities ───────────────────────────────────────────────────────────
+
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace("#", "");
+  const n = parseInt(h.length === 3 ? h.split("").map(c => c + c).join("") : h, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  return "#" + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, "0")).join("");
+}
+
+function lerpHex(from: string, to: string, t: number): string {
+  const [r1, g1, b1] = hexToRgb(from);
+  const [r2, g2, b2] = hexToRgb(to);
+  const clamp = (v: number) => Math.max(0, Math.min(255, v));
+  const tt = Math.max(0, Math.min(1, t));
+  return rgbToHex(clamp(r1 + (r2 - r1) * tt), clamp(g1 + (g2 - g1) * tt), clamp(b1 + (b2 - b1) * tt));
+}
+
+function getCellColor(
+  normalizedValue: number,
+  scheme: ColorScheme,
+  colorFrom: string | undefined,
+  colorTo: string | undefined,
+): string {
+  const [defaultFrom, defaultTo] = SCHEME_COLORS[scheme];
+  const from = colorFrom ?? defaultFrom;
+  const to = colorTo ?? defaultTo;
+
+  if (scheme === "diverging" && !colorFrom && !colorTo) {
+    const neutral = "#f5f5f5";
+    if (normalizedValue < 0.5) return lerpHex(from, neutral, normalizedValue * 2);
+    return lerpHex(neutral, to, (normalizedValue - 0.5) * 2);
+  }
+  return lerpHex(from, to, normalizedValue);
+}
+
+/** Stock: diverging color centered at zero (negative = red, positive = green). */
+function getStockColor(value: number, maxAbs: number, colorFrom: string | undefined, colorTo: string | undefined): string {
+  const red   = colorFrom ?? "#dc2626";
+  const green = colorTo   ?? "#16a34a";
+  const neutral = "#e5e7eb";
+  if (maxAbs === 0) return neutral;
+  const t = Math.max(-1, Math.min(1, value / maxAbs));
+  if (t < 0) return lerpHex(neutral, red,   -t);
+  return lerpHex(neutral, green, t);
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+
 function getNumericValue(data: ChartDataItem, key: keyof ChartDataItem): number {
   const val = data[key];
   if (typeof val === "number" && isFinite(val)) return val;
@@ -70,40 +139,80 @@ function getNumericValue(data: ChartDataItem, key: keyof ChartDataItem): number 
   return 0;
 }
 
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * Math.max(0, Math.min(1, t));
-}
-
-
-
-function getCellColor(normalizedValue: number, scheme: ColorScheme): { color: string; opacity: number } {
-  const schemeConfig = SCHEME_COLORS[scheme];
-  if (scheme === "diverging") {
-    if (normalizedValue < 0.5) {
-      // Low: blue (divergeLow)
-      return {
-        color: schemeConfig.divergeLow,
-        opacity: lerp(0.06, 0.94, 1 - normalizedValue * 2),
-      };
-    } else {
-      // High: red (divergeHigh)
-      return {
-        color: schemeConfig.divergeHigh,
-        opacity: lerp(0.06, 0.94, (normalizedValue - 0.5) * 2),
-      };
-    }
-  }
-  return {
-    color: schemeConfig.base,
-    opacity: lerp(0.06, 0.94, normalizedValue),
-  };
-}
-
 function formatValue(value: number): string {
   if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
   if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
   return value.toLocaleString();
 }
+
+// ── Treemap layout (squarified strip) ────────────────────────────────────────
+
+interface TreeRect { x: number; y: number; w: number; h: number; }
+
+function stripLayout(weights: number[], W: number, H: number): TreeRect[] {
+  const n = weights.length;
+  if (n === 0 || W <= 0 || H <= 0) return weights.map(() => ({ x: 0, y: 0, w: 0, h: 0 }));
+
+  const total = weights.reduce((a, b) => a + b, 0);
+  if (total === 0) return weights.map(() => ({ x: 0, y: 0, w: 0, h: 0 }));
+
+  // Sort by weight desc, keep original index
+  const sorted = weights.map((w, i) => ({ w, i })).sort((a, b) => b.w - a.w);
+  const rects: TreeRect[] = new Array(n).fill(null).map(() => ({ x: 0, y: 0, w: 0, h: 0 }));
+
+  let y = 0;
+  let si = 0;
+
+  while (si < sorted.length) {
+    const remH = H - y;
+    if (remH <= 0) break;
+
+    // Greedy: add items until worst aspect ratio stops improving
+    let bestEnd = si;
+    let bestAR = Infinity;
+    let cumW = 0;
+
+    for (let k = si; k < sorted.length; k++) {
+      cumW += sorted[k]!.w;
+      const rowFrac = cumW / total;
+      const rh = rowFrac * H;
+      if (rh <= 0) continue;
+
+      let worstAR = 0;
+      for (let j = si; j <= k; j++) {
+        const iW = (sorted[j]!.w / cumW) * W;
+        const ar = Math.max(iW / rh, rh / iW);
+        worstAR = Math.max(worstAR, ar);
+      }
+
+      if (worstAR < bestAR) {
+        bestAR = worstAR;
+        bestEnd = k;
+      } else if (k > si) {
+        break;
+      }
+    }
+
+    // Layout this row
+    const rowItems = sorted.slice(si, bestEnd + 1);
+    const rowW = rowItems.reduce((s, r) => s + r.w, 0);
+    const rh = Math.max(1, (rowW / total) * H);
+
+    let x = 0;
+    for (const item of rowItems) {
+      const iW = Math.max(1, (item.w / rowW) * W);
+      rects[item.i] = { x, y, w: iW, h: rh };
+      x += iW;
+    }
+
+    y += rh;
+    si = bestEnd + 1;
+  }
+
+  return rects;
+}
+
+// ── ResizeObserver hook ───────────────────────────────────────────────────────
 
 function useContainerDimensions() {
   const ref = useRef<HTMLDivElement>(null);
@@ -129,13 +238,14 @@ function useContainerDimensions() {
   return [ref, width] as const;
 }
 
-// States
+// ── States ────────────────────────────────────────────────────────────────────
+
 function LoadingState({ height }: { height: number }) {
   return (
     <div className="relative w-full animate-pulse" style={{ height }}>
       <div className="m-4 grid gap-1" style={{ gridTemplateColumns: "repeat(8, 1fr)", gridTemplateRows: "repeat(6, 1fr)", height: height - 32 }}>
         {Array.from({ length: 48 }).map((_, i) => (
-          <div key={i} className="rounded bg-muted" style={{ opacity: 0.3 + Math.random() * 0.5 }} />
+          <div key={i} className="rounded bg-muted" style={{ opacity: 0.3 + (i % 5) * 0.1 }} />
         ))}
       </div>
     </div>
@@ -164,14 +274,572 @@ function EmptyState() {
   );
 }
 
-// Main component
+// ── Legend ────────────────────────────────────────────────────────────────────
+
+function ColorLegend({
+  scheme,
+  colorFrom,
+  colorTo,
+  isStock,
+  svgWidth,
+  y,
+}: {
+  scheme: ColorScheme;
+  colorFrom: string | undefined;
+  colorTo: string | undefined;
+  isStock: boolean;
+  svgWidth: number;
+  y: number;
+}) {
+  const [defaultFrom, defaultTo] = SCHEME_COLORS[scheme];
+  const from = isStock ? (colorFrom ?? "#dc2626") : (colorFrom ?? defaultFrom);
+  const to   = isStock ? (colorTo   ?? "#16a34a") : (colorTo   ?? defaultTo);
+  const gradId = "hm-legend-grad";
+  const swatchW = 80;
+  const swatchH = 10;
+  const cx = svgWidth / 2;
+
+  return (
+    <g transform={`translate(${cx - swatchW / 2 - 24}, ${y})`}>
+      <defs>
+        <linearGradient id={gradId} x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0%" stopColor={from} />
+          {(scheme === "diverging" && !colorFrom && !colorTo && !isStock) && (
+            <stop offset="50%" stopColor="#f5f5f5" />
+          )}
+          {isStock && <stop offset="50%" stopColor="#e5e7eb" />}
+          <stop offset="100%" stopColor={to} />
+        </linearGradient>
+      </defs>
+      <text x={0} y={swatchH / 2} dominantBaseline="middle" fontSize={9} className="fill-muted-foreground">
+        {isStock ? "−" : "Min"}
+      </text>
+      <rect x={24} y={0} width={swatchW} height={swatchH} rx={3} fill={`url(#${gradId})`} />
+      <text x={24 + swatchW + 4} y={swatchH / 2} dominantBaseline="middle" fontSize={9} className="fill-muted-foreground">
+        {isStock ? "+" : "Max"}
+      </text>
+    </g>
+  );
+}
+
+// ── Grid variant ──────────────────────────────────────────────────────────────
+
+function renderGrid<T extends ChartDataItem>({
+  processedCells,
+  colLabels,
+  rowLabels,
+  hoveredCell,
+  setHoveredCell,
+  setTooltipPos,
+  svgRef,
+  cellWidth,
+  cellHeight,
+  cellRadius,
+  labelAreaLeft,
+  labelAreaTop,
+  showLabels,
+  showLegend,
+  shouldAnimate,
+  height,
+  scheme,
+  colorFrom,
+  colorTo,
+  svgWidth,
+  chartId,
+  onCellClick,
+}: {
+  processedCells: ProcessedCell<T>[];
+  colLabels: string[];
+  rowLabels: string[];
+  hoveredCell: { col: number; row: number } | null;
+  setHoveredCell: React.Dispatch<React.SetStateAction<{ col: number; row: number } | null>>;
+  setTooltipPos: React.Dispatch<React.SetStateAction<{ x: number; y: number } | null>>;
+  svgRef: React.RefObject<SVGSVGElement | null>;
+  cellWidth: number;
+  cellHeight: number;
+  cellRadius: number;
+  labelAreaLeft: number;
+  labelAreaTop: number;
+  showLabels: boolean;
+  showLegend: boolean;
+  shouldAnimate: boolean;
+  height: number;
+  scheme: ColorScheme;
+  colorFrom: string | undefined;
+  colorTo: string | undefined;
+  svgWidth: number;
+  chartId: string;
+  onCellClick: ((cell: ProcessedCell<T>) => void) | undefined;
+}) {
+  const legendY = height - LEGEND_HEIGHT + 8;
+
+  function handleMouseMove(e: React.MouseEvent<SVGSVGElement>) {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const relX = e.clientX - rect.left - labelAreaLeft;
+    const relY = e.clientY - rect.top - labelAreaTop;
+    if (relX < 0 || relY < 0) { setHoveredCell(null); return; }
+    const col = Math.floor(relX / (cellWidth + CELL_GAP));
+    const row = Math.floor(relY / (cellHeight + CELL_GAP));
+    if (col >= 0 && col < colLabels.length && row >= 0 && row < rowLabels.length) {
+      setHoveredCell({ col, row });
+      setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    } else {
+      setHoveredCell(null);
+    }
+  }
+
+  return (
+    <svg
+      ref={svgRef}
+      width="100%"
+      height={height}
+      className="overflow-visible cursor-default"
+      style={{ touchAction: "manipulation" }}
+      role="img"
+      aria-label={`Heatmap chart with ${colLabels.length} columns and ${rowLabels.length} rows`}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setHoveredCell(null)}
+    >
+      {showLabels && colLabels.map((lbl, i) => (
+        <text
+          key={`col-${i}`}
+          x={labelAreaLeft + i * (cellWidth + CELL_GAP) + cellWidth / 2}
+          y={14}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize={10}
+          className="fill-muted-foreground"
+        >
+          {lbl.length > 6 ? `${lbl.slice(0, 5)}…` : lbl}
+        </text>
+      ))}
+
+      {showLabels && rowLabels.map((lbl, i) => (
+        <text
+          key={`row-${i}`}
+          x={labelAreaLeft - 6}
+          y={labelAreaTop + i * (cellHeight + CELL_GAP) + cellHeight / 2}
+          textAnchor="end"
+          dominantBaseline="middle"
+          fontSize={10}
+          className="fill-muted-foreground"
+        >
+          {lbl.length > 8 ? `${lbl.slice(0, 7)}…` : lbl}
+        </text>
+      ))}
+
+      {processedCells.map((cell) => {
+        const isHovered = hoveredCell?.col === cell.colIndex && hoveredCell?.row === cell.rowIndex;
+        const isCross = hoveredCell !== null && !isHovered &&
+          (hoveredCell.row === cell.rowIndex || hoveredCell.col === cell.colIndex);
+        const cellId = `${chartId}-${cell.colIndex}-${cell.rowIndex}`;
+
+        function handleCellKeyDown(e: React.KeyboardEvent) {
+          const { colIndex: col, rowIndex: row } = cell;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onCellClick?.(cell);
+          } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            document.getElementById(`${chartId}-${col + 1}-${row}`)?.focus();
+          } else if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            document.getElementById(`${chartId}-${col - 1}-${row}`)?.focus();
+          } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            document.getElementById(`${chartId}-${col}-${row + 1}`)?.focus();
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            document.getElementById(`${chartId}-${col}-${row - 1}`)?.focus();
+          }
+        }
+
+        return (
+          <motion.rect
+            key={`${cell.colIndex}-${cell.rowIndex}`}
+            id={cellId}
+            tabIndex={0}
+            role="gridcell"
+            aria-label={`${cell.rowLabel} / ${cell.colLabel}: ${cell.rawValue}`}
+            x={cell.x}
+            y={cell.y}
+            width={cell.width}
+            height={cell.height}
+            rx={cellRadius}
+            ry={cellRadius}
+            fill={cell.fillColor}
+            fillOpacity={isCross ? 0.3 : isHovered ? 1 : 0.9}
+            stroke={isHovered ? cell.fillColor : "transparent"}
+            strokeWidth={isHovered ? 2 : 0}
+            strokeOpacity={0.8}
+            className="outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+            style={{ filter: isHovered ? `drop-shadow(0 0 4px ${cell.fillColor})` : "none" }}
+            initial={shouldAnimate ? { opacity: 0, scale: 0.5 } : { opacity: 0.9, scale: 1 }}
+            animate={{ opacity: isCross ? 0.3 : isHovered ? 1 : 0.9, scale: 1 }}
+            transition={
+              shouldAnimate
+                ? { duration: 0.3, delay: cell.animDelay, ease: [0.4, 0, 0.2, 1] }
+                : { duration: 0 }
+            }
+            onFocus={() => setHoveredCell({ col: cell.colIndex, row: cell.rowIndex })}
+            onBlur={() => setHoveredCell(null)}
+            onKeyDown={handleCellKeyDown}
+          />
+        );
+      })}
+
+      {showLegend && (
+        <ColorLegend
+          scheme={scheme}
+          colorFrom={colorFrom}
+          colorTo={colorTo}
+          isStock={false}
+          svgWidth={svgWidth}
+          y={legendY}
+        />
+      )}
+    </svg>
+  );
+}
+
+// ── Radial variant ────────────────────────────────────────────────────────────
+
+function arcPath(
+  cx: number, cy: number,
+  innerR: number, outerR: number,
+  startAngle: number, endAngle: number,
+): string {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const sa = toRad(startAngle);
+  const ea = toRad(endAngle);
+  const cos = Math.cos, sin = Math.sin;
+  const x1 = cx + innerR * cos(sa), y1 = cy + innerR * sin(sa);
+  const x2 = cx + outerR * cos(sa), y2 = cy + outerR * sin(sa);
+  const x3 = cx + outerR * cos(ea), y3 = cy + outerR * sin(ea);
+  const x4 = cx + innerR * cos(ea), y4 = cy + innerR * sin(ea);
+  const large = endAngle - startAngle > 180 ? 1 : 0;
+  return [
+    `M ${x1} ${y1}`, `L ${x2} ${y2}`,
+    `A ${outerR} ${outerR} 0 ${large} 1 ${x3} ${y3}`,
+    `L ${x4} ${y4}`,
+    `A ${innerR} ${innerR} 0 ${large} 0 ${x1} ${y1}`, "Z",
+  ].join(" ");
+}
+
+function renderRadial<T extends ChartDataItem>({
+  processedCells,
+  colLabels,
+  rowLabels,
+  hoveredCell,
+  setHoveredCell,
+  setTooltipPos,
+  svgRef,
+  showLabels,
+  showLegend,
+  shouldAnimate,
+  height,
+  scheme,
+  colorFrom,
+  colorTo,
+  svgWidth,
+}: {
+  processedCells: ProcessedCell<T>[];
+  colLabels: string[];
+  rowLabels: string[];
+  hoveredCell: { col: number; row: number } | null;
+  setHoveredCell: React.Dispatch<React.SetStateAction<{ col: number; row: number } | null>>;
+  setTooltipPos: React.Dispatch<React.SetStateAction<{ x: number; y: number } | null>>;
+  svgRef: React.RefObject<SVGSVGElement | null>;
+  showLabels: boolean;
+  showLegend: boolean;
+  shouldAnimate: boolean;
+  height: number;
+  scheme: ColorScheme;
+  colorFrom: string | undefined;
+  colorTo: string | undefined;
+  svgWidth: number;
+}) {
+  const legendAreaH = showLegend ? LEGEND_HEIGHT : 0;
+  const cx = svgWidth / 2;
+  const cy = (height - legendAreaH) / 2;
+  const outerR = Math.min(cx, cy) * 0.88;
+  const innerR = outerR * 0.35;
+  const n = colLabels.length;
+  const m = rowLabels.length;
+  const ringThickness = (outerR - innerR) / Math.max(1, m);
+  const GAP_DEG = n > 1 ? 1.5 : 0;
+  const segmentAngle = 360 / Math.max(1, n);
+  const legendY = height - LEGEND_HEIGHT + 8;
+
+  function handleMouseMove(e: React.MouseEvent<SVGSVGElement>) {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const svgX = e.clientX - rect.left - cx;
+    const svgY = e.clientY - rect.top - cy;
+    const dist = Math.sqrt(svgX * svgX + svgY * svgY);
+    if (dist < innerR || dist > outerR) { setHoveredCell(null); return; }
+    let angleDeg = (Math.atan2(svgY, svgX) * 180) / Math.PI;
+    if (angleDeg < 0) angleDeg += 360;
+    const col = Math.floor(angleDeg / segmentAngle);
+    const ringFromOuter = Math.floor((outerR - dist) / ringThickness);
+    const row = m - 1 - ringFromOuter;
+    if (col >= 0 && col < n && row >= 0 && row < m) {
+      setHoveredCell({ col, row });
+      setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    } else {
+      setHoveredCell(null);
+    }
+  }
+
+  return (
+    <svg
+      ref={svgRef}
+      width="100%"
+      height={height}
+      className="overflow-visible cursor-default"
+      role="img"
+      aria-label="Radial heatmap chart"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setHoveredCell(null)}
+    >
+      {processedCells.map((cell) => {
+        const isHovered = hoveredCell?.col === cell.colIndex && hoveredCell?.row === cell.rowIndex;
+        const startAngle = cell.colIndex * segmentAngle + GAP_DEG / 2;
+        const endAngle = (cell.colIndex + 1) * segmentAngle - GAP_DEG / 2;
+        const rOuter = outerR - cell.rowIndex * ringThickness;
+        const rInner = rOuter - ringThickness + 1;
+        const d = arcPath(cx, cy, rInner, rOuter, startAngle, endAngle);
+
+        return (
+          <motion.path
+            key={`${cell.colIndex}-${cell.rowIndex}`}
+            d={d}
+            fill={cell.fillColor}
+            fillOpacity={isHovered ? 1 : 0.85}
+            stroke="var(--background)"
+            strokeWidth={1}
+            style={{
+              transformOrigin: `${cx}px ${cy}px`,
+              filter: isHovered ? `drop-shadow(0 0 4px ${cell.fillColor})` : "none",
+            }}
+            initial={shouldAnimate ? { opacity: 0, scale: 0.3 } : { opacity: 0.85, scale: 1 }}
+            animate={{ opacity: isHovered ? 1 : 0.85, scale: 1 }}
+            transition={
+              shouldAnimate
+                ? {
+                    opacity: { duration: 0.3, delay: cell.rowIndex * 0.12 + cell.colIndex * 0.01 },
+                    scale: { duration: 0.4, delay: cell.rowIndex * 0.12, ease: [0.4, 0, 0.2, 1] },
+                  }
+                : { duration: 0 }
+            }
+          />
+        );
+      })}
+
+      {showLabels && colLabels.map((lbl, i) => {
+        const midAngle = ((i + 0.5) * segmentAngle * Math.PI) / 180;
+        const labelR = outerR + 14;
+        return (
+          <text
+            key={`col-${i}`}
+            x={cx + labelR * Math.cos(midAngle)}
+            y={cy + labelR * Math.sin(midAngle)}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={9}
+            className="fill-muted-foreground"
+          >
+            {lbl.length > 4 ? lbl.slice(0, 3) : lbl}
+          </text>
+        );
+      })}
+
+      {showLabels && rowLabels.map((lbl, i) => {
+        const rMid = outerR - i * ringThickness - ringThickness / 2;
+        return (
+          <text
+            key={`row-${i}`}
+            x={cx - rMid}
+            y={cy}
+            textAnchor="end"
+            dominantBaseline="middle"
+            fontSize={8}
+            className="fill-muted-foreground"
+          >
+            {lbl.length > 5 ? `${lbl.slice(0, 4)}…` : lbl}
+          </text>
+        );
+      })}
+
+      <circle cx={cx} cy={cy} r={Math.max(0, innerR - 2)} className="fill-background" />
+
+      {showLegend && (
+        <ColorLegend
+          scheme={scheme}
+          colorFrom={colorFrom}
+          colorTo={colorTo}
+          isStock={false}
+          svgWidth={svgWidth}
+          y={legendY}
+        />
+      )}
+    </svg>
+  );
+}
+
+// ── Stock variant (treemap) ───────────────────────────────────────────────────
+
+function renderStock<T extends ChartDataItem>({
+  stockCells,
+  hoveredStock,
+  setHoveredStock,
+  setTooltipPos,
+  svgRef,
+  showLegend,
+  shouldAnimate,
+  height,
+  scheme,
+  colorFrom,
+  colorTo,
+  svgWidth,
+}: {
+  stockCells: StockCell<T>[];
+  hoveredStock: number | null;
+  setHoveredStock: React.Dispatch<React.SetStateAction<number | null>>;
+  setTooltipPos: React.Dispatch<React.SetStateAction<{ x: number; y: number } | null>>;
+  svgRef: React.RefObject<SVGSVGElement | null>;
+  showLegend: boolean;
+  shouldAnimate: boolean;
+  height: number;
+  scheme: ColorScheme;
+  colorFrom: string | undefined;
+  colorTo: string | undefined;
+  svgWidth: number;
+}) {
+  const legendY = height - LEGEND_HEIGHT + 8;
+
+  function handleMouseMove(e: React.MouseEvent<SVGSVGElement>) {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const hit = stockCells.findIndex(c => mx >= c.x && mx <= c.x + c.w && my >= c.y && my <= c.y + c.h);
+    if (hit >= 0) {
+      setHoveredStock(hit);
+      setTooltipPos({ x: mx, y: my });
+    } else {
+      setHoveredStock(null);
+    }
+  }
+
+  return (
+    <svg
+      ref={svgRef}
+      width="100%"
+      height={height}
+      className="overflow-visible cursor-default"
+      style={{ touchAction: "manipulation" }}
+      role="img"
+      aria-label="Stock treemap heatmap"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setHoveredStock(null)}
+    >
+      {stockCells.map((cell, i) => {
+        const isHovered = hoveredStock === i;
+        const pad = STOCK_GAP;
+        const rx = cell.x + pad;
+        const ry = cell.y + pad;
+        const rw = Math.max(1, cell.w - pad * 2);
+        const rh = Math.max(1, cell.h - pad * 2);
+        const fontSize = rw < 40 || rh < 20 ? 0 : rh < 32 ? 9 : rw < 60 ? 10 : 11;
+
+        return (
+          <g key={i}>
+            <motion.rect
+              x={rx}
+              y={ry}
+              width={rw}
+              height={rh}
+              rx={3}
+              ry={3}
+              fill={cell.fillColor}
+              fillOpacity={isHovered ? 1 : 0.88}
+              stroke="var(--background)"
+              strokeWidth={1}
+              style={{
+                transformOrigin: `${rx + rw / 2}px ${ry + rh / 2}px`,
+                filter: isHovered ? `drop-shadow(0 2px 8px ${cell.fillColor})` : "none",
+              }}
+              initial={shouldAnimate ? { opacity: 0, scale: 0.85 } : { opacity: 0.88, scale: 1 }}
+              animate={{ opacity: isHovered ? 1 : 0.88, scale: 1 }}
+              transition={
+                shouldAnimate
+                  ? { duration: 0.35, delay: i * 0.025, ease: [0.4, 0, 0.2, 1] }
+                  : { duration: 0 }
+              }
+            />
+            {fontSize > 0 && (
+              <>
+                <text
+                  x={rx + rw / 2}
+                  y={ry + rh / 2 - (rh > 40 ? 8 : 0)}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize={fontSize}
+                  fontWeight="600"
+                  className="fill-foreground pointer-events-none"
+                  style={{ mixBlendMode: "multiply" }}
+                >
+                  {cell.labelText.length > Math.floor(rw / 6) ? `${cell.labelText.slice(0, Math.floor(rw / 6))}…` : cell.labelText}
+                </text>
+                {rh > 40 && (
+                  <text
+                    x={rx + rw / 2}
+                    y={ry + rh / 2 + 8}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fontSize={fontSize - 1}
+                    className="fill-foreground/70 pointer-events-none"
+                    style={{ fontVariantNumeric: "tabular-nums" }}
+                  >
+                    {cell.rawValue > 0 ? "+" : ""}{cell.rawValue.toFixed(2)}%
+                  </text>
+                )}
+              </>
+            )}
+          </g>
+        );
+      })}
+
+      {showLegend && (
+        <ColorLegend
+          scheme={scheme}
+          colorFrom={colorFrom}
+          colorTo={colorTo}
+          isStock
+          svgWidth={svgWidth}
+          y={legendY}
+        />
+      )}
+    </svg>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 function HeatmapChartComponent<T extends ChartDataItem>({
   data,
   x,
   y,
   value,
+  weight,
+  variant = "grid",
   colorScheme = "blue",
+  colorFrom,
+  colorTo,
   showLabels = true,
+  showLegend = false,
   cellRadius = 4,
   className,
   height = DEFAULT_HEIGHT,
@@ -182,55 +850,62 @@ function HeatmapChartComponent<T extends ChartDataItem>({
 }: HeatmapChartProps<T>) {
   const [containerRef, containerWidth] = useContainerDimensions();
   const [hoveredCell, setHoveredCell] = useState<{ col: number; row: number } | null>(null);
+  const [hoveredStock, setHoveredStock] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const reduceMotion = useReducedMotion();
   const shouldAnimate = animation && !reduceMotion;
+  const chartId = useId().replace(/:/g, "hm");
 
-  // All useMemo calls BEFORE early returns (hooks rules)
+  const legendAreaH = showLegend ? LEGEND_HEIGHT : 0;
+
+  // ── Grid / Radial data ──
   const colLabels = useMemo(() => {
+    if (variant === "stock") return [];
     const seen = new Set<string>();
     const result: string[] = [];
     for (const d of data) {
-      const label = String(d[x]);
-      if (!seen.has(label)) { seen.add(label); result.push(label); }
+      const lbl = String(d[x]);
+      if (!seen.has(lbl)) { seen.add(lbl); result.push(lbl); }
     }
     return result;
-  }, [data, x]);
+  }, [data, x, variant]);
 
   const rowLabels = useMemo(() => {
+    if (variant === "stock") return [];
     const seen = new Set<string>();
     const result: string[] = [];
     for (const d of data) {
-      const label = String(d[y]);
-      if (!seen.has(label)) { seen.add(label); result.push(label); }
+      const lbl = String(d[y]);
+      if (!seen.has(lbl)) { seen.add(lbl); result.push(lbl); }
     }
     return result;
-  }, [data, y]);
+  }, [data, y, variant]);
 
   const { minVal, maxVal } = useMemo(() => {
-    if (!data.length) return { minVal: 0, maxVal: 0 };
+    if (variant === "stock" || !data.length) return { minVal: 0, maxVal: 0 };
     const values = data.map(d => getNumericValue(d, value as string));
     return { minVal: Math.min(...values), maxVal: Math.max(...values) };
-  }, [data, value]);
+  }, [data, value, variant]);
 
   const labelAreaLeft = showLabels ? LABEL_SIZE : 8;
   const labelAreaTop = showLabels ? 28 : 8;
   const chartAreaWidth = Math.max(0, containerWidth - labelAreaLeft - 8);
-  const chartAreaHeight = Math.max(0, height - labelAreaTop - 8);
+  const chartAreaHeight = Math.max(0, height - labelAreaTop - 8 - legendAreaH);
 
-  const cellWidth = colLabels.length > 0 ? (chartAreaWidth - (colLabels.length - 1) * CELL_GAP) / colLabels.length : 0;
-  const cellHeight = rowLabels.length > 0 ? (chartAreaHeight - (rowLabels.length - 1) * CELL_GAP) / rowLabels.length : 0;
+  const cellWidth = colLabels.length > 0
+    ? (chartAreaWidth - (colLabels.length - 1) * CELL_GAP) / colLabels.length
+    : 0;
+  const cellHeight = rowLabels.length > 0
+    ? (chartAreaHeight - (rowLabels.length - 1) * CELL_GAP) / rowLabels.length
+    : 0;
   const totalCells = colLabels.length * rowLabels.length;
 
   const processedCells = useMemo((): ProcessedCell<T>[] => {
-    if (!data.length || cellWidth <= 0 || cellHeight <= 0) return [];
-
+    if (variant === "stock" || !data.length || cellWidth <= 0 || cellHeight <= 0) return [];
     const valueRange = maxVal - minVal;
     const dataMap = new Map<string, T>();
-    for (const d of data) {
-      dataMap.set(`${String(d[x])}::${String(d[y])}`, d);
-    }
+    for (const d of data) dataMap.set(`${String(d[x])}::${String(d[y])}`, d);
 
     const cells: ProcessedCell<T>[] = [];
     let cellIndex = 0;
@@ -241,9 +916,8 @@ function HeatmapChartComponent<T extends ChartDataItem>({
         const rowIndex = rowLabels.indexOf(rowLabel);
         const rawValue = item ? getNumericValue(item, value as string) : 0;
         const normalizedValue = valueRange > 0 ? (rawValue - minVal) / valueRange : 0;
-        const { color, opacity } = getCellColor(normalizedValue, colorScheme);
-        const delay = shouldAnimate ? Math.min((cellIndex / totalCells) * MAX_STAGGER_MS, MAX_STAGGER_MS) / 1000 : 0;
-
+        const fillColor = getCellColor(normalizedValue, colorScheme, colorFrom, colorTo);
+        const delay = shouldAnimate ? Math.min((cellIndex / Math.max(1, totalCells)) * MAX_STAGGER_MS, MAX_STAGGER_MS) / 1000 : 0;
         cells.push({
           data: item ?? ({} as T),
           colLabel,
@@ -256,52 +930,71 @@ function HeatmapChartComponent<T extends ChartDataItem>({
           y: labelAreaTop + rowIndex * (cellHeight + CELL_GAP),
           width: cellWidth,
           height: cellHeight,
-          fillColor: color,
-          fillOpacity: opacity,
+          fillColor,
           animDelay: delay,
         });
         cellIndex++;
       }
     }
     return cells;
-  }, [data, x, y, value, colLabels, rowLabels, minVal, maxVal, cellWidth, cellHeight, colorScheme, shouldAnimate, totalCells, labelAreaLeft, labelAreaTop]);
+  }, [data, x, y, value, colLabels, rowLabels, minVal, maxVal, cellWidth, cellHeight, colorScheme, colorFrom, colorTo, shouldAnimate, totalCells, labelAreaLeft, labelAreaTop, variant]);
 
-  const handleSvgMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (!svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const svgX = e.clientX - rect.left;
-    const svgY = e.clientY - rect.top;
+  // ── Stock data ──
+  const stockCells = useMemo((): StockCell<T>[] => {
+    if (variant !== "stock" || !data.length || containerWidth <= 0) return [];
 
-    const relX = svgX - labelAreaLeft;
-    const relY = svgY - labelAreaTop;
+    const W = containerWidth;
+    const H = height - legendAreaH;
 
-    if (relX < 0 || relY < 0) { setHoveredCell(null); return; }
+    const rawValues = data.map(d => getNumericValue(d, value as string));
+    const weightKey = weight as string | undefined;
+    const rawWeights = weightKey
+      ? data.map(d => Math.max(0, getNumericValue(d, weightKey)))
+      : data.map(d => Math.max(0, getNumericValue(d, value as string)));
 
-    const col = Math.floor(relX / (cellWidth + CELL_GAP));
-    const row = Math.floor(relY / (cellHeight + CELL_GAP));
+    // If weights are all 0 (e.g. negative values as weights), use equal weights
+    const totalW = rawWeights.reduce((a, b) => a + b, 0);
+    const effectiveWeights = totalW > 0 ? rawWeights : data.map(() => 1);
 
-    if (col >= 0 && col < colLabels.length && row >= 0 && row < rowLabels.length) {
-      setHoveredCell({ col, row });
-      setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-    } else {
-      setHoveredCell(null);
-    }
-  }, [cellWidth, cellHeight, colLabels.length, rowLabels.length, labelAreaLeft, labelAreaTop]);
+    const rects = stripLayout(effectiveWeights, W, H);
+    const maxAbs = Math.max(...rawValues.map(Math.abs), 0.001);
 
-  const handleSvgMouseLeave = useCallback(() => {
-    setHoveredCell(null);
-  }, []);
+    return data.map((item, i) => ({
+      data: item,
+      index: i,
+      labelText: String(item[x]),
+      rawValue: rawValues[i] ?? 0,
+      weightValue: effectiveWeights[i] ?? 0,
+      x: rects[i]?.x ?? 0,
+      y: rects[i]?.y ?? 0,
+      w: rects[i]?.w ?? 0,
+      h: rects[i]?.h ?? 0,
+      fillColor: getStockColor(rawValues[i] ?? 0, maxAbs, colorFrom, colorTo),
+    }));
+  }, [data, x, value, weight, variant, containerWidth, height, legendAreaH, colorFrom, colorTo]);
 
   const handleSvgClick = useCallback(() => {
+    if (variant === "stock") {
+      if (hoveredStock === null || !onClick) return;
+      const cell = stockCells[hoveredStock];
+      if (cell) onClick(cell.data, cell.labelText, "");
+      return;
+    }
     if (!hoveredCell || !onClick) return;
     const cell = processedCells.find(c => c.colIndex === hoveredCell.col && c.rowIndex === hoveredCell.row);
     if (cell) onClick(cell.data, cell.colLabel, cell.rowLabel);
-  }, [hoveredCell, onClick, processedCells]);
+  }, [hoveredCell, hoveredStock, onClick, processedCells, stockCells, variant]);
 
   const hoveredCellData = useMemo(() => {
+    if (variant === "stock") return null;
     if (!hoveredCell) return null;
     return processedCells.find(c => c.colIndex === hoveredCell.col && c.rowIndex === hoveredCell.row) ?? null;
-  }, [hoveredCell, processedCells]);
+  }, [hoveredCell, processedCells, variant]);
+
+  const hoveredStockData = useMemo(() => {
+    if (variant !== "stock" || hoveredStock === null) return null;
+    return stockCells[hoveredStock] ?? null;
+  }, [hoveredStock, stockCells, variant]);
 
   if (loading) return <LoadingState height={height} />;
   if (error) return <ErrorState error={error} />;
@@ -310,93 +1003,69 @@ function HeatmapChartComponent<T extends ChartDataItem>({
   if (!containerWidth) {
     return (
       <div ref={containerRef} className={cn("relative w-full", className)} style={{ height }}>
-        <div className="flex items-center justify-center h-full text-sm text-muted-foreground">Loading...</div>
+        <div className="flex items-center justify-center h-full text-sm text-muted-foreground">Loading…</div>
       </div>
     );
   }
 
+  const sharedProps = {
+    processedCells,
+    colLabels,
+    rowLabels,
+    hoveredCell,
+    setHoveredCell,
+    setTooltipPos,
+    svgRef,
+    showLabels,
+    showLegend,
+    shouldAnimate,
+    height,
+    scheme: colorScheme,
+    colorFrom,
+    colorTo,
+    svgWidth: containerWidth,
+  };
+
   return (
-    <div ref={containerRef} className={cn("relative w-full", className)} style={{ height }}>
-      <svg
-        ref={svgRef}
-        width="100%"
-        height={height}
-        className={cn("overflow-visible", onClick && "cursor-pointer")}
-        role="img"
-        aria-label={`Heatmap chart with ${colLabels.length} columns and ${rowLabels.length} rows`}
-        onMouseMove={handleSvgMouseMove}
-        onMouseLeave={handleSvgMouseLeave}
-        onClick={handleSvgClick}
-      >
-        {/* Column labels (top) */}
-        {showLabels && colLabels.map((label, i) => {
-          const cx = labelAreaLeft + i * (cellWidth + CELL_GAP) + cellWidth / 2;
-          return (
-            <text
-              key={`col-${i}`}
-              x={cx}
-              y={14}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontSize={10}
-              className="fill-muted-foreground"
-            >
-              {label.length > 6 ? `${label.slice(0, 5)}…` : label}
-            </text>
-          );
-        })}
+    <div
+      ref={containerRef}
+      className={cn("relative w-full", className, onClick && "cursor-pointer")}
+      style={{ height }}
+      onClick={handleSvgClick}
+    >
+      {variant === "radial" ? (
+        renderRadial({ ...sharedProps })
+      ) : variant === "stock" ? (
+        renderStock({
+          stockCells,
+          hoveredStock,
+          setHoveredStock,
+          setTooltipPos,
+          svgRef,
+          showLegend,
+          shouldAnimate,
+          height,
+          scheme: colorScheme,
+          colorFrom,
+          colorTo,
+          svgWidth: containerWidth,
+        })
+      ) : (
+        renderGrid({
+          ...sharedProps,
+          cellWidth,
+          cellHeight,
+          cellRadius,
+          labelAreaLeft,
+          labelAreaTop,
+          chartId,
+          onCellClick: onClick ? (cell) => onClick(cell.data, cell.colLabel, cell.rowLabel) : undefined,
+        })
+      )}
 
-        {/* Row labels (left) */}
-        {showLabels && rowLabels.map((label, i) => {
-          const cy = labelAreaTop + i * (cellHeight + CELL_GAP) + cellHeight / 2;
-          return (
-            <text
-              key={`row-${i}`}
-              x={labelAreaLeft - 6}
-              y={cy}
-              textAnchor="end"
-              dominantBaseline="middle"
-              fontSize={10}
-              className="fill-muted-foreground"
-            >
-              {label.length > 8 ? `${label.slice(0, 7)}…` : label}
-            </text>
-          );
-        })}
-
-        {/* Cells */}
-        {processedCells.map((cell) => {
-          const isHovered = hoveredCell?.col === cell.colIndex && hoveredCell?.row === cell.rowIndex;
-          return (
-            <motion.rect
-              key={`${cell.colIndex}-${cell.rowIndex}`}
-              x={cell.x}
-              y={cell.y}
-              width={cell.width}
-              height={cell.height}
-              rx={cellRadius}
-              ry={cellRadius}
-              fill={cell.fillColor}
-              fillOpacity={cell.fillOpacity}
-              stroke={isHovered ? cell.fillColor : "transparent"}
-              strokeWidth={isHovered ? 2 : 0}
-              strokeOpacity={0.8}
-              style={{ filter: isHovered ? `drop-shadow(0 0 4px ${cell.fillColor})` : "none" }}
-              initial={shouldAnimate ? { opacity: 0, scale: 0.5 } : { opacity: 1, scale: 1 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={
-                shouldAnimate
-                  ? { duration: 0.3, delay: cell.animDelay, ease: [0.4, 0, 0.2, 1] }
-                  : { duration: 0 }
-              }
-            />
-          );
-        })}
-      </svg>
-
-      {/* Tooltip */}
+      {/* Tooltip for grid / radial */}
       <AnimatePresence>
-        {hoveredCellData && tooltipPos && (
+        {hoveredCellData && tooltipPos && variant !== "stock" && (
           <motion.div
             key="heatmap-tooltip"
             initial={{ opacity: 0, scale: 0.9 }}
@@ -404,16 +1073,10 @@ function HeatmapChartComponent<T extends ChartDataItem>({
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.12, ease: "easeOut" }}
             className="absolute pointer-events-none z-50 bg-popover/98 backdrop-blur-md border border-border rounded-lg px-3 py-2.5 shadow-xl"
-            style={{
-              left: tooltipPos.x + 12,
-              top: Math.max(8, tooltipPos.y - 40),
-            }}
+            style={{ left: tooltipPos.x + 12, top: Math.max(8, tooltipPos.y - 40) }}
           >
             <div className="flex items-center gap-2 mb-1">
-              <div
-                className="w-2.5 h-2.5 rounded-sm"
-                style={{ backgroundColor: hoveredCellData.fillColor, opacity: Math.max(0.5, hoveredCellData.fillOpacity) }}
-              />
+              <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: hoveredCellData.fillColor }} />
               <span className="text-xs font-medium text-foreground whitespace-nowrap">
                 {hoveredCellData.rowLabel} / {hoveredCellData.colLabel}
               </span>
@@ -423,10 +1086,34 @@ function HeatmapChartComponent<T extends ChartDataItem>({
             </div>
           </motion.div>
         )}
+
+        {/* Tooltip for stock */}
+        {hoveredStockData && tooltipPos && variant === "stock" && (
+          <motion.div
+            key="stock-tooltip"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.12, ease: "easeOut" }}
+            className="absolute pointer-events-none z-50 bg-popover/98 backdrop-blur-md border border-border rounded-lg px-3 py-2.5 shadow-xl"
+            style={{ left: tooltipPos.x + 12, top: Math.max(8, tooltipPos.y - 60) }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: hoveredStockData.fillColor }} />
+              <span className="text-xs font-medium text-foreground whitespace-nowrap">{hoveredStockData.labelText}</span>
+            </div>
+            <div className={cn("text-sm font-bold tabular-nums text-center", hoveredStockData.rawValue >= 0 ? "text-green-600" : "text-red-500")}>
+              {hoveredStockData.rawValue > 0 ? "+" : ""}{hoveredStockData.rawValue.toFixed(2)}%
+            </div>
+            {hoveredStockData.weightValue > 0 && (
+              <div className="text-xs text-muted-foreground text-center">{formatValue(hoveredStockData.weightValue)}</div>
+            )}
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
 }
 
 export const HeatmapChart = memo(HeatmapChartComponent) as typeof HeatmapChartComponent;
-export type { HeatmapChartProps, ColorScheme };
+export type { HeatmapChartProps, ColorScheme, HeatmapVariant };
