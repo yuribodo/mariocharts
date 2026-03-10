@@ -69,6 +69,10 @@ const sidebarNavItems: SidebarNavItem[] = [
       {
         title: "Funnel Chart",
         href: "/docs/components/funnel-chart"
+      },
+      {
+        title: "TreeMap",
+        href: "/docs/components/treemap"
       }
     ]
   }
