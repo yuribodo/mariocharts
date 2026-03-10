@@ -42,6 +42,7 @@ const sidebarNavItems: SidebarNavItem[] = [
       { title: "Radar Chart", href: "/docs/components/radar-chart" },
       { title: "Scatter Plot", href: "/docs/components/scatter-plot" },
       { title: "Stacked Bar Chart", href: "/docs/components/stacked-bar-chart" },
+      { title: "TreeMap", href: "/docs/components/treemap" },
     ],
   },
 ];
