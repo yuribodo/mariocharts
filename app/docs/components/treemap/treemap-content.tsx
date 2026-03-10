@@ -135,7 +135,7 @@ const treemapProps = [
   },
   {
     name: "onClick",
-    type: "(node: TreeMapNode, path: string[]) => void",
+    type: "(node: TreeMapNode, path: readonly string[]) => void",
     description: "Callback fired when a rectangle is clicked. Path contains the ancestry from root to clicked node.",
   },
   {
