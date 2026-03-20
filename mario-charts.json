@@ -33,7 +33,8 @@
       "radar-chart",
       "funnel-chart",
       "gauge-chart",
-      "heatmap"
+      "heatmap",
+      "treemap-chart"
     ],
     "layout": [
       "dashboard-grid",
