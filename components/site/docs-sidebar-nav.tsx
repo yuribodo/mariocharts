@@ -75,6 +75,16 @@ const sidebarNavItems: SidebarNavItem[] = [
         href: "/docs/components/treemap"
       }
     ]
+  },
+  {
+    title: "Dashboards",
+    href: "#",
+    children: [
+      {
+        title: "Sales & Revenue",
+        href: "/examples/dashboards/sales"
+      }
+    ]
   }
 ];
 
