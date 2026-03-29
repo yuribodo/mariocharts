@@ -475,7 +475,7 @@ function renderGrid<T extends ChartDataItem>({
             strokeOpacity={0.8}
             className="outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
             style={{ filter: isHovered ? `drop-shadow(0 0 4px ${cell.fillColor})` : "none" }}
-            initial={shouldAnimate ? { opacity: 0, scale: 0.5 } : { opacity: 0.9, scale: 1 }}
+            initial={shouldAnimate ? { opacity: 0, scale: 0.85 } : { opacity: 0.9, scale: 1 }}
             animate={{ opacity: isCross ? 0.3 : isHovered ? 1 : 0.9, scale: 1 }}
             transition={
               shouldAnimate
@@ -623,7 +623,7 @@ function renderRadial<T extends ChartDataItem>({
               transformOrigin: `${cx}px ${cy}px`,
               filter: isHovered ? `drop-shadow(0 0 4px ${cell.fillColor})` : "none",
             }}
-            initial={shouldAnimate ? { opacity: 0, scale: 0.3 } : { opacity: 0.85, scale: 1 }}
+            initial={shouldAnimate ? { opacity: 0, scale: 0.7 } : { opacity: 0.85, scale: 1 }}
             animate={{ opacity: isHovered ? 1 : 0.85, scale: 1 }}
             transition={
               shouldAnimate
