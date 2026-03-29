@@ -235,7 +235,7 @@ function VerticalFunnel<T extends ChartDataItem>({
               strokeOpacity={0.5}
               className={cn("outline-none", onClick && "cursor-pointer")}
               style={{
-                transformOrigin: `${stage.cx}px ${centerY}px`,
+                transformOrigin: `${stage.cx}px ${stage.stageY}px`,
                 filter: isHovered ? `drop-shadow(0 0 6px ${stage.color})` : "none",
                 touchAction: "manipulation",
               }}
