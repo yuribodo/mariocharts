@@ -221,8 +221,8 @@ function TreeMapChartComponent({
           const showValue = rect.width >= MIN_LABEL_WIDTH && rect.height >= MIN_VALUE_HEIGHT;
 
           const motionProps = shouldAnimate ? {
-            initial: { scale: 0, opacity: 0 },
-            animate: { scale: 1, opacity: 1 },
+            initial: { scaleX: 0, scaleY: 0, opacity: 0 },
+            animate: { scaleX: 1, scaleY: 1, opacity: 1 },
             transition: {
               duration: 0.5,
               delay: i * 0.02,
@@ -230,7 +230,7 @@ function TreeMapChartComponent({
             },
           } : {};
 
-          const transformOrigin = `${rect.x + rect.width / 2}px ${rect.y + rect.height / 2}px`;
+          const transformOrigin = `${rect.x}px ${rect.y}px`;
 
           return (
             <motion.g
