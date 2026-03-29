@@ -135,14 +135,14 @@ const SEGMENT_COLORS = [
 ];
 
 function formatCurrency(value: number) {
-  if (value >= 1000000) return `R$ ${(value / 1000000).toFixed(1)}M`;
-  if (value >= 1000) return `R$ ${(value / 1000).toFixed(0)}K`;
-  return `R$ ${value}`;
+  if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
+  if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
+  return `$${value}`;
 }
 
 function SegmentBreakdown() {
   const total = categoryDistribution.reduce(
-    (sum, item) => sum + item.receita,
+    (sum, item) => sum + item.revenue,
     0
   );
 
@@ -151,7 +151,7 @@ function SegmentBreakdown() {
       {/* Legend rows — each segment as a horizontal bar-like row */}
       <div className="flex flex-col gap-2">
         {categoryDistribution.map((item, i) => {
-          const pct = (item.receita / total) * 100;
+          const pct = (item.revenue / total) * 100;
           return (
             <div key={item.category}>
               <div className="mb-1 flex items-center justify-between">
@@ -164,7 +164,7 @@ function SegmentBreakdown() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium tabular-nums">
-                    {formatCurrency(item.receita)}
+                    {formatCurrency(item.revenue)}
                   </span>
                   <span className="w-11 text-right text-xs text-muted-foreground tabular-nums">
                     {pct.toFixed(1)}%
@@ -203,14 +203,14 @@ export function SalesDashboardContent() {
           Sales &amp; Revenue
         </h1>
         <p className="text-sm text-muted-foreground">
-          Dezembro 2025 &middot; comparado com novembro 2025
+          December 2025 &middot; compared to November 2025
         </p>
       </div>
 
       {/* ── SECTION 1: Resumo executivo ────────────────────────────── */}
       <SectionHeader
-        title="Resumo do Periodo"
-        description="Indicadores-chave comparados ao mes anterior"
+        title="Period Summary"
+        description="Key metrics compared to last month"
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -229,20 +229,20 @@ export function SalesDashboardContent() {
 
       {/* ── SECTION 2: Estamos batendo a meta? ─────────────────────── */}
       <SectionHeader
-        title="Acompanhamento de Meta"
-        description="Receita realizada vs planejada ao longo do ano"
+        title="Target Tracking"
+        description="Actual revenue vs planned throughout the year"
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <ChartCard
-          question="Receita vs Meta mensal"
-          insight="Batemos a meta em 8 de 12 meses. Mar e Jun ficaram abaixo."
+          question="Monthly Revenue vs Target"
+          insight="We hit the target in 8 of 12 months. Mar and Jun fell short."
           className="lg:col-span-2"
         >
           <LineChart
             data={[...monthlyRevenue]}
             x="month"
-            y={["receita", "meta"]}
+            y={["revenue", "target"]}
             colors={["#3b82f6", "#94a3b8"]}
             height={280}
             showArea
@@ -252,8 +252,8 @@ export function SalesDashboardContent() {
           />
         </ChartCard>
         <ChartCard
-          question="Meta anual atingida"
-          insight="R$ 1.28M de R$ 1.65M — faltam R$ 370K para fechar o ano"
+          question="Annual Target Progress"
+          insight="$1.28M of $1.65M — $370K remaining to close the year"
         >
           <GaugeChart
             value={revenueTarget.value}
@@ -261,7 +261,7 @@ export function SalesDashboardContent() {
             max={revenueTarget.max}
             zones={[...revenueTarget.zones]}
             unit="%"
-            label="da meta anual"
+            label="of annual target"
             height={280}
           />
         </ChartCard>
@@ -269,20 +269,20 @@ export function SalesDashboardContent() {
 
       {/* ── SECTION 3: De onde vem a receita? ──────────────────────── */}
       <SectionHeader
-        title="Origem da Receita"
-        description="Quais produtos e segmentos geram mais receita"
+        title="Revenue Sources"
+        description="Which products and segments generate the most revenue"
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <ChartCard
-          question="Quais produtos geram mais receita?"
-          insight="Top 3 produtos representam 63% da receita total"
+          question="Which products generate the most revenue?"
+          insight="Top 3 products represent 63% of total revenue"
           className="lg:col-span-3"
         >
           <BarChart
             data={[...productSales]}
             x="product"
-            y="receita"
+            y="revenue"
             colors={["#3b82f6"]}
             height={300}
             showGrid
@@ -290,8 +290,8 @@ export function SalesDashboardContent() {
           />
         </ChartCard>
         <ChartCard
-          question="Qual a dependencia por segmento?"
-          insight="Enterprise + PME = 70% da receita — risco de concentracao"
+          question="How dependent are we on each segment?"
+          insight="Enterprise + SMB = 70% of revenue — concentration risk"
           className="lg:col-span-2"
         >
           <SegmentBreakdown />
@@ -300,13 +300,13 @@ export function SalesDashboardContent() {
 
       {/* ── SECTION 4: Quem vende e como? ──────────────────────────── */}
       <SectionHeader
-        title="Performance do Time"
-        description="Perfil de cada vendedor por 5 dimensoes"
+        title="Team Performance"
+        description="Each seller's profile across 5 dimensions"
       />
 
       <ChartCard
-        question="Quais sao os pontos fortes e fracos de cada vendedor?"
-        insight="Ana lidera em receita e satisfacao. Carlos tem o melhor ciclo de venda. Maria fecha mais negocios."
+        question="What are each seller's strengths and weaknesses?"
+        insight="Ana leads in revenue and satisfaction. Carlos has the best sales cycle. Maria closes the most deals."
       >
         <RadarChart
           series={sellerPerformanceSeries}

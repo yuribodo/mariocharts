@@ -5,35 +5,35 @@ import type { RadarAxis, RadarSeries } from "@/src/components/charts/radar-chart
 // Each KPI answers: "How is this metric doing compared to last month?"
 export const kpiData = [
   {
-    label: "Receita Total",
-    value: "R$ 1.284.500",
-    previousValue: "R$ 1.142.200",
+    label: "Total Revenue",
+    value: "$1,284,500",
+    previousValue: "$1,142,200",
     change: 12.5,
-    context: "Melhor mês do trimestre",
+    context: "Best month of the quarter",
     icon: "currency",
   },
   {
-    label: "Vendas Fechadas",
-    value: "3.842",
-    previousValue: "3.550",
+    label: "Closed Sales",
+    value: "3,842",
+    previousValue: "3,550",
     change: 8.2,
-    context: "292 vendas a mais que fev",
+    context: "292 more sales than Feb",
     icon: "cart",
   },
   {
-    label: "Ticket Médio",
-    value: "R$ 334,20",
-    previousValue: "R$ 342,40",
+    label: "Average Ticket",
+    value: "$334.20",
+    previousValue: "$342.40",
     change: -2.4,
-    context: "Queda pelo 2o mês seguido",
+    context: "Declining for 2nd straight month",
     icon: "ticket",
   },
   {
-    label: "Taxa de Conversão",
+    label: "Conversion Rate",
     value: "4.8%",
     previousValue: "4.5%",
     change: 0.6,
-    context: "Acima da média de 4.2%",
+    context: "Above the 4.2% average",
     icon: "percent",
   },
 ] as const;
@@ -41,48 +41,48 @@ export const kpiData = [
 // ── Revenue vs Target (Line) ─────────────────────────────────────────
 // Answers: "Are we consistently hitting targets? What's the trend?"
 export const monthlyRevenue = [
-  { month: "Jan", receita: 85000, meta: 90000 },
-  { month: "Fev", receita: 92000, meta: 90000 },
-  { month: "Mar", receita: 78000, meta: 95000 },
-  { month: "Abr", receita: 105000, meta: 95000 },
-  { month: "Mai", receita: 112000, meta: 100000 },
-  { month: "Jun", receita: 98000, meta: 100000 },
-  { month: "Jul", receita: 115000, meta: 105000 },
-  { month: "Ago", receita: 108000, meta: 105000 },
-  { month: "Set", receita: 125000, meta: 110000 },
-  { month: "Out", receita: 118000, meta: 110000 },
-  { month: "Nov", receita: 132000, meta: 115000 },
-  { month: "Dez", receita: 116500, meta: 115000 },
+  { month: "Jan", revenue: 85000, target: 90000 },
+  { month: "Feb", revenue: 92000, target: 90000 },
+  { month: "Mar", revenue: 78000, target: 95000 },
+  { month: "Apr", revenue: 105000, target: 95000 },
+  { month: "May", revenue: 112000, target: 100000 },
+  { month: "Jun", revenue: 98000, target: 100000 },
+  { month: "Jul", revenue: 115000, target: 105000 },
+  { month: "Aug", revenue: 108000, target: 105000 },
+  { month: "Sep", revenue: 125000, target: 110000 },
+  { month: "Oct", revenue: 118000, target: 110000 },
+  { month: "Nov", revenue: 132000, target: 115000 },
+  { month: "Dec", revenue: 116500, target: 115000 },
 ] as const;
 
 // ── Product Revenue (Bar) ────────────────────────────────────────────
 // Answers: "Which products drive the most revenue? How concentrated is it?"
 export const productSales = [
-  { product: "Software Pro", receita: 482000, vendas: 965 },
-  { product: "Cloud Suite", receita: 385000, vendas: 720 },
-  { product: "Analytics+", receita: 321000, vendas: 890 },
-  { product: "Security Kit", receita: 287000, vendas: 410 },
-  { product: "DevOps Tool", receita: 214000, vendas: 580 },
-  { product: "API Gateway", receita: 186000, vendas: 277 },
+  { product: "Software Pro", revenue: 482000, sales: 965 },
+  { product: "Cloud Suite", revenue: 385000, sales: 720 },
+  { product: "Analytics+", revenue: 321000, sales: 890 },
+  { product: "Security Kit", revenue: 287000, sales: 410 },
+  { product: "DevOps Tool", revenue: 214000, sales: 580 },
+  { product: "API Gateway", revenue: 186000, sales: 277 },
 ] as const;
 
 // ── Customer Segments (Pie) ──────────────────────────────────────────
 // Answers: "How dependent are we on a single customer segment?"
 export const categoryDistribution = [
-  { category: "Enterprise", receita: 540000 },
-  { category: "PME", receita: 360000 },
-  { category: "Startup", receita: 193000 },
-  { category: "Governo", receita: 128500 },
-  { category: "Educação", receita: 63000 },
+  { category: "Enterprise", revenue: 540000 },
+  { category: "SMB", revenue: 360000 },
+  { category: "Startup", revenue: 193000 },
+  { category: "Government", revenue: 128500 },
+  { category: "Education", revenue: 63000 },
 ] as const;
 
 // ── Sales Funnel ─────────────────────────────────────────────────────
 // Answers: "Where are we losing the most people in the sales process?"
 export const salesFunnel = [
-  { etapa: "Visitantes", quantidade: 12500 },
-  { etapa: "Leads", quantidade: 5200 },
-  { etapa: "Propostas", quantidade: 1800 },
-  { etapa: "Clientes", quantidade: 600 },
+  { stage: "Visitors", count: 12500 },
+  { stage: "Leads", count: 5200 },
+  { stage: "Proposals", count: 1800 },
+  { stage: "Customers", count: 600 },
 ] as const;
 
 // ── Revenue Target (Gauge) ───────────────────────────────────────────
@@ -103,11 +103,11 @@ export const revenueTarget = {
 type SellerData = Record<string, number>;
 
 export const sellerPerformanceAxes: RadarAxis[] = [
-  { key: "deals", label: "Negócios Fechados" },
-  { key: "revenue", label: "Receita Gerada" },
-  { key: "retention", label: "Retenção" },
-  { key: "satisfaction", label: "Satisfação" },
-  { key: "speed", label: "Ciclo de Venda" },
+  { key: "deals", label: "Closed Deals" },
+  { key: "revenue", label: "Revenue Generated" },
+  { key: "retention", label: "Retention" },
+  { key: "satisfaction", label: "Satisfaction" },
+  { key: "speed", label: "Sales Cycle" },
 ];
 
 export const sellerPerformanceSeries: RadarSeries<SellerData>[] = [
@@ -134,13 +134,13 @@ export const revenueBySegment: TreeMapNode[] = [
   {
     name: "Enterprise",
     children: [
-      { name: "Licenças", value: 185000 },
-      { name: "Consultoria", value: 120000 },
-      { name: "Suporte", value: 75000 },
+      { name: "Licenses", value: 185000 },
+      { name: "Consulting", value: 120000 },
+      { name: "Support", value: 75000 },
     ],
   },
   {
-    name: "PME",
+    name: "SMB",
     children: [
       { name: "SaaS", value: 210000 },
       { name: "Add-ons", value: 85000 },
@@ -154,10 +154,10 @@ export const revenueBySegment: TreeMapNode[] = [
     ],
   },
   {
-    name: "Governo",
+    name: "Government",
     children: [
-      { name: "Contratos", value: 130000 },
-      { name: "Projetos", value: 55000 },
+      { name: "Contracts", value: 130000 },
+      { name: "Projects", value: 55000 },
     ],
   },
 ];
