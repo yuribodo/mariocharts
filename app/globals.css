@@ -260,7 +260,7 @@
 
 /* Better selection colors */
 ::selection {
-  background-color: hsl(var(--color-primary) / 0.2);
+  background-color: hsl(210 100% 50% / 0.3);
   color: var(--color-foreground);
 }
 

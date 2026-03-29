@@ -21,6 +21,7 @@ interface BarChartProps<T extends ChartDataItem> {
   readonly animation?: boolean;
   readonly variant?: 'filled' | 'outline';
   readonly orientation?: 'vertical' | 'horizontal';
+  readonly showValues?: boolean;
   readonly showGrid?: boolean;
   readonly gridStyle?: 'solid' | 'dashed' | 'dotted';
   readonly onBarClick?: (data: T, index: number) => void;
@@ -215,6 +216,7 @@ function BarChartComponent<T extends ChartDataItem>({
   animation = true,
   variant = 'filled',
   orientation = 'vertical',
+  showValues = false,
   showGrid = false,
   gridStyle = 'dashed',
   onBarClick,
@@ -536,6 +538,32 @@ function BarChartComponent<T extends ChartDataItem>({
                     onKeyDown: (e: React.KeyboardEvent) => handleKeyDown(e, bar.data, bar.index),
                   })}
                 />
+
+                {/* Value label above/beside bar */}
+                {showValues && (
+                  isVertical ? (
+                    <text
+                      x={bar.x + bar.width / 2}
+                      y={bar.y - 6}
+                      textAnchor="middle"
+                      fontSize={11}
+                      className="fill-foreground font-medium select-none"
+                    >
+                      {bar.value}
+                    </text>
+                  ) : (
+                    <text
+                      x={bar.x + bar.width + 6}
+                      y={bar.y + bar.height / 2}
+                      textAnchor="start"
+                      dominantBaseline="middle"
+                      fontSize={11}
+                      className="fill-foreground font-medium select-none"
+                    >
+                      {bar.value}
+                    </text>
+                  )
+                )}
               </g>
             );
           })}

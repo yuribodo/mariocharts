@@ -23,6 +23,7 @@ interface LineChartProps<T extends ChartDataItem> {
   readonly curve?: 'linear' | 'monotone' | 'natural' | 'step';
   readonly showDots?: boolean;
   readonly showArea?: boolean;
+  readonly showAreaForSeries?: readonly number[];
   readonly showGrid?: boolean;
   readonly gridStyle?: 'solid' | 'dashed' | 'dotted';
   readonly showLegend?: boolean;
@@ -234,6 +235,7 @@ function LineChartComponent<T extends ChartDataItem>({
   curve = 'monotone',
   showDots = true,
   showArea = false,
+  showAreaForSeries,
   showGrid = false,
   gridStyle = 'dashed',
   showLegend = false,
@@ -403,8 +405,8 @@ function LineChartComponent<T extends ChartDataItem>({
                 id={`area-gradient-${index}`}
                 x1="0%" y1="0%" x2="0%" y2="100%"
               >
-                <stop offset="0%" stopColor={series.color} stopOpacity={0.2} />
-                <stop offset="100%" stopColor={series.color} stopOpacity={0.05} />
+                <stop offset="0%" stopColor={series.color} stopOpacity={0.3} />
+                <stop offset="100%" stopColor={series.color} stopOpacity={0.02} />
               </linearGradient>
               <pattern
                 id={`dot-pattern-${index}`}
@@ -479,10 +481,10 @@ function LineChartComponent<T extends ChartDataItem>({
 
             return (
               <g key={`series-${seriesIndex}`}>
-                {showArea && (
+                {showArea && (!showAreaForSeries || showAreaForSeries.includes(seriesIndex)) && (
                   <motion.path
                     d={series.areaPath}
-                    fill={`url(#dot-pattern-${seriesIndex})`}
+                    fill={`url(#area-gradient-${seriesIndex})`}
                     {...(shouldAnimate && {
                       initial: { opacity: 0, scaleY: 0 },
                       animate: { opacity: 1, scaleY: 1 },
