@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { memo, useMemo, useState, useRef, useCallback } from "react";
-import { useIsomorphicLayoutEffect } from "../../../../lib/hooks";
+import { memo, useMemo, useState, useCallback } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { formatValue, useContainerDimensions } from "../_shared";
 import { cn } from "../../../../lib/utils";
 import { computeTreeMapLayout, nodeValue } from "./layout";
 import type { TreeMapNode, LayoutRect } from "./layout";
@@ -35,45 +35,12 @@ const MIN_LABEL_WIDTH = 40;
 const MIN_LABEL_HEIGHT = 28;
 const MIN_VALUE_HEIGHT = 44;
 
-// Utilities
-function formatValue(value: unknown): string {
-  if (typeof value === 'number') {
-    if (Math.abs(value) >= 1000000) {
-      return `${(value / 1000000).toFixed(1)}M`;
-    } else if (Math.abs(value) >= 1000) {
-      return `${(value / 1000).toFixed(1)}K`;
-    }
-    return value.toLocaleString();
-  }
-  return String(value);
-}
 
 function colorWithOpacity(hex: string, opacity: number): string {
   const alpha = Math.round(opacity * 255).toString(16).padStart(2, '0');
   return hex + alpha;
 }
 
-function useContainerDimensions() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-
-  useIsomorphicLayoutEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-
-    const updateWidth = () => {
-      setWidth(element.getBoundingClientRect().width);
-    };
-
-    updateWidth();
-    const resizeObserver = new ResizeObserver(updateWidth);
-    resizeObserver.observe(element);
-
-    return () => resizeObserver.disconnect();
-  }, []);
-
-  return [ref, width] as const;
-}
 
 // Loading State
 function LoadingState({ height = DEFAULT_HEIGHT }: { height?: number }) {

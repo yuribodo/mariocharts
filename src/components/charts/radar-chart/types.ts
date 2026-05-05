@@ -1,5 +1,6 @@
 // Base data item constraint
-export type ChartDataItem = Record<string, unknown>;
+import type { ChartDataItem } from "../_shared";
+export type { ChartDataItem };
 
 /**
  * Axis configuration for each dimension of the radar chart

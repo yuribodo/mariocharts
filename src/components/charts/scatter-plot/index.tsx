@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { memo, useMemo, useState, useRef, useCallback } from "react";
+import { memo, useMemo, useState, useCallback } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
-import { useIsomorphicLayoutEffect } from "../../../../lib/hooks";
+import { useContainerDimensions } from "../_shared";
 
 // Internal modules
 import type {
@@ -36,29 +36,6 @@ const DEFAULT_HEIGHT = 300;
 const DEFAULT_POINT_SIZE = 6;
 const DEFAULT_SIZE_RANGE = [4, 40] as const;
 const MARGIN = { top: 20, right: 20, bottom: 40, left: 50 };
-
-// Custom hook for container dimensions
-function useContainerDimensions() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-
-  useIsomorphicLayoutEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-
-    const updateWidth = () => {
-      setWidth(element.getBoundingClientRect().width);
-    };
-
-    updateWidth();
-    const resizeObserver = new ResizeObserver(updateWidth);
-    resizeObserver.observe(element);
-
-    return () => resizeObserver.disconnect();
-  }, []);
-
-  return [ref, width] as const;
-}
 
 // State components
 const states = {

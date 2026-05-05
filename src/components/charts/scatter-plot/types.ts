@@ -1,6 +1,7 @@
 // Shared types for ScatterPlot component
 
-export type ChartDataItem = Record<string, unknown>;
+import type { ChartDataItem } from "../_shared";
+export type { ChartDataItem };
 
 export interface ScatterPlotProps<T extends ChartDataItem> {
   // Required

@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { memo, useMemo, useRef, useState } from "react";
+import { memo, useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { useIsomorphicLayoutEffect } from "../../../../lib/hooks";
+import { useContainerDimensions } from "../_shared";
 import { cn } from "../../../../lib/utils";
 import {
   clampValue,
@@ -63,29 +63,6 @@ const DEFAULT_HEIGHT = 300;
 const DEFAULT_STROKE_WIDTH = 20;
 const PADDING = 24;
 
-function useContainerDimensions() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-
-  useIsomorphicLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    let rafId = 0;
-    const update = () => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => setWidth(el.getBoundingClientRect().width));
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => {
-      cancelAnimationFrame(rafId);
-      ro.disconnect();
-    };
-  }, []);
-
-  return [ref, width] as const;
-}
 
 function LoadingState({ height }: { height: number }) {
   const size = Math.min(height - PADDING * 2, 200);

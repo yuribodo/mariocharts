@@ -1,13 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { memo, useMemo, useState, useRef } from "react";
+import { memo, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
-import { useIsomorphicLayoutEffect } from "../../../../lib/hooks";
-
-// Types
-type ChartDataItem = Record<string, unknown>;
+import { formatValue, getNumericValue, useContainerDimensions, type ChartDataItem } from "../_shared";
 
 interface StackedBarChartProps<T extends ChartDataItem> {
   readonly data: readonly T[];
@@ -54,59 +51,6 @@ const DEFAULT_COLORS = [
 const DEFAULT_HEIGHT = 300;
 const MARGIN = { top: 10, right: 15, bottom: 25, left: 25 };
 
-// Utilities
-/**
- * Format numeric values with K/M suffixes for better readability
- */
-function formatValue(value: unknown): string {
-  if (typeof value === 'number') {
-    if (Math.abs(value) >= 1000000) {
-      return `${(value / 1000000).toFixed(1)}M`;
-    } else if (Math.abs(value) >= 1000) {
-      return `${(value / 1000).toFixed(1)}K`;
-    }
-    return value.toLocaleString();
-  }
-  return String(value);
-}
-
-/**
- * Safely extract numeric values from data, handling strings with currency symbols, etc.
- */
-function getNumericValue(data: ChartDataItem, key: keyof ChartDataItem): number {
-  const value = data[key];
-  if (typeof value === 'number' && isFinite(value)) return value;
-  if (typeof value === 'string') {
-    const parsed = parseFloat(value.replace(/[,$%\s]/g, ''));
-    return isFinite(parsed) ? parsed : 0;
-  }
-  return 0;
-}
-
-/**
- * Custom hook to track container dimensions with ResizeObserver
- */
-function useContainerDimensions() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-
-  useIsomorphicLayoutEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-
-    const updateWidth = () => {
-      setWidth(element.getBoundingClientRect().width);
-    };
-
-    updateWidth();
-    const resizeObserver = new ResizeObserver(updateWidth);
-    resizeObserver.observe(element);
-
-    return () => resizeObserver.disconnect();
-  }, []);
-
-  return [ref, width] as const;
-}
 
 // Loading State Component
 function LoadingState({

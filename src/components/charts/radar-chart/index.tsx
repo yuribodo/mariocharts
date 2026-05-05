@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { memo, useMemo, useState, useRef, useCallback, useEffect } from "react";
-import { useIsomorphicLayoutEffect } from "../../../../lib/hooks";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
+import { useContainerDimensions } from "../_shared";
 
 // Internal modules
 import type {
@@ -65,32 +65,6 @@ const ANIMATION_EASING = [0.4, 0, 0.2, 1] as const;
 const HOVER_DURATION = 0.2;
 const STAGGER_DELAY = 0.1;
 const HOVER_DEBOUNCE_MS = 50;
-
-/**
- * Custom hook for responsive container dimensions
- * Uses ResizeObserver for efficient updates
- */
-function useContainerDimensions() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-
-  useIsomorphicLayoutEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-
-    const updateWidth = () => {
-      setWidth(element.getBoundingClientRect().width);
-    };
-
-    updateWidth();
-    const resizeObserver = new ResizeObserver(updateWidth);
-    resizeObserver.observe(element);
-
-    return () => resizeObserver.disconnect();
-  }, []);
-
-  return [ref, width] as const;
-}
 
 // ============================================================================
 // State Components
