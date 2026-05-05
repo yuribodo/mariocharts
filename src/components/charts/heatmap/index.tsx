@@ -3,11 +3,8 @@
 import * as React from "react";
 import { memo, useMemo, useState, useRef, useCallback, useId } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { useIsomorphicLayoutEffect } from "../../../../lib/hooks";
 import { cn } from "../../../../lib/utils";
-
-// Types
-type ChartDataItem = Record<string, unknown>;
+import { formatValue, getNumericValue, useContainerDimensions, type ChartDataItem } from "../_shared";
 type ColorScheme = "blue" | "green" | "amber" | "purple" | "diverging";
 type HeatmapVariant = "grid" | "radial" | "stock";
 
@@ -127,24 +124,6 @@ function getStockColor(value: number, maxAbs: number, colorFrom: string | undefi
   return lerpHex(neutral, green, t);
 }
 
-// ── Utilities ─────────────────────────────────────────────────────────────────
-
-function getNumericValue(data: ChartDataItem, key: keyof ChartDataItem): number {
-  const val = data[key];
-  if (typeof val === "number" && isFinite(val)) return val;
-  if (typeof val === "string") {
-    const parsed = parseFloat(val.replace(/[,$%\s]/g, ""));
-    if (isFinite(parsed)) return parsed;
-  }
-  return 0;
-}
-
-function formatValue(value: number): string {
-  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
-  return value.toLocaleString();
-}
-
 // ── Treemap layout (squarified strip) ────────────────────────────────────────
 
 interface TreeRect { x: number; y: number; w: number; h: number; }
@@ -210,32 +189,6 @@ function stripLayout(weights: number[], W: number, H: number): TreeRect[] {
   }
 
   return rects;
-}
-
-// ── ResizeObserver hook ───────────────────────────────────────────────────────
-
-function useContainerDimensions() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-
-  useIsomorphicLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    let rafId = 0;
-    const update = () => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => setWidth(el.getBoundingClientRect().width));
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => {
-      cancelAnimationFrame(rafId);
-      ro.disconnect();
-    };
-  }, []);
-
-  return [ref, width] as const;
 }
 
 // ── States ────────────────────────────────────────────────────────────────────

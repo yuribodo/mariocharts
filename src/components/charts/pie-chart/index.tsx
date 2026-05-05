@@ -1,13 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { memo, useMemo, useState, useRef } from "react";
+import { memo, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
-import { useIsomorphicLayoutEffect } from "../../../../lib/hooks";
-
-// Types
-type ChartDataItem = Record<string, unknown>;
+import { formatValue, getNumericValue, useContainerDimensions, type ChartDataItem } from "../_shared";
 
 interface PieChartProps<T extends ChartDataItem> {
   readonly data: readonly T[];
@@ -52,80 +49,6 @@ const FULL_CIRCLE_THRESHOLD = 360 - 1e-6;
 const ARC_EPSILON = 1e-4;
 
 // Utilities
-function formatValue(value: unknown): string {
-  if (typeof value === 'number') {
-    if (Math.abs(value) >= 1000000) {
-      return `${(value / 1000000).toFixed(1)}M`;
-    } else if (Math.abs(value) >= 1000) {
-      return `${(value / 1000).toFixed(1)}K`;
-    }
-    return value.toLocaleString();
-  }
-  return String(value);
-}
-
-function getNumericValue(
-  data: ChartDataItem,
-  key: keyof ChartDataItem,
-  index?: number
-): number {
-  const value = data[key];
-
-  if (typeof value === 'number') {
-    if (!isFinite(value)) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(
-          `[PieChart] Invalid value at index ${index ?? 'unknown'}: ${value}. Using 0.`
-        );
-      }
-      return 0;
-    }
-    return value;
-  }
-
-  if (typeof value === 'string') {
-    const parsed = parseFloat(value.replace(/[,$%\s]/g, ''));
-    if (!isFinite(parsed)) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(
-          `[PieChart] Could not parse value at index ${index ?? 'unknown'}: "${value}". Using 0.`
-        );
-      }
-      return 0;
-    }
-    return parsed;
-  }
-
-  if (process.env.NODE_ENV === 'development') {
-    console.warn(
-      `[PieChart] Unexpected value type at index ${index ?? 'unknown'}: ${typeof value}. Using 0.`
-    );
-  }
-  return 0;
-}
-
-function useContainerDimensions() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-
-  useIsomorphicLayoutEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-
-    const updateWidth = () => {
-      setWidth(element.getBoundingClientRect().width);
-    };
-
-    updateWidth();
-    const resizeObserver = new ResizeObserver(updateWidth);
-    resizeObserver.observe(element);
-
-    return () => resizeObserver.disconnect();
-  }, []);
-
-  return [ref, width] as const;
-}
-
 function polarToCartesian(cx: number, cy: number, radius: number, angleInDegrees: number): { x: number; y: number } {
   const angleInRadians = (angleInDegrees - 90) * Math.PI / 180;
   return {
@@ -294,7 +217,7 @@ function PieChartComponent<T extends ChartDataItem>({
     }
 
     // Extract and validate values
-    const values = data.map((d, i) => Math.max(0, getNumericValue(d, value as string, i)));
+    const values = data.map((d) => Math.max(0, getNumericValue(d, value as string)));
     const totalValue = values.reduce((sum, v) => sum + v, 0);
 
     if (totalValue <= 0) {
@@ -347,7 +270,7 @@ function PieChartComponent<T extends ChartDataItem>({
 
   // Check for negative values
   const hasNegativeValues = useMemo(() => {
-    return data.some((d, i) => getNumericValue(d, value as string, i) < 0);
+    return data.some((d) => getNumericValue(d, value as string) < 0);
   }, [data, value]);
 
   if (loading) return <LoadingState height={height} />;
