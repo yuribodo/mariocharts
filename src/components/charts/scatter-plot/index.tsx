@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { memo, useMemo, useState, useRef, useLayoutEffect, useCallback } from "react";
+import { memo, useMemo, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
+import { useIsomorphicLayoutEffect } from "../../../../lib/hooks";
 
 // Internal modules
 import type {
@@ -41,7 +42,7 @@ function useContainerDimensions() {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const element = ref.current;
     if (!element) return;
 
