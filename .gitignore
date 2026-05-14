@@ -60,6 +60,9 @@ packages/*/node_modules/
 *.swo
 *~
 
+# git worktrees
+.worktrees/
+
 # claude
 CLAUDE.md
 .claude
