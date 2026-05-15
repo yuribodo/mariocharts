@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { memo, useMemo, useState, useRef, useLayoutEffect } from "react";
+import { memo, useMemo, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
+import { useIsomorphicLayoutEffect } from "../../../../lib/hooks";
 
 // Types
 type ChartDataItem = Record<string, unknown>;
@@ -107,7 +108,7 @@ function useContainerDimensions() {
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const element = ref.current;
     if (!element) return;
 
