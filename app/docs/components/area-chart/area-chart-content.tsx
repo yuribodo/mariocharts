@@ -513,108 +513,126 @@ export function StackedRevenueChart() {
         />
 
         {/* Curve Types */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {(["linear", "monotone", "natural", "step"] as const).map((curveType) => (
-            <div key={curveType} className="rounded-xl border bg-card p-6 shadow-sm">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold mb-1 capitalize">{curveType} Curve</h3>
-                <p className="text-sm text-muted-foreground">
-                  <code className="text-xs bg-muted px-1.5 py-0.5 rounded">curve=&quot;{curveType}&quot;</code>
+        <div className="rounded-xl border bg-card p-6 shadow-sm">
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-1">Curve Types</h3>
+            <p className="text-sm text-muted-foreground">
+              Four interpolation modes for different data characteristics
+            </p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {(["linear", "monotone", "natural", "step"] as const).map((curveType) => (
+              <div key={curveType}>
+                <p className="text-sm font-medium mb-1 capitalize">{curveType}</p>
+                <p className="text-xs text-muted-foreground mb-2">
+                  <code className="bg-muted px-1.5 py-0.5 rounded">curve=&quot;{curveType}&quot;</code>
                 </p>
+                <div className="h-48">
+                  <AreaChart
+                    data={temperatureData}
+                    x="hour"
+                    y="temperature"
+                    curve={curveType}
+                    animation={false}
+                    showGrid
+                  />
+                </div>
               </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Fill Styles */}
+        <div className="rounded-xl border bg-card p-6 shadow-sm">
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-1">Fill Styles</h3>
+            <p className="text-sm text-muted-foreground">
+              Gradient fill fades to transparent, solid fill uses a flat color with adjustable opacity
+            </p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <p className="text-sm font-medium mb-1">Gradient</p>
+              <p className="text-xs text-muted-foreground mb-2">
+                <code className="bg-muted px-1.5 py-0.5 rounded">gradient=true</code> (default)
+              </p>
               <div className="h-48">
                 <AreaChart
-                  data={temperatureData}
-                  x="hour"
-                  y="temperature"
-                  curve={curveType}
-                  animation={false}
-                  showGrid
+                  key={`gradient-${chartKey}`}
+                  data={weeklyTraffic}
+                  x="day"
+                  y="visitors"
+                  gradient={true}
+                  animation={showAnimation}
                 />
               </div>
             </div>
-          ))}
-        </div>
 
-        {/* Solid Fill vs Gradient */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-1">Gradient Fill</h3>
-              <p className="text-sm text-muted-foreground">
-                Default gradient from solid to transparent
+            <div>
+              <p className="text-sm font-medium mb-1">Solid</p>
+              <p className="text-xs text-muted-foreground mb-2">
+                <code className="bg-muted px-1.5 py-0.5 rounded">gradient=false areaOpacity=0.4</code>
               </p>
-            </div>
-            <div className="h-48">
-              <AreaChart
-                key={`gradient-${chartKey}`}
-                data={weeklyTraffic}
-                x="day"
-                y="visitors"
-                gradient={true}
-                animation={showAnimation}
-              />
-            </div>
-          </div>
-
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-1">Solid Fill</h3>
-              <p className="text-sm text-muted-foreground">
-                Flat color fill with adjustable opacity
-              </p>
-            </div>
-            <div className="h-48">
-              <AreaChart
-                key={`solid-${chartKey}`}
-                data={weeklyTraffic}
-                x="day"
-                y="visitors"
-                gradient={false}
-                areaOpacity={0.4}
-                animation={showAnimation}
-              />
+              <div className="h-48">
+                <AreaChart
+                  key={`solid-${chartKey}`}
+                  data={weeklyTraffic}
+                  x="day"
+                  y="visitors"
+                  gradient={false}
+                  areaOpacity={0.4}
+                  animation={showAnimation}
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* States Demo */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-3">Loading State</h3>
-            <div className="h-64">
-              <AreaChart
-                key={`loading-${chartKey}`}
-                data={weeklyTraffic}
-                x="day"
-                y="visitors"
-                loading={true}
-              />
-            </div>
+        {/* Chart States */}
+        <div className="rounded-xl border bg-card p-6 shadow-sm">
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-1">Chart States</h3>
+            <p className="text-sm text-muted-foreground">
+              Built-in loading, error, and empty states
+            </p>
           </div>
-
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-3">Error State</h3>
-            <div className="h-64">
-              <AreaChart
-                key={`error-${chartKey}`}
-                data={weeklyTraffic}
-                x="day"
-                y="visitors"
-                error="Network connection failed"
-              />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div>
+              <p className="text-sm font-medium mb-3">Loading</p>
+              <div className="h-64">
+                <AreaChart
+                  key={`loading-${chartKey}`}
+                  data={weeklyTraffic}
+                  x="day"
+                  y="visitors"
+                  loading={true}
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-3">Empty State</h3>
-            <div className="h-64">
-              <AreaChart
-                key={`empty-${chartKey}`}
-                data={[]}
-                x="day"
-                y="visitors"
-              />
+            <div>
+              <p className="text-sm font-medium mb-3">Error</p>
+              <div className="h-64">
+                <AreaChart
+                  key={`error-${chartKey}`}
+                  data={weeklyTraffic}
+                  x="day"
+                  y="visitors"
+                  error="Network connection failed"
+                />
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm font-medium mb-3">Empty</p>
+              <div className="h-64">
+                <AreaChart
+                  key={`empty-${chartKey}`}
+                  data={[]}
+                  x="day"
+                  y="visitors"
+                />
+              </div>
             </div>
           </div>
         </div>
