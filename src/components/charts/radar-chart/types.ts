@@ -1,5 +1,7 @@
 // Base data item constraint
-export type ChartDataItem = Record<string, unknown>;
+import type { ChartDataItem } from "../_shared";
+import type { TooltipRenderer, RadarChartTooltipData } from "../_shared/tooltip-types";
+export type { ChartDataItem };
 
 /**
  * Axis configuration for each dimension of the radar chart
@@ -78,6 +80,8 @@ export interface RadarChartProps<T extends ChartDataItem> {
   readonly onSeriesClick?: (series: RadarSeries<T>, index: number) => void;
   /** Callback when an axis is clicked */
   readonly onAxisClick?: (axis: RadarAxis, index: number) => void;
+
+  readonly tooltipRenderer?: TooltipRenderer<RadarChartTooltipData<T>>;
 }
 
 /**

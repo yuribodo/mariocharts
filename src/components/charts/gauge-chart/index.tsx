@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { memo, useMemo, useRef, useState } from "react";
+import { memo, useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { useIsomorphicLayoutEffect } from "../../../../lib/hooks";
+import { useContainerDimensions, ChartTooltip } from "../_shared";
+import type { GaugeChartTooltipData, TooltipRenderer } from "../_shared";
 import { cn } from "../../../../lib/utils";
 import {
   clampValue,
@@ -57,35 +58,13 @@ interface GaugeChartProps {
   readonly animation?: boolean;
   /** Additional CSS classes to apply to the container. */
   readonly className?: string;
+  readonly tooltipRenderer?: TooltipRenderer<GaugeChartTooltipData>;
 }
 
 const DEFAULT_HEIGHT = 300;
 const DEFAULT_STROKE_WIDTH = 20;
 const PADDING = 24;
 
-function useContainerDimensions() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-
-  useIsomorphicLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    let rafId = 0;
-    const update = () => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => setWidth(el.getBoundingClientRect().width));
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => {
-      cancelAnimationFrame(rafId);
-      ro.disconnect();
-    };
-  }, []);
-
-  return [ref, width] as const;
-}
 
 function LoadingState({ height }: { height: number }) {
   const size = Math.min(height - PADDING * 2, 200);
@@ -138,8 +117,10 @@ function GaugeChartComponent({
   error = null,
   animation = true,
   className,
+  tooltipRenderer,
 }: GaugeChartProps) {
   const [containerRef, containerWidth] = useContainerDimensions();
+  const [hovered, setHovered] = React.useState(false);
   const reduceMotion = useReducedMotion();
   const shouldAnimate = animation && !reduceMotion;
 
@@ -216,6 +197,8 @@ function GaugeChartComponent({
         className="overflow-visible"
         role="img"
         aria-label={`Gauge showing ${clampedValue}${unit ?? ""} of ${max}${unit ?? ""}`}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
         {/* Background arc */}
         <path
@@ -335,6 +318,39 @@ function GaugeChartComponent({
           </text>
         )}
       </svg>
+
+      {(() => {
+        const percentage = max > min ? ((clampedValue - min) / (max - min)) * 100 : 0;
+        const zoneData = activeZone ? (() => {
+          const matchedZone = zones.find(z => z.color === activeZone.color);
+          return {
+            from: matchedZone?.from ?? min,
+            to: matchedZone?.to ?? max,
+            color: activeZone.color,
+            ...(activeZone.label != null ? { label: activeZone.label } : {}),
+          };
+        })() : undefined;
+        const tipData: GaugeChartTooltipData | null = hovered ? {
+          value: clampedValue,
+          min,
+          max,
+          percentage,
+          ...(unit != null ? { unit } : {}),
+          ...(label != null ? { label } : {}),
+          ...(zoneData != null ? { zone: zoneData } : {}),
+        } : null;
+
+        return (
+          <ChartTooltip
+            visible={tipData !== null && tooltipRenderer !== undefined}
+            x={cx}
+            y={Math.max(8, cy - size / 2 - 60)}
+            className="transform -translate-x-1/2"
+          >
+            {tipData && tooltipRenderer?.(tipData)}
+          </ChartTooltip>
+        );
+      })()}
     </div>
   );
 }

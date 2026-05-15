@@ -2,12 +2,10 @@
 
 import * as React from "react";
 import { memo, useMemo, useCallback } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { useIsomorphicLayoutEffect } from "../../../../lib/hooks";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
-
-// Types
-type ChartDataItem = Record<string, unknown>;
+import { formatValue, getNumericValue, useContainerDimensions, ChartTooltip } from "../_shared";
+import type { ChartDataItem, FunnelChartTooltipData, TooltipRenderer } from "../_shared";
 
 interface FunnelChartProps<T extends ChartDataItem> {
   readonly data: readonly T[];
@@ -24,6 +22,7 @@ interface FunnelChartProps<T extends ChartDataItem> {
   readonly error?: string | null;
   readonly animation?: boolean;
   readonly onClick?: (item: T, index: number) => void;
+  readonly tooltipRenderer?: TooltipRenderer<FunnelChartTooltipData<T>>;
 }
 
 interface ProcessedVerticalStage<T> {
@@ -78,54 +77,12 @@ const H_ROW_GAP = 8;      // horizontal: gap between bars
 const H_CONV_H = 16;      // horizontal: conversion rate row height
 
 // Utilities
-function getNumericValue(data: ChartDataItem, key: keyof ChartDataItem): number {
-  const val = data[key];
-  if (typeof val === "number" && isFinite(val)) return val;
-  if (typeof val === "string") {
-    const parsed = parseFloat(val.replace(/[,$%\s]/g, ""));
-    if (isFinite(parsed)) return parsed;
-  }
-  return 0;
-}
-
-function formatValue(value: number): string {
-  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
-  return value.toLocaleString();
-}
-
 function buildPolygon(cx: number, topW: number, bottomW: number, y: number, h: number): string {
   const tl = cx - topW / 2;
   const tr = cx + topW / 2;
   const bl = cx - bottomW / 2;
   const br = cx + bottomW / 2;
   return `${tl},${y} ${tr},${y} ${br},${y + h} ${bl},${y + h}`;
-}
-
-import { useRef } from "react";
-
-function useContainerDimensions() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = React.useState(0);
-
-  useIsomorphicLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    let rafId = 0;
-    const update = () => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => setWidth(el.getBoundingClientRect().width));
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => {
-      cancelAnimationFrame(rafId);
-      ro.disconnect();
-    };
-  }, []);
-
-  return [ref, width] as const;
 }
 
 // States
@@ -490,6 +447,7 @@ function FunnelChartComponent<T extends ChartDataItem>({
   error = null,
   animation = true,
   onClick,
+  tooltipRenderer,
 }: FunnelChartProps<T>) {
   const [containerRef, containerWidth] = useContainerDimensions();
   const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
@@ -664,35 +622,45 @@ function FunnelChartComponent<T extends ChartDataItem>({
         />
       )}
 
-      <AnimatePresence>
-        {hoveredStage && (
-          <motion.div
-            key="funnel-tooltip"
-            initial={{ opacity: 0, scale: 0.9, x: "-50%" }}
-            animate={{ opacity: 1, scale: 1, x: "-50%" }}
-            exit={{ opacity: 0, scale: 0.9, x: "-50%" }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute pointer-events-none z-50 bg-popover/98 backdrop-blur-md border border-border rounded-lg px-3 py-2.5 shadow-xl"
-            style={{ left: tooltipLeft, top: tooltipTop }}
+      {(() => {
+        const tipData: FunnelChartTooltipData<T> | null = hoveredStage ? {
+          label: hoveredStage.labelText,
+          value: hoveredStage.rawValue,
+          rawValue: hoveredStage.rawValue,
+          percentage: hoveredStage.pctOfTotal,
+          conversionRate: hoveredStage.pctFromPrev ?? 100,
+          color: hoveredStage.color,
+        } : null;
+
+        return (
+          <ChartTooltip
+            visible={tipData !== null}
+            x={tooltipLeft}
+            y={tooltipTop}
+            className="transform -translate-x-1/2"
           >
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: hoveredStage.color }} />
-              <span className="text-xs font-medium text-foreground whitespace-nowrap">{hoveredStage.labelText}</span>
-            </div>
-            <div className="text-sm font-bold text-primary tabular-nums text-center">
-              {hoveredStage.formattedValue}
-            </div>
-            <div className="text-xs text-muted-foreground text-center">
-              {hoveredStage.pctOfTotal.toFixed(1)}% of total
-            </div>
-            {hoveredStage.pctFromPrev !== null && (
-              <div className="text-xs text-muted-foreground text-center">
-                {hoveredStage.pctFromPrev.toFixed(1)}% from prev
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            {tipData && (tooltipRenderer ? tooltipRenderer(tipData) : (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: tipData.color }} />
+                  <span className="text-xs font-medium text-foreground whitespace-nowrap">{tipData.label}</span>
+                </div>
+                <div className="text-sm font-bold text-primary tabular-nums text-center">
+                  {hoveredStage!.formattedValue}
+                </div>
+                <div className="text-xs text-muted-foreground text-center">
+                  {tipData.percentage.toFixed(1)}% of total
+                </div>
+                {hoveredStage!.pctFromPrev !== null && (
+                  <div className="text-xs text-muted-foreground text-center">
+                    {hoveredStage!.pctFromPrev!.toFixed(1)}% from prev
+                  </div>
+                )}
+              </>
+            ))}
+          </ChartTooltip>
+        );
+      })()}
     </div>
   );
 }

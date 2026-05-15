@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { memo, useMemo, useState, useRef, useCallback } from "react";
-import { useIsomorphicLayoutEffect } from "../../../../lib/hooks";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { memo, useMemo, useState, useCallback } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { formatValue, useContainerDimensions, ChartTooltip } from "../_shared";
+import type { TreemapChartTooltipData, TooltipRenderer } from "../_shared";
 import { cn } from "../../../../lib/utils";
 import { computeTreeMapLayout, nodeValue } from "./layout";
 import type { TreeMapNode, LayoutRect } from "./layout";
@@ -21,6 +22,7 @@ export interface TreeMapChartProps {
   readonly error?: string | null;
   readonly animation?: boolean;
   readonly onClick?: (node: TreeMapNode, path: readonly string[]) => void;
+  readonly tooltipRenderer?: TooltipRenderer<TreemapChartTooltipData>;
 }
 
 // Constants
@@ -35,45 +37,12 @@ const MIN_LABEL_WIDTH = 40;
 const MIN_LABEL_HEIGHT = 28;
 const MIN_VALUE_HEIGHT = 44;
 
-// Utilities
-function formatValue(value: unknown): string {
-  if (typeof value === 'number') {
-    if (Math.abs(value) >= 1000000) {
-      return `${(value / 1000000).toFixed(1)}M`;
-    } else if (Math.abs(value) >= 1000) {
-      return `${(value / 1000).toFixed(1)}K`;
-    }
-    return value.toLocaleString();
-  }
-  return String(value);
-}
 
 function colorWithOpacity(hex: string, opacity: number): string {
   const alpha = Math.round(opacity * 255).toString(16).padStart(2, '0');
   return hex + alpha;
 }
 
-function useContainerDimensions() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-
-  useIsomorphicLayoutEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-
-    const updateWidth = () => {
-      setWidth(element.getBoundingClientRect().width);
-    };
-
-    updateWidth();
-    const resizeObserver = new ResizeObserver(updateWidth);
-    resizeObserver.observe(element);
-
-    return () => resizeObserver.disconnect();
-  }, []);
-
-  return [ref, width] as const;
-}
 
 // Loading State
 function LoadingState({ height = DEFAULT_HEIGHT }: { height?: number }) {
@@ -144,6 +113,7 @@ function TreeMapChartComponent({
   error = null,
   animation = true,
   onClick,
+  tooltipRenderer,
 }: TreeMapChartProps) {
   const [containerRef, containerWidth] = useContainerDimensions();
   const [hoveredRect, setHoveredRect] = useState<LayoutRect | null>(null);
@@ -295,43 +265,56 @@ function TreeMapChartComponent({
       </svg>
 
       {/* Tooltip */}
-      <AnimatePresence>
-        {hoveredRect && (
-          <motion.div
-            key="treemap-tooltip"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute pointer-events-none z-50 bg-popover/98 backdrop-blur-md border border-border rounded-lg px-3 py-2.5 shadow-xl"
-            style={{
-              left: Math.min(mousePos.x + 12, containerWidth - 160),
-              top: Math.max(10, mousePos.y - 60),
-            }}
+      {(() => {
+        const tipColor = hoveredRect
+          ? colors[hoveredRect.colorIndex % colors.length] || DEFAULT_COLORS[0]
+          : DEFAULT_COLORS[0];
+        const tipData: TreemapChartTooltipData | null = hoveredRect
+          ? {
+              name: hoveredRect.node.name,
+              value: nodeValue(hoveredRect.node),
+              formattedValue: formatValue(nodeValue(hoveredRect.node)),
+              percentage: hoveredRect.percentage,
+              path: hoveredRect.path,
+              color: tipColor,
+            }
+          : null;
+
+        return (
+          <ChartTooltip
+            visible={hoveredRect != null}
+            x={Math.min(mousePos.x + 12, containerWidth - 160)}
+            y={Math.max(10, mousePos.y - 60)}
           >
-            <div className="flex items-center gap-2 mb-1">
-              <div
-                className="w-2.5 h-2.5 rounded-full"
-                style={{ backgroundColor: colors[hoveredRect.colorIndex % colors.length] || DEFAULT_COLORS[0] }}
-              />
-              <span className="text-xs font-medium text-foreground whitespace-nowrap">
-                {hoveredRect.node.name}
-              </span>
-            </div>
-            <div className="text-sm font-bold text-primary tabular-nums">
-              {formatValue(nodeValue(hoveredRect.node))}
-            </div>
-            <div className="text-xs text-muted-foreground tabular-nums">
-              {hoveredRect.percentage.toFixed(1)}% of total
-            </div>
-            {hoveredRect.path.length > 1 && (
-              <div className="text-xs text-muted-foreground mt-1 pt-1 border-t border-border/50">
-                {hoveredRect.path.join(' \u203A ')}
-              </div>
+            {tipData && (
+              tooltipRenderer ? tooltipRenderer(tipData) : (
+                <>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: tipData.color }}
+                    />
+                    <span className="text-xs font-medium text-foreground whitespace-nowrap">
+                      {tipData.name}
+                    </span>
+                  </div>
+                  <div className="text-sm font-bold text-primary tabular-nums">
+                    {tipData.formattedValue}
+                  </div>
+                  <div className="text-xs text-muted-foreground tabular-nums">
+                    {tipData.percentage.toFixed(1)}% of total
+                  </div>
+                  {tipData.path.length > 1 && (
+                    <div className="text-xs text-muted-foreground mt-1 pt-1 border-t border-border/50">
+                      {tipData.path.join(' \u203A ')}
+                    </div>
+                  )}
+                </>
+              )
             )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </ChartTooltip>
+        );
+      })()}
     </div>
   );
 }

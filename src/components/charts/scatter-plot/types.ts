@@ -1,6 +1,7 @@
 // Shared types for ScatterPlot component
 
-export type ChartDataItem = Record<string, unknown>;
+import type { ChartDataItem, ScatterPlotTooltipData, TooltipRenderer } from "../_shared";
+export type { ChartDataItem };
 
 export interface ScatterPlotProps<T extends ChartDataItem> {
   // Required
@@ -32,6 +33,9 @@ export interface ScatterPlotProps<T extends ChartDataItem> {
 
   // Event handlers
   readonly onPointClick?: (data: T, index: number, series?: string) => void;
+
+  // Custom tooltip
+  readonly tooltipRenderer?: TooltipRenderer<ScatterPlotTooltipData<T>>;
 }
 
 export interface ProcessedPoint<T extends ChartDataItem> {

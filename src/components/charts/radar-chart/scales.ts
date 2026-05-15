@@ -3,60 +3,11 @@
  * Handles value extraction, bounds calculation, and formatting
  */
 
-import type { ChartDataItem, RadarAxis, RadarSeries } from './types';
+import type { ChartDataItem } from '../_shared';
+import type { RadarAxis, RadarSeries } from './types';
 
-/**
- * Safely extract a numeric value from a data object
- * Handles numbers, numeric strings, and invalid values
- *
- * @param data - Data object to extract from
- * @param key - Key to look up in the data object
- * @returns Numeric value or 0 if invalid
- */
-export function getNumericValue(
-  data: ChartDataItem,
-  key: string
-): number {
-  const value = data[key];
-
-  // Direct number
-  if (typeof value === 'number') {
-    if (!isFinite(value)) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(
-          `[RadarChart] Invalid numeric value for key "${key}": ${value}. Using 0.`
-        );
-      }
-      return 0;
-    }
-    return value;
-  }
-
-  // String that might be numeric
-  if (typeof value === 'string') {
-    // Remove common formatting characters
-    const cleaned = value.replace(/[,$%\s]/g, '');
-    const parsed = parseFloat(cleaned);
-
-    if (!isFinite(parsed)) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(
-          `[RadarChart] Could not parse value for key "${key}": "${value}". Using 0.`
-        );
-      }
-      return 0;
-    }
-    return parsed;
-  }
-
-  // Unsupported type
-  if (process.env.NODE_ENV === 'development') {
-    console.warn(
-      `[RadarChart] Unexpected value type for key "${key}": ${typeof value}. Using 0.`
-    );
-  }
-  return 0;
-}
+export { getNumericValue, formatValue } from '../_shared';
+import { getNumericValue } from '../_shared';
 
 /**
  * Calculate the min and max bounds for an axis across all series
@@ -149,39 +100,6 @@ export function normalizeValue(
   const normalized = (value - min) / (max - min);
   // Clamp to 0-1 range
   return Math.max(0, Math.min(1, normalized));
-}
-
-/**
- * Format a numeric value for display with K/M notation
- *
- * @param value - Value to format
- * @returns Formatted string
- */
-export function formatValue(value: unknown): string {
-  if (typeof value === 'number') {
-    if (!isFinite(value)) return '—';
-
-    // Large numbers with K/M suffix
-    if (Math.abs(value) >= 1000000) {
-      return `${(value / 1000000).toFixed(1)}M`;
-    }
-    if (Math.abs(value) >= 1000) {
-      return `${(value / 1000).toFixed(1)}K`;
-    }
-
-    // For typical radar stats (0-100), show integers
-    if (Number.isInteger(value)) {
-      return value.toLocaleString();
-    }
-
-    // Decimal values
-    if (Math.abs(value) < 10) {
-      return value.toFixed(2);
-    }
-    return value.toFixed(1);
-  }
-
-  return String(value ?? '—');
 }
 
 /**

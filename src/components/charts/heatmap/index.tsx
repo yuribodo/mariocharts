@@ -2,12 +2,10 @@
 
 import * as React from "react";
 import { memo, useMemo, useState, useRef, useCallback, useId } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { useIsomorphicLayoutEffect } from "../../../../lib/hooks";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
-
-// Types
-type ChartDataItem = Record<string, unknown>;
+import { formatValue, getNumericValue, useContainerDimensions, ChartTooltip } from "../_shared";
+import type { ChartDataItem, HeatmapChartTooltipData, TooltipRenderer } from "../_shared";
 type ColorScheme = "blue" | "green" | "amber" | "purple" | "diverging";
 type HeatmapVariant = "grid" | "radial" | "stock";
 
@@ -30,6 +28,7 @@ interface HeatmapChartProps<T extends ChartDataItem> {
   readonly error?: string | null;
   readonly animation?: boolean;
   readonly onClick?: (item: T, colLabel: string, rowLabel: string) => void;
+  readonly tooltipRenderer?: TooltipRenderer<HeatmapChartTooltipData<T>>;
 }
 
 interface ProcessedCell<T> {
@@ -127,24 +126,6 @@ function getStockColor(value: number, maxAbs: number, colorFrom: string | undefi
   return lerpHex(neutral, green, t);
 }
 
-// ── Utilities ─────────────────────────────────────────────────────────────────
-
-function getNumericValue(data: ChartDataItem, key: keyof ChartDataItem): number {
-  const val = data[key];
-  if (typeof val === "number" && isFinite(val)) return val;
-  if (typeof val === "string") {
-    const parsed = parseFloat(val.replace(/[,$%\s]/g, ""));
-    if (isFinite(parsed)) return parsed;
-  }
-  return 0;
-}
-
-function formatValue(value: number): string {
-  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
-  return value.toLocaleString();
-}
-
 // ── Treemap layout (squarified strip) ────────────────────────────────────────
 
 interface TreeRect { x: number; y: number; w: number; h: number; }
@@ -210,32 +191,6 @@ function stripLayout(weights: number[], W: number, H: number): TreeRect[] {
   }
 
   return rects;
-}
-
-// ── ResizeObserver hook ───────────────────────────────────────────────────────
-
-function useContainerDimensions() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-
-  useIsomorphicLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    let rafId = 0;
-    const update = () => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => setWidth(el.getBoundingClientRect().width));
-    };
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => {
-      cancelAnimationFrame(rafId);
-      ro.disconnect();
-    };
-  }, []);
-
-  return [ref, width] as const;
 }
 
 // ── States ────────────────────────────────────────────────────────────────────
@@ -847,6 +802,7 @@ function HeatmapChartComponent<T extends ChartDataItem>({
   error = null,
   animation = true,
   onClick,
+  tooltipRenderer,
 }: HeatmapChartProps<T>) {
   const [containerRef, containerWidth] = useContainerDimensions();
   const [hoveredCell, setHoveredCell] = useState<{ col: number; row: number } | null>(null);
@@ -1064,53 +1020,73 @@ function HeatmapChartComponent<T extends ChartDataItem>({
       )}
 
       {/* Tooltip for grid / radial */}
-      <AnimatePresence>
-        {hoveredCellData && tooltipPos && variant !== "stock" && (
-          <motion.div
-            key="heatmap-tooltip"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.12, ease: "easeOut" }}
-            className="absolute pointer-events-none z-50 bg-popover/98 backdrop-blur-md border border-border rounded-lg px-3 py-2.5 shadow-xl"
-            style={{ left: tooltipPos.x + 12, top: Math.max(8, tooltipPos.y - 40) }}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: hoveredCellData.fillColor }} />
-              <span className="text-xs font-medium text-foreground whitespace-nowrap">
-                {hoveredCellData.rowLabel} / {hoveredCellData.colLabel}
-              </span>
-            </div>
-            <div className="text-sm font-bold text-primary tabular-nums text-center">
-              {formatValue(hoveredCellData.rawValue)}
-            </div>
-          </motion.div>
-        )}
+      {(() => {
+        const cellTip: HeatmapChartTooltipData<T> | null = hoveredCellData && tooltipPos && variant !== "stock" ? {
+          xLabel: hoveredCellData.colLabel,
+          yLabel: hoveredCellData.rowLabel,
+          value: hoveredCellData.rawValue,
+          formattedValue: formatValue(hoveredCellData.rawValue),
+          normalizedValue: hoveredCellData.normalizedValue,
+          color: hoveredCellData.fillColor,
+        } : null;
 
-        {/* Tooltip for stock */}
-        {hoveredStockData && tooltipPos && variant === "stock" && (
-          <motion.div
-            key="stock-tooltip"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.12, ease: "easeOut" }}
-            className="absolute pointer-events-none z-50 bg-popover/98 backdrop-blur-md border border-border rounded-lg px-3 py-2.5 shadow-xl"
-            style={{ left: tooltipPos.x + 12, top: Math.max(8, tooltipPos.y - 60) }}
+        return (
+          <ChartTooltip
+            visible={cellTip !== null}
+            x={tooltipPos ? tooltipPos.x + 12 : 0}
+            y={tooltipPos ? Math.max(8, tooltipPos.y - 40) : 0}
           >
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: hoveredStockData.fillColor }} />
-              <span className="text-xs font-medium text-foreground whitespace-nowrap">{hoveredStockData.labelText}</span>
-            </div>
-            <div className={cn("text-sm font-bold tabular-nums text-center", hoveredStockData.rawValue >= 0 ? "text-green-600" : "text-red-500")}>
-              {hoveredStockData.rawValue > 0 ? "+" : ""}{hoveredStockData.rawValue.toFixed(2)}%
-            </div>
-            {hoveredStockData.weightValue > 0 && (
-              <div className="text-xs text-muted-foreground text-center">{formatValue(hoveredStockData.weightValue)}</div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            {cellTip && (tooltipRenderer ? tooltipRenderer(cellTip) : (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: cellTip.color }} />
+                  <span className="text-xs font-medium text-foreground whitespace-nowrap">
+                    {cellTip.yLabel} / {cellTip.xLabel}
+                  </span>
+                </div>
+                <div className="text-sm font-bold text-primary tabular-nums text-center">
+                  {cellTip.formattedValue}
+                </div>
+              </>
+            ))}
+          </ChartTooltip>
+        );
+      })()}
+
+      {/* Tooltip for stock */}
+      {(() => {
+        const stockTip: HeatmapChartTooltipData<T> | null = hoveredStockData && tooltipPos && variant === "stock" ? {
+          xLabel: hoveredStockData.labelText,
+          yLabel: "",
+          value: hoveredStockData.rawValue,
+          formattedValue: `${hoveredStockData.rawValue > 0 ? "+" : ""}${hoveredStockData.rawValue.toFixed(2)}%`,
+          normalizedValue: 0,
+          color: hoveredStockData.fillColor,
+        } : null;
+
+        return (
+          <ChartTooltip
+            visible={stockTip !== null}
+            x={tooltipPos ? tooltipPos.x + 12 : 0}
+            y={tooltipPos ? Math.max(8, tooltipPos.y - 60) : 0}
+          >
+            {stockTip && (tooltipRenderer ? tooltipRenderer(stockTip) : (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: stockTip.color }} />
+                  <span className="text-xs font-medium text-foreground whitespace-nowrap">{stockTip.xLabel}</span>
+                </div>
+                <div className={cn("text-sm font-bold tabular-nums text-center", hoveredStockData!.rawValue >= 0 ? "text-green-600" : "text-red-500")}>
+                  {stockTip.formattedValue}
+                </div>
+                {hoveredStockData!.weightValue > 0 && (
+                  <div className="text-xs text-muted-foreground text-center">{formatValue(hoveredStockData!.weightValue)}</div>
+                )}
+              </>
+            ))}
+          </ChartTooltip>
+        );
+      })()}
     </div>
   );
 }
