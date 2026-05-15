@@ -1,27 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-
-jest.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-    path: (props: any) => <path {...props} />,
-    circle: (props: any) => <circle {...props} />,
-    rect: (props: any) => <rect {...props} />,
-    g: ({ children, ...props }: any) => <g {...props}>{children}</g>,
-    svg: ({ children, ...props }: any) => <svg {...props}>{children}</svg>,
-    line: (props: any) => <line {...props} />,
-    text: ({ children, ...props }: any) => <text {...props}>{children}</text>,
-  },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
-  useReducedMotion: () => false,
-}));
-
-global.ResizeObserver = class {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-} as any;
-
 import { AreaChart } from './index';
 
 const sampleData = [
