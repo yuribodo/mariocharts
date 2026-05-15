@@ -1,23 +1,5 @@
 import React from 'react';
 import { render, screen, act } from '@testing-library/react';
-
-jest.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: any) => React.createElement('div', props, children),
-    path: (props: any) => React.createElement('path', props),
-    rect: (props: any) => React.createElement('rect', props),
-    circle: (props: any) => React.createElement('circle', props),
-    g: ({ children, ...props }: any) => React.createElement('g', props, children),
-    svg: ({ children, ...props }: any) => React.createElement('svg', props, children),
-    polygon: (props: any) => React.createElement('polygon', props),
-    line: (props: any) => React.createElement('line', props),
-    text: ({ children, ...props }: any) => React.createElement('text', props, children),
-    button: ({ children, ...props }: any) => React.createElement('button', props, children),
-  },
-  AnimatePresence: ({ children }: any) => React.createElement(React.Fragment, null, children),
-  useReducedMotion: () => false,
-}));
-
 import { GaugeChart } from './index';
 
 const zones = [

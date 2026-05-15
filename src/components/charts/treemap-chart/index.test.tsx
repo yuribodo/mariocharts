@@ -1,27 +1,5 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-
-jest.mock('framer-motion', () => {
-  const React = require('react');
-  const ce = React.createElement;
-  return {
-    motion: {
-      div: ({ children, ...props }: any) => ce('div', props, children),
-      path: (props: any) => ce('path', props),
-      rect: (props: any) => ce('rect', props),
-      circle: (props: any) => ce('circle', props),
-      g: ({ children, ...props }: any) => ce('g', props, children),
-      svg: ({ children, ...props }: any) => ce('svg', props, children),
-      polygon: (props: any) => ce('polygon', props),
-      line: (props: any) => ce('line', props),
-      text: ({ children, ...props }: any) => ce('text', props, children),
-      button: ({ children, ...props }: any) => ce('button', props, children),
-    },
-    AnimatePresence: ({ children }: any) => ce(React.Fragment, null, children),
-    useReducedMotion: () => false,
-  };
-});
-
 import { TreeMapChart } from './index';
 
 const sampleData = [
