@@ -38,6 +38,7 @@ const sidebarNavItems: SidebarNavItem[] = [
     children: [
       { title: "Bar Chart", href: "/docs/components/bar-chart" },
       { title: "Line Chart", href: "/docs/components/line-chart" },
+      { title: "Area Chart", href: "/docs/components/area-chart" },
       { title: "Pie Chart", href: "/docs/components/pie-chart" },
       { title: "Radar Chart", href: "/docs/components/radar-chart" },
       { title: "Scatter Plot", href: "/docs/components/scatter-plot" },
