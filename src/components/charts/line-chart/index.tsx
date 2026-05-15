@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import { memo, useMemo, useState, useCallback } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
-import { formatValue, getNumericValueOrNull, calculateNiceTicks, getGridDasharray, useContainerDimensions } from "../_shared";
-import type { ChartDataItem } from "../_shared";
+import { formatValue, getNumericValueOrNull, calculateNiceTicks, getGridDasharray, useContainerDimensions, ChartTooltip } from "../_shared";
+import type { ChartDataItem, LineChartTooltipData, TooltipRenderer } from "../_shared";
 
 interface LineChartProps<T extends ChartDataItem> {
   readonly data: readonly T[];
@@ -27,6 +27,7 @@ interface LineChartProps<T extends ChartDataItem> {
   readonly showLegend?: boolean;
   readonly connectNulls?: boolean;
   readonly onPointClick?: (data: T, index: number, series?: string) => void;
+  readonly tooltipRenderer?: TooltipRenderer<LineChartTooltipData<T>>;
 }
 
 // Constants
@@ -159,6 +160,7 @@ function LineChartComponent<T extends ChartDataItem>({
   showLegend = false,
   connectNulls = true,
   onPointClick,
+  tooltipRenderer,
 }: LineChartProps<T>) {
   const [containerRef, containerWidth] = useContainerDimensions();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -537,51 +539,62 @@ function LineChartComponent<T extends ChartDataItem>({
       </svg>
 
       {/* Tooltip */}
-      <AnimatePresence>
-        {hoveredIndex !== null && hoveredIndex >= 0 && (() => {
-          const tooltipData = processedSeries
-            .map(series => ({
-              key: series.key,
-              color: series.color,
-              point: series.points[hoveredIndex]
-            }))
-            .filter(item => item.point?.hasValue);
+      {(() => {
+        const tooltipItems = hoveredIndex !== null && hoveredIndex >= 0
+          ? processedSeries
+              .map(series => ({
+                key: series.key,
+                color: series.color,
+                point: series.points[hoveredIndex]
+              }))
+              .filter(item => item.point?.hasValue)
+          : [];
 
-          if (!tooltipData.length) return null;
+        const tipData: LineChartTooltipData<T> | null = tooltipItems.length > 0 && hoveredIndex !== null
+          ? {
+              label: tooltipItems[0]?.point?.label || '',
+              index: hoveredIndex,
+              series: tooltipItems.map(({ key, point, color }) => ({
+                key,
+                value: point!.yValue!,
+                rawValue: point!.data[Array.isArray(y) ? y[0] : y] as unknown,
+                color,
+              })),
+            }
+          : null;
 
-          return (
-            <motion.div
-              key="line-tooltip"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.15, ease: 'easeOut' }}
-              className="absolute pointer-events-none z-50 bg-popover/98 backdrop-blur-md border border-border rounded-lg px-3 py-2.5 shadow-xl transform -translate-x-1/2"
-              style={{
-                left: data.length > 1
+        return (
+          <ChartTooltip
+            visible={tipData !== null}
+            x={hoveredIndex !== null
+              ? (data.length > 1
                   ? (hoveredIndex / (data.length - 1)) * chartWidth + MARGIN.left
-                  : chartWidth / 2 + MARGIN.left,
-                top: Math.max(10, MARGIN.top - 10),
-              }}
-            >
-              <div className="text-xs font-medium text-foreground mb-1.5 pb-1.5 border-b border-border/50 text-center whitespace-nowrap">
-                {tooltipData[0]?.point?.label || ''}
-              </div>
-              {tooltipData.map(({ key, point, color }) => (
-                <div key={key} className="flex items-center justify-between gap-3 py-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                    {processedSeries.length > 1 && (
-                      <span className="text-xs text-muted-foreground">{key}</span>
-                    )}
-                  </div>
-                  <span className="text-xs font-bold text-foreground tabular-nums">{point!.value}</span>
+                  : chartWidth / 2 + MARGIN.left)
+              : 0}
+            y={Math.max(10, MARGIN.top - 10)}
+            className="transform -translate-x-1/2"
+          >
+            {tipData && (tooltipRenderer ? tooltipRenderer(tipData) : (
+              <>
+                <div className="text-xs font-medium text-foreground mb-1.5 pb-1.5 border-b border-border/50 text-center whitespace-nowrap">
+                  {tipData.label}
                 </div>
-              ))}
-            </motion.div>
-          );
-        })()}
-      </AnimatePresence>
+                {tooltipItems.map(({ key, point, color }) => (
+                  <div key={key} className="flex items-center justify-between gap-3 py-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                      {processedSeries.length > 1 && (
+                        <span className="text-xs text-muted-foreground">{key}</span>
+                      )}
+                    </div>
+                    <span className="text-xs font-bold text-foreground tabular-nums">{point!.value}</span>
+                  </div>
+                ))}
+              </>
+            ))}
+          </ChartTooltip>
+        );
+      })()}
 
       {/* Legend */}
       {hasLegend && processedSeries.length > 1 && (

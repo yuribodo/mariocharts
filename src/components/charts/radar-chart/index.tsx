@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import { memo, useMemo, useState, useRef, useCallback, useEffect } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
-import { useContainerDimensions } from "../_shared";
+import { useContainerDimensions, ChartTooltip } from "../_shared";
+import type { RadarChartTooltipData } from "../_shared";
 
 // Internal modules
 import type {
@@ -170,6 +171,7 @@ function RadarChartComponent<T extends ChartDataItem>({
   labelOffset = DEFAULT_LABEL_OFFSET,
   onSeriesClick,
   onAxisClick,
+  tooltipRenderer,
 }: RadarChartProps<T>) {
   const [containerRef, containerWidth] = useContainerDimensions();
   const [hoveredState, setHoveredState] = useState<HoveredState | null>(null);
@@ -628,77 +630,84 @@ function RadarChartComponent<T extends ChartDataItem>({
       </svg>
 
       {/* Tooltip - follows mouse with smart positioning */}
-      <AnimatePresence>
-        {hoveredSeries && mousePos && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute pointer-events-none z-50 bg-popover/98 backdrop-blur-md border border-border rounded-lg px-3 py-2.5 shadow-xl"
-            style={{
-              left: Math.min(Math.max(mousePos.x + 16, 10), containerWidth - 180),
-              top: mousePos.y < svgHeight / 2
-                ? mousePos.y + 20
-                : mousePos.y - 140,
-              minWidth: 170,
-            }}
+      {(() => {
+        const hoveredAxis = hoveredState?.pointIndex !== undefined ? processedAxes[hoveredState.pointIndex] : undefined;
+        const tipData: RadarChartTooltipData<T> | null = hoveredSeries && mousePos ? {
+          type: hoveredState?.type ?? 'series',
+          seriesName: hoveredSeries.name,
+          ...(hoveredAxis ? {
+            axisLabel: hoveredAxis.label,
+            value: getNumericValue(hoveredSeries.data, hoveredAxis.key),
+            formattedValue: formatValue(getNumericValue(hoveredSeries.data, hoveredAxis.key)),
+          } : {}),
+          color: hoveredSeries.color,
+          data: hoveredSeries.data,
+        } : null;
+
+        return (
+          <ChartTooltip
+            visible={tipData !== null}
+            x={mousePos ? Math.min(Math.max(mousePos.x + 16, 10), containerWidth - 180) : 0}
+            y={mousePos ? (mousePos.y < svgHeight / 2 ? mousePos.y + 20 : mousePos.y - 140) : 0}
+            style={{ minWidth: 170 }}
           >
-            {/* Header */}
-            <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border/50">
-              <div
-                className="w-3 h-3 rounded-full shadow-sm"
-                style={{
-                  backgroundColor: hoveredSeries.color,
-                  boxShadow: `0 0 8px ${hoveredSeries.color}`,
-                }}
-              />
-              <span className="font-semibold text-sm text-foreground">{hoveredSeries.name}</span>
-            </div>
-            {/* Stats Grid */}
-            <div className="space-y-1">
-              {processedAxes.map((axis, axisIndex) => {
-                const value = getNumericValue(hoveredSeries.data, axis.key);
-                const percentage = ((value - axis.minValue) / (axis.maxValue - axis.minValue)) * 100;
-                const isHighlightedPoint = hoveredState?.pointIndex === axisIndex;
-                return (
+            {tipData && (tooltipRenderer ? tooltipRenderer(tipData) : (
+              <>
+                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border/50">
                   <div
-                    key={axis.key}
-                    className={cn(
-                      "flex items-center justify-between gap-3 py-0.5 px-1 -mx-1 rounded",
-                      isHighlightedPoint && "bg-muted/50"
-                    )}
-                  >
-                    <span className={cn(
-                      "text-xs",
-                      isHighlightedPoint ? "text-foreground font-medium" : "text-muted-foreground"
-                    )}>
-                      {axis.label}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-12 h-1 bg-muted rounded-full overflow-hidden">
-                        <motion.div
-                          className="h-full rounded-full"
-                          style={{ backgroundColor: hoveredSeries.color }}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
-                          transition={{ duration: 0.2, ease: 'easeOut' }}
-                        />
+                    className="w-3 h-3 rounded-full shadow-sm"
+                    style={{
+                      backgroundColor: hoveredSeries!.color,
+                      boxShadow: `0 0 8px ${hoveredSeries!.color}`,
+                    }}
+                  />
+                  <span className="font-semibold text-sm text-foreground">{hoveredSeries!.name}</span>
+                </div>
+                <div className="space-y-1">
+                  {processedAxes.map((axis, axisIndex) => {
+                    const axisValue = getNumericValue(hoveredSeries!.data, axis.key);
+                    const percentage = ((axisValue - axis.minValue) / (axis.maxValue - axis.minValue)) * 100;
+                    const isHighlightedPoint = hoveredState?.pointIndex === axisIndex;
+                    return (
+                      <div
+                        key={axis.key}
+                        className={cn(
+                          "flex items-center justify-between gap-3 py-0.5 px-1 -mx-1 rounded",
+                          isHighlightedPoint && "bg-muted/50"
+                        )}
+                      >
+                        <span className={cn(
+                          "text-xs",
+                          isHighlightedPoint ? "text-foreground font-medium" : "text-muted-foreground"
+                        )}>
+                          {axis.label}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-12 h-1 bg-muted rounded-full overflow-hidden">
+                            <motion.div
+                              className="h-full rounded-full"
+                              style={{ backgroundColor: hoveredSeries!.color }}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
+                              transition={{ duration: 0.2, ease: 'easeOut' }}
+                            />
+                          </div>
+                          <span className={cn(
+                            "text-xs tabular-nums w-8 text-right",
+                            isHighlightedPoint ? "font-bold text-foreground" : "font-medium text-foreground"
+                          )}>
+                            {formatValue(axisValue)}
+                          </span>
+                        </div>
                       </div>
-                      <span className={cn(
-                        "text-xs tabular-nums w-8 text-right",
-                        isHighlightedPoint ? "font-bold text-foreground" : "font-medium text-foreground"
-                      )}>
-                        {formatValue(value)}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                    );
+                  })}
+                </div>
+              </>
+            ))}
+          </ChartTooltip>
+        );
+      })()}
 
       {/* Legend */}
       {hasLegend && (

@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import { memo, useMemo, useState, useCallback } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
-import { formatValue, getNumericValue, calculateNiceTicks, getGridDasharray, useContainerDimensions } from "../_shared";
-import type { ChartDataItem } from "../_shared";
+import { formatValue, getNumericValue, calculateNiceTicks, getGridDasharray, useContainerDimensions, ChartTooltip } from "../_shared";
+import type { ChartDataItem, BarChartTooltipData, TooltipRenderer } from "../_shared";
 
 interface BarChartProps<T extends ChartDataItem> {
   readonly data: readonly T[];
@@ -23,6 +23,7 @@ interface BarChartProps<T extends ChartDataItem> {
   readonly showGrid?: boolean;
   readonly gridStyle?: 'solid' | 'dashed' | 'dotted';
   readonly onBarClick?: (data: T, index: number) => void;
+  readonly tooltipRenderer?: TooltipRenderer<BarChartTooltipData<T>>;
 }
 
 // Constants
@@ -138,6 +139,7 @@ function BarChartComponent<T extends ChartDataItem>({
   showGrid = false,
   gridStyle = 'dashed',
   onBarClick,
+  tooltipRenderer,
 }: BarChartProps<T>) {
   const [containerRef, containerWidth] = useContainerDimensions();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -525,47 +527,51 @@ function BarChartComponent<T extends ChartDataItem>({
       </svg>
 
       {/* Tooltip */}
-      <AnimatePresence>
-        {hoveredIndex !== null && processedBars[hoveredIndex] && (() => {
-          const bar = processedBars[hoveredIndex];
+      {(() => {
+        const bar = hoveredIndex !== null ? processedBars[hoveredIndex] : null;
+        const tipData: BarChartTooltipData<T> | null = bar ? {
+          label: bar.label,
+          value: bar.rawValue ?? 0,
+          rawValue: bar.data[y] as unknown,
+          color: bar.color,
+          index: hoveredIndex!,
+          data: bar.data,
+        } : null;
 
-          const tooltipStyle = isVertical ? {
-            left: bar.x + bar.width / 2 + MARGIN.left,
-            top: Math.max(10, bar.y + MARGIN.top - 60),
-          } : {
-            left: bar.x + bar.width + MARGIN.left + 10,
-            top: bar.y + bar.height / 2 + MARGIN.top,
-          };
+        const tooltipStyle = bar ? (isVertical ? {
+          left: bar.x + bar.width / 2 + MARGIN.left,
+          top: Math.max(10, bar.y + MARGIN.top - 60),
+        } : {
+          left: bar.x + bar.width + MARGIN.left + 10,
+          top: bar.y + bar.height / 2 + MARGIN.top,
+        }) : { left: 0, top: 0 };
 
-          return (
-            <motion.div
-              key="bar-tooltip"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.15, ease: 'easeOut' }}
-              className={cn(
-                "absolute pointer-events-none z-50 bg-popover/98 backdrop-blur-md border border-border rounded-lg px-3 py-2.5 shadow-xl",
-                isVertical ? 'transform -translate-x-1/2' : 'transform -translate-y-1/2'
-              )}
-              style={tooltipStyle}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <div
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: bar.color }}
-                />
-                <span className="text-xs font-medium text-foreground whitespace-nowrap">
-                  {bar.label}
-                </span>
-              </div>
-              <div className="text-sm font-bold text-primary tabular-nums text-center">
-                {bar.value}
-              </div>
-            </motion.div>
-          );
-        })()}
-      </AnimatePresence>
+        return (
+          <ChartTooltip
+            visible={tipData !== null}
+            x={tooltipStyle.left}
+            y={tooltipStyle.top}
+            className={isVertical ? 'transform -translate-x-1/2' : 'transform -translate-y-1/2'}
+          >
+            {tipData && (tooltipRenderer ? tooltipRenderer(tipData) : (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <div
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: bar!.color }}
+                  />
+                  <span className="text-xs font-medium text-foreground whitespace-nowrap">
+                    {bar!.label}
+                  </span>
+                </div>
+                <div className="text-sm font-bold text-primary tabular-nums text-center">
+                  {bar!.value}
+                </div>
+              </>
+            ))}
+          </ChartTooltip>
+        );
+      })()}
     </div>
   );
 }

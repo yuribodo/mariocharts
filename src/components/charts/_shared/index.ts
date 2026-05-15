@@ -7,3 +7,18 @@ export {
   getGridDasharray,
 } from "./utils";
 export { useContainerDimensions } from "./hooks";
+export { ChartTooltip } from "./ChartTooltip";
+export type {
+  LineChartTooltipData,
+  BarChartTooltipData,
+  PieChartTooltipData,
+  StackedBarChartTooltipData,
+  FunnelChartTooltipData,
+  TreemapChartTooltipData,
+  RadarChartTooltipData,
+  ScatterPlotTooltipData,
+  HeatmapChartTooltipData,
+  AreaChartTooltipData,
+  GaugeChartTooltipData,
+  TooltipRenderer,
+} from "./tooltip-types";

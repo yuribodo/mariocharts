@@ -4,7 +4,8 @@ import * as React from "react";
 import { memo, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
-import { formatValue, getNumericValue, useContainerDimensions, type ChartDataItem } from "../_shared";
+import { ChartTooltip, formatValue, getNumericValue, useContainerDimensions, type ChartDataItem } from "../_shared";
+import type { StackedBarChartTooltipData, TooltipRenderer } from "../_shared";
 
 interface StackedBarChartProps<T extends ChartDataItem> {
   readonly data: readonly T[];
@@ -20,6 +21,7 @@ interface StackedBarChartProps<T extends ChartDataItem> {
   readonly orientation?: 'vertical' | 'horizontal';
   readonly showLegend?: boolean;
   readonly onSegmentClick?: (data: T, stackKey: string, index: number) => void;
+  readonly tooltipRenderer?: TooltipRenderer<StackedBarChartTooltipData<T>>;
 }
 
 interface StackSegment {
@@ -149,6 +151,7 @@ function StackedBarChartComponent<T extends ChartDataItem>({
   orientation = 'vertical',
   showLegend = false,
   onSegmentClick,
+  tooltipRenderer,
 }: StackedBarChartProps<T>) {
   const [containerRef, containerWidth] = useContainerDimensions();
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
@@ -543,43 +546,54 @@ function StackedBarChartComponent<T extends ChartDataItem>({
 
         if (!firstSegment) return null;
 
-        const tooltipStyle = isVertical ? {
-          left: firstSegment.x + firstSegment.width / 2 + MARGIN.left,
-          top: Math.max(10, MARGIN.top - 10),
-        } : {
-          left: chartWidth + MARGIN.left + 10,
-          top: firstSegment.y + firstSegment.height / 2 + MARGIN.top,
+        const tipX = isVertical
+          ? firstSegment.x + firstSegment.width / 2 + MARGIN.left
+          : chartWidth + MARGIN.left + 10;
+        const tipY = isVertical
+          ? Math.max(10, MARGIN.top - 10)
+          : firstSegment.y + firstSegment.height / 2 + MARGIN.top;
+
+        const tipData: StackedBarChartTooltipData<T> = {
+          label: bar.label,
+          index: bar.barIndex,
+          segments: bar.segments.map((seg) => ({
+            key: seg.key,
+            value: seg.value,
+            color: seg.color,
+          })),
+          total: bar.totalValue,
         };
 
         return (
-          <motion.div
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 5 }}
-            className={`absolute pointer-events-none z-50 bg-background border rounded-lg px-3 py-2 shadow-xl ${
-              isVertical ? 'transform -translate-x-1/2' : 'transform -translate-y-1/2'
-            }`}
-            style={tooltipStyle}
+          <ChartTooltip
+            visible
+            x={tipX}
+            y={tipY}
+            className={isVertical ? 'transform -translate-x-1/2' : 'transform -translate-y-1/2'}
           >
-            <div className="text-xs font-medium mb-2">{bar.label}</div>
+            {tooltipRenderer ? tooltipRenderer(tipData) : (
+              <>
+                <div className="text-xs font-medium mb-2">{bar.label}</div>
 
-            {/* Show each segment */}
-            {bar.segments.map((segment) => (
-              <div key={segment.key} className="flex items-center space-x-2 text-sm mb-1">
-                <div
-                  className="w-3 h-3 rounded-sm"
-                  style={{ backgroundColor: segment.color }}
-                />
-                <span className="text-muted-foreground">{segment.key}:</span>
-                <span className="font-medium">{segment.formattedValue}</span>
-              </div>
-            ))}
+                {/* Show each segment */}
+                {bar.segments.map((segment) => (
+                  <div key={segment.key} className="flex items-center space-x-2 text-sm mb-1">
+                    <div
+                      className="w-3 h-3 rounded-sm"
+                      style={{ backgroundColor: segment.color }}
+                    />
+                    <span className="text-muted-foreground">{segment.key}:</span>
+                    <span className="font-medium">{segment.formattedValue}</span>
+                  </div>
+                ))}
 
-            {/* Total */}
-            <div className="border-t mt-1 pt-1 text-sm font-bold">
-              Total: {bar.formattedTotal}
-            </div>
-          </motion.div>
+                {/* Total */}
+                <div className="border-t mt-1 pt-1 text-sm font-bold">
+                  Total: {bar.formattedTotal}
+                </div>
+              </>
+            )}
+          </ChartTooltip>
         );
       })()}
 

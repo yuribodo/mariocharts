@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import { memo, useMemo, useState, useCallback } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
-import { useContainerDimensions } from "../_shared";
+import { useContainerDimensions, ChartTooltip } from "../_shared";
+import type { ScatterPlotTooltipData, TooltipRenderer } from "../_shared";
 
 // Internal modules
 import type {
@@ -121,6 +122,7 @@ function ScatterPlotComponent<T extends ChartDataItem>({
   xDomain,
   yDomain,
   onPointClick,
+  tooltipRenderer,
 }: ScatterPlotProps<T>) {
   const [containerRef, containerWidth] = useContainerDimensions();
   const [hoveredPoint, setHoveredPoint] = useState<HoveredPoint | null>(null);
@@ -521,39 +523,49 @@ function ScatterPlotComponent<T extends ChartDataItem>({
         </g>
       </svg>
 
-      {/* Tooltip with AnimatePresence for proper exit animations */}
-      <AnimatePresence>
-        {hoveredData && (
-          <motion.div
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 5 }}
-            className="absolute pointer-events-none z-50 bg-background border rounded-lg px-3 py-2 shadow-xl transform -translate-x-1/2"
-            style={{
-              left: hoveredData.point.screenX + MARGIN.left,
-              top: Math.max(10, hoveredData.point.screenY + MARGIN.top - 80),
-            }}
+      {/* Tooltip */}
+      {(() => {
+        const tipData: ScatterPlotTooltipData<T> | null = hoveredData ? {
+          xValue: hoveredData.point.xValue,
+          yValue: hoveredData.point.yValue,
+          formattedX: hoveredData.point.formattedX,
+          formattedY: hoveredData.point.formattedY,
+          seriesKey: hoveredData.seriesKey,
+          sizeValue: hoveredData.point.sizeValue,
+          color: hoveredData.color,
+        } : null;
+
+        return (
+          <ChartTooltip
+            visible={tipData !== null}
+            x={hoveredData ? hoveredData.point.screenX + MARGIN.left : 0}
+            y={hoveredData ? Math.max(10, hoveredData.point.screenY + MARGIN.top - 80) : 0}
+            className="transform -translate-x-1/2"
           >
-            {processedSeries.length > 1 && (
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: hoveredData.color }} />
-                <span className="text-xs font-medium">{hoveredData.seriesKey}</span>
-              </div>
-            )}
-            <div className="text-xs text-muted-foreground">
-              X: <span className="font-medium text-foreground">{hoveredData.point.formattedX}</span>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              Y: <span className="font-medium text-foreground">{hoveredData.point.formattedY}</span>
-            </div>
-            {hoveredData.point.formattedSize && (
-              <div className="text-xs text-muted-foreground">
-                Size: <span className="font-medium text-foreground">{hoveredData.point.formattedSize}</span>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            {tipData && (tooltipRenderer ? tooltipRenderer(tipData) : (
+              <>
+                {processedSeries.length > 1 && (
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: tipData.color }} />
+                    <span className="text-xs font-medium">{tipData.seriesKey}</span>
+                  </div>
+                )}
+                <div className="text-xs text-muted-foreground">
+                  X: <span className="font-medium text-foreground">{tipData.formattedX}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Y: <span className="font-medium text-foreground">{tipData.formattedY}</span>
+                </div>
+                {hoveredData!.point.formattedSize && (
+                  <div className="text-xs text-muted-foreground">
+                    Size: <span className="font-medium text-foreground">{hoveredData!.point.formattedSize}</span>
+                  </div>
+                )}
+              </>
+            ))}
+          </ChartTooltip>
+        );
+      })()}
 
       {/* Legend */}
       {showLegend && processedSeries.length > 1 && (
