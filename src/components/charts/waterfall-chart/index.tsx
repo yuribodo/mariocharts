@@ -60,33 +60,44 @@ const MARGIN = { top: 24, right: 24, bottom: 40, left: 56 };
 const ANIMATION_EASING = [0.4, 0, 0.2, 1] as const;
 const HOVER_DURATION = 0.2;
 
+// Approximate horizontal character width at a given font size (SVG text has no
+// auto-ellipsis), used to trim category labels so they never collide/overflow.
+function truncateLabel(label: string, maxPx: number, fontSize = 11): string {
+  const charPx = fontSize * 0.62;
+  const maxChars = Math.floor(maxPx / charPx);
+  if (label.length <= maxChars) return label;
+  if (maxChars <= 1) return "…";
+  return `${label.slice(0, maxChars - 1).trimEnd()}…`;
+}
+
 // Loading/Error/Empty States
 function LoadingState({ height = DEFAULT_HEIGHT }: { height?: number }) {
-  const heights = [30, 55, 45, 70, 60];
+  // Floating bars staggered off a baseline to evoke a waterfall's staircase.
+  const bars = [
+    { h: 46, offset: 0 },
+    { h: 16, offset: 44 },
+    { h: 13, offset: 58 },
+    { h: 15, offset: 46 },
+    { h: 20, offset: 30 },
+    { h: 52, offset: 0 },
+  ];
   return (
     <div className="relative w-full" style={{ height }}>
-      <div className="flex items-center justify-center h-full p-6">
-        <div className="w-full max-w-full">
-          <div className="animate-pulse bg-muted rounded h-4 w-32 mb-4" />
-          <div
-            className="relative border-l border-b border-muted/30"
-            style={{
-              height: height - MARGIN.top - MARGIN.bottom - 50,
-              marginLeft: MARGIN.left,
-              marginRight: MARGIN.right,
-              marginBottom: MARGIN.bottom,
-            }}
-          >
-            <div className="flex items-end space-x-3 h-full">
-              {heights.map((h, i) => (
-                <div
-                  key={i}
-                  className="bg-muted rounded animate-pulse flex-1"
-                  style={{ height: `${h}%`, animationDelay: `${i * 0.1}s` }}
-                />
-              ))}
+      <div className="absolute inset-0 flex flex-col p-4">
+        <div className="animate-pulse bg-muted rounded h-3.5 w-24 mb-4 shrink-0" />
+        <div className="relative flex-1 flex items-end gap-2 sm:gap-3 border-l border-b border-muted/25 pl-2">
+          {bars.map((bar, i) => (
+            <div key={i} className="flex-1 flex flex-col justify-end h-full">
+              <div
+                className="w-full rounded-sm bg-muted/70 animate-pulse"
+                style={{
+                  height: `${bar.h}%`,
+                  marginBottom: `${bar.offset}%`,
+                  animationDelay: `${i * 0.12}s`,
+                }}
+              />
             </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>
@@ -223,7 +234,6 @@ function WaterfallChartComponent<T extends ChartDataItem>({
       const cross = bar.index * slot + pad; // position along the category axis
       const lowPx = valueToPixel(bar.displayStart);
       const highPx = valueToPixel(bar.displayEnd);
-      const startPx = valueToPixel(bar.start); // animation origin (running total before step)
       const color = palette[bar.type];
 
       // In vertical mode higher value → smaller y, so the "high" edge is the top (min y).
@@ -231,7 +241,7 @@ function WaterfallChartComponent<T extends ChartDataItem>({
         ? { x: cross, y: Math.min(lowPx, highPx), width: thickness, height: Math.abs(lowPx - highPx) }
         : { x: Math.min(lowPx, highPx), y: cross, width: Math.abs(lowPx - highPx), height: thickness };
 
-      return { bar, color, cross, thickness, startPx, rect };
+      return { bar, color, cross, thickness, rect };
     });
   }, [series.bars, chartWidth, chartHeight, isVertical, valueToPixel, palette]);
 
@@ -382,11 +392,19 @@ function WaterfallChartComponent<T extends ChartDataItem>({
             })}
 
           {/* Bars */}
-          {bars.map(({ bar, color, rect, startPx }) => {
+          {bars.map(({ bar, color, rect }) => {
             const isHovered = hoveredIndex === bar.index;
+            // Grow each bar from its start edge (the previous running total), so the
+            // waterfall builds step by step. transform-box: fill-box makes the
+            // percentage origin resolve against the bar's own box.
+            const growFromLowEdge = bar.start === bar.displayStart;
             const transformOrigin = isVertical
-              ? `${rect.x + rect.width / 2}px ${startPx}px`
-              : `${startPx}px ${rect.y + rect.height / 2}px`;
+              ? growFromLowEdge
+                ? "50% 100%"
+                : "50% 0%"
+              : growFromLowEdge
+                ? "0% 50%"
+                : "100% 50%";
 
             const motionProps = shouldAnimate
               ? {
@@ -410,6 +428,7 @@ function WaterfallChartComponent<T extends ChartDataItem>({
                   rx={3}
                   className="cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   style={{
+                    transformBox: "fill-box",
                     transformOrigin,
                     filter: isHovered && !reduceMotion ? `drop-shadow(0 0 6px ${color})` : "none",
                     transition: reduceMotion ? "none" : `filter ${HOVER_DURATION}s ease-out`,
@@ -454,33 +473,42 @@ function WaterfallChartComponent<T extends ChartDataItem>({
             );
           })}
 
-          {/* Category labels */}
-          {bars.map(({ bar, cross, thickness }) => (
-            <g key={`cat-${bar.index}`}>
-              {isVertical ? (
-                <text
-                  x={cross + thickness / 2}
-                  y={chartHeight + 16}
-                  textAnchor="middle"
-                  fontSize={11}
-                  className="fill-muted-foreground"
-                >
-                  {bar.label}
-                </text>
-              ) : (
-                <text
-                  x={-8}
-                  y={cross + thickness / 2}
-                  textAnchor="end"
-                  dominantBaseline="middle"
-                  fontSize={11}
-                  className="fill-muted-foreground"
-                >
-                  {bar.label}
-                </text>
-              )}
-            </g>
-          ))}
+          {/* Category labels (truncated to the space available so they never collide/overflow) */}
+          {bars.map(({ bar, cross, thickness }) => {
+            const slotSize = thickness / 0.68;
+            const label = isVertical
+              ? truncateLabel(bar.label, slotSize - 2)
+              : truncateLabel(bar.label, MARGIN.left - 12);
+            const truncated = label !== bar.label;
+            return (
+              <g key={`cat-${bar.index}`}>
+                {isVertical ? (
+                  <text
+                    x={cross + thickness / 2}
+                    y={chartHeight + 16}
+                    textAnchor="middle"
+                    fontSize={11}
+                    className="fill-muted-foreground"
+                  >
+                    {truncated && <title>{bar.label}</title>}
+                    {label}
+                  </text>
+                ) : (
+                  <text
+                    x={-8}
+                    y={cross + thickness / 2}
+                    textAnchor="end"
+                    dominantBaseline="middle"
+                    fontSize={11}
+                    className="fill-muted-foreground"
+                  >
+                    {truncated && <title>{bar.label}</title>}
+                    {label}
+                  </text>
+                )}
+              </g>
+            );
+          })}
         </g>
       </svg>
 

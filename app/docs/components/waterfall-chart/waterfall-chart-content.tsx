@@ -458,10 +458,11 @@ export function BudgetBreakdown() {
             <div>
               <p className="text-sm font-medium mb-1">Default</p>
               <p className="text-xs text-muted-foreground mb-2">green / red / blue</p>
-              <div className="h-56">
+              <div className="h-64">
                 <WaterfallChart
                   key={`colors-default-${chartKey}`}
                   data={budgetBreakdown}
+                  height={256}
                   showValues
                   animation={showAnimation}
                 />
@@ -472,11 +473,12 @@ export function BudgetBreakdown() {
               <p className="text-xs text-muted-foreground mb-2">
                 <code className="bg-muted px-1.5 py-0.5 rounded">{`colors={{ increase: '#8b5cf6', decrease: '#f59e0b', total: '#0ea5e9' }}`}</code>
               </p>
-              <div className="h-56">
+              <div className="h-64">
                 <WaterfallChart
                   key={`colors-custom-${chartKey}`}
                   data={budgetBreakdown}
                   colors={{ increase: "#8b5cf6", decrease: "#f59e0b", total: "#0ea5e9" }}
+                  height={256}
                   showValues
                   animation={showAnimation}
                 />
@@ -497,7 +499,7 @@ export function BudgetBreakdown() {
             <div>
               <p className="text-sm font-medium mb-3">Loading</p>
               <div className="h-64">
-                <WaterfallChart key={`loading-${chartKey}`} data={quarterlyCashFlow} loading />
+                <WaterfallChart key={`loading-${chartKey}`} data={quarterlyCashFlow} height={256} loading />
               </div>
             </div>
             <div>

@@ -109,6 +109,23 @@ describe("WaterfallChart", () => {
     expect(bar!.getAttribute("aria-label")).toContain("Start");
   });
 
+  it("truncates category labels that don't fit and keeps the full label in a <title>", () => {
+    const longData = [
+      { label: "Opening Balance Carried Forward", value: 100, type: "total" },
+      { label: "Incremental Subscription Revenue", value: 40, type: "increase" },
+      { label: "Unexpected Operational Expenditure", value: -25, type: "decrease" },
+      { label: "Closing Net Position Total", value: 115, type: "total" },
+    ];
+    const { container } = renderAndFlush(<WaterfallChart data={longData} />);
+    const ellipsized = Array.from(container.querySelectorAll("text")).some((t) =>
+      (t.textContent || "").includes("…")
+    );
+    expect(ellipsized).toBe(true);
+    // Full text is preserved in a <title> for hover / assistive tech.
+    const titles = Array.from(container.querySelectorAll("title")).map((t) => t.textContent);
+    expect(titles).toContain("Unexpected Operational Expenditure");
+  });
+
   it("has a descriptive aria-label on the SVG", () => {
     const { container } = renderAndFlush(<WaterfallChart data={sampleData} />);
     expect(container.querySelector("svg")!.getAttribute("aria-label")).toContain("Waterfall chart");
