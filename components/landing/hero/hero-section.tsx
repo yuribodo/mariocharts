@@ -1,25 +1,23 @@
 "use client";
 
-import { useState, useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
-import { Copy, Check, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { MorphingChart } from "./morphing-chart";
+import { CommandSnippet } from "@/components/ui/command-snippet";
 import { cn } from "@/lib/utils";
 import {
   heroTitle,
   heroSubtitle,
   staggerContainer,
   staggerItem,
-  buttonHover,
-  buttonTap,
 } from "@/lib/animations";
 
 interface HeroSectionProps {
   className?: string;
 }
 
-const CLI_COMMAND = "npx mario-charts add area";
+const CLI_COMMAND = "npx mario-charts@latest add bar-chart";
 
 /**
  * Hero Section Component
@@ -31,19 +29,7 @@ const CLI_COMMAND = "npx mario-charts add area";
  * - Right: Morphing chart animation
  */
 export function HeroSection({ className }: HeroSectionProps) {
-  const [copied, setCopied] = useState(false);
-  const commandRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(CLI_COMMAND);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      console.error("Failed to copy");
-    }
-  };
 
   const variants = shouldReduceMotion ? {} : staggerContainer;
   const itemVariants = shouldReduceMotion ? {} : staggerItem;
@@ -51,139 +37,78 @@ export function HeroSection({ className }: HeroSectionProps) {
   return (
     <section
       className={cn(
-        "relative min-h-screen w-full overflow-hidden",
-        className
+        "relative w-full overflow-hidden border-b border-border",
+        className,
       )}
     >
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-6 py-20 lg:flex-row lg:items-center lg:justify-between lg:py-0">
+      <div className="relative z-10 mx-auto grid min-h-[calc(100svh-7rem)] max-w-7xl items-center gap-8 px-6 py-8 sm:py-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16 lg:py-16">
         <motion.div
-          className="flex max-w-xl flex-col items-center text-center lg:items-start lg:text-left"
+          className="flex max-w-xl flex-col items-start text-left"
           variants={variants}
           initial="hidden"
           animate="visible"
         >
           <motion.h1
             variants={shouldReduceMotion ? {} : heroTitle}
-            className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-7xl"
+            className="text-4xl font-semibold leading-[1.02] tracking-normal text-foreground sm:text-5xl lg:text-6xl"
           >
-            Beautiful Charts.
+            Beautiful data.
             <br />
-            <span className="text-primary">
-              Zero Lock-in.
-            </span>
+            Readable code.
           </motion.h1>
 
           <motion.p
             variants={shouldReduceMotion ? {} : heroSubtitle}
-            className="mt-6 max-w-md text-lg text-muted-foreground"
+            className="mt-6 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg"
           >
-            The React chart library that looks amazing out-of-the-box.
-            Copy-paste components. Full control. No vendor lock-in.
+            Production-ready React charts copied into your codebase. Start with
+            strong defaults, then shape every detail for your product.
           </motion.p>
 
           <motion.div
-            ref={commandRef}
             variants={itemVariants}
-            className="mt-8 w-full max-w-md"
+            className="mt-8 w-full max-w-lg"
           >
-            <div
-              onClick={handleCopy}
-              className={cn(
-                "group relative flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3 backdrop-blur-sm transition-all",
-                "hover:border-border/80 hover:bg-muted",
-                copied && "border-green-500/50 bg-green-500/10"
-              )}
-            >
-              <span className="text-muted-foreground">$</span>
-              <code className="flex-1 font-mono text-sm text-foreground/80">
-                {CLI_COMMAND}
-              </code>
-              <button
-                onClick={handleCopy}
-                className={cn(
-                  "relative flex h-8 w-8 items-center justify-center rounded-lg transition-all",
-                  "hover:bg-muted",
-                  copied ? "text-green-500" : "text-muted-foreground hover:text-foreground"
-                )}
-                aria-label={copied ? "Copied!" : "Copy command"}
-              >
-                <motion.div
-                  initial={false}
-                  animate={{
-                    scale: copied ? [1, 1.2, 1] : 1,
-                    rotate: copied ? [0, -10, 10, 0] : 0,
-                  }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {copied ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </motion.div>
-
-                {copied && (
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0.5 }}
-                    animate={{ scale: 2, opacity: 0 }}
-                    transition={{ duration: 0.4 }}
-                    className="absolute inset-0 rounded-lg bg-green-400"
-                  />
-                )}
-              </button>
-            </div>
+            <CommandSnippet command={CLI_COMMAND} />
           </motion.div>
 
           <motion.div
             variants={itemVariants}
-            className="mt-8 flex flex-wrap items-center gap-4"
+            className="mt-7 flex flex-wrap items-center gap-3"
           >
-            <motion.div whileHover={buttonHover} whileTap={buttonTap}>
-              <Link
-                href="/docs/installation"
-                className={cn(
-                  "group inline-flex items-center gap-2 rounded-xl px-6 py-3 font-medium transition-all",
-                  "bg-primary text-primary-foreground",
-                  "hover:bg-primary/90"
-                )}
-              >
-                Get Started
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            </motion.div>
+            <Link
+              href="/docs/installation"
+              className="group inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors duration-150 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              Get Started
+              <ArrowRight className="size-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+            </Link>
 
-            <motion.div whileHover={buttonHover} whileTap={buttonTap}>
-              <Link
-                href="/docs/components"
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-xl px-6 py-3 font-medium transition-all",
-                  "border border-border text-foreground",
-                  "hover:border-border/80 hover:bg-muted"
-                )}
-              >
-                Browse Components
-              </Link>
-            </motion.div>
+            <Link
+              href="/docs/components"
+              className="inline-flex min-h-11 items-center rounded-md border px-5 text-sm font-medium text-foreground transition-colors duration-150 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Browse Charts
+            </Link>
           </motion.div>
         </motion.div>
 
         <motion.div
-          className="mt-12 flex w-full max-w-lg items-center justify-center lg:mt-0 lg:max-w-xl"
-          initial={{ opacity: 0, scale: 0.9, x: 50 }}
-          animate={{ opacity: 1, scale: 1, x: 0 }}
+          className="relative flex min-h-[260px] w-full items-center justify-center overflow-hidden rounded-md border bg-card p-3 sm:min-h-[360px] sm:p-6 lg:min-h-[420px] lg:p-8"
+          initial={{ opacity: 0, x: 24 }}
+          animate={{ opacity: 1, x: 0 }}
           transition={{
-            duration: 1,
-            delay: 0.5,
+            duration: 0.7,
+            delay: 0.2,
             ease: [0.16, 1, 0.3, 1],
           }}
         >
           <MorphingChart
-            className="h-[300px] w-full sm:h-[350px] lg:h-[400px]"
+            className="h-[230px] w-full sm:h-[320px] lg:h-[400px]"
             showLabel
           />
         </motion.div>
       </div>
-
     </section>
   );
 }

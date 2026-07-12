@@ -30,6 +30,10 @@ jest.mock('framer-motion', () => {
   return {
     motion: {
       div: ({ children, ...props }: any) => ce('div', props, children),
+      a: ({ children, ...props }: any) => ce('a', props, children),
+      h1: ({ children, ...props }: any) => ce('h1', props, children),
+      p: ({ children, ...props }: any) => ce('p', props, children),
+      span: ({ children, ...props }: any) => ce('span', props, children),
       path: (props: any) => ce('path', props),
       rect: (props: any) => ce('rect', props),
       circle: (props: any) => ce('circle', props),
