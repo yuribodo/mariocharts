@@ -37,7 +37,7 @@ export function CodeBlock({
     const highlight = async () => {
       try {
         highlighter = await createHighlighter({
-          themes: ["github-light", "github-dark"],
+          themes: ["github-light", "dracula"],
           langs: [
             "javascript",
             "typescript",
@@ -52,7 +52,7 @@ export function CodeBlock({
 
         const html = highlighter.codeToHtml(code, {
           lang: language,
-          theme: resolvedTheme === "dark" ? "github-dark" : "github-light",
+          theme: resolvedTheme === "dark" ? "dracula" : "github-light",
           transformers: [
             {
               pre(node) {
@@ -104,15 +104,20 @@ export function CodeBlock({
         : "";
 
   return (
-    <div className={cn("my-6 overflow-hidden rounded-md border", className)}>
-      <div className="flex min-h-11 items-center justify-between border-b bg-muted px-3">
-        <span className="font-mono text-xs font-medium text-muted-foreground">
+    <div
+      className={cn(
+        "my-6 overflow-hidden rounded-md border dark:border-[#44475a]",
+        className,
+      )}
+    >
+      <div className="flex min-h-11 items-center justify-between border-b bg-muted px-3 dark:border-[#44475a] dark:bg-[#21222c]">
+        <span className="font-mono text-xs font-medium text-muted-foreground dark:text-[#bd93f9]">
           {languageLabels[language] ?? language}
         </span>
         <button
           type="button"
           onClick={copyToClipboard}
-          className="flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-[#f8f8f2] dark:hover:bg-[#44475a]"
           aria-label="Copy code"
         >
           {copyState === "success" ? (
@@ -124,12 +129,12 @@ export function CodeBlock({
       </div>
       {highlightedCode ? (
         <div
-          className="[&>pre]:m-0 [&>pre]:overflow-x-auto [&>pre]:border-none [&>pre]:bg-card [&>pre]:p-5 [&>pre]:text-sm [&_code]:font-mono"
+          className="[&>pre]:m-0 [&>pre]:overflow-x-auto [&>pre]:border-none [&>pre]:bg-card [&>pre]:p-5 [&>pre]:text-sm [&_code]:font-mono dark:[&>pre]:bg-[#282a36]"
           dangerouslySetInnerHTML={{ __html: highlightedCode }}
         />
       ) : (
-        <pre className="m-0 overflow-x-auto border-none bg-card p-5 text-sm">
-          <code className="font-mono text-foreground">{code}</code>
+        <pre className="m-0 overflow-x-auto border-none bg-card p-5 text-sm dark:bg-[#282a36]">
+          <code className="font-mono text-foreground dark:text-[#f8f8f2]">{code}</code>
         </pre>
       )}
       <span className="sr-only" role="status" aria-live="polite">

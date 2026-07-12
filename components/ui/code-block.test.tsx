@@ -42,7 +42,7 @@ describe("CodeBlock", () => {
     await waitFor(() => {
       expect(codeToHtml).toHaveBeenCalledWith(
         "const value = 1;",
-        expect.objectContaining({ theme: "github-dark" }),
+        expect.objectContaining({ theme: "dracula" }),
       );
     });
     unmount();

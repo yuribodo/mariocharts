@@ -85,47 +85,26 @@
 
 /* Documentation UX improvements */
 
-/* Ultra-fast page transitions */
-@media (prefers-reduced-motion: no-preference) {
-  /* View Transitions API support when available */
-  html:has(view-transition) {
-    view-transition-name: main;
-  }
-
-  ::view-transition-old(main),
-  ::view-transition-new(main) {
-    animation-duration: 0.05s;
-    animation-timing-function: linear;
-  }
-
-  /* Keep view transitions snappy without breaking sticky positioning */
-  html:has(view-transition) main {
-    will-change: opacity;
-  }
-}
-
 /* Branded theme transition. Reduced-motion users skip this effect below. */
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-group(root) {
     animation-timing-function: var(--ease-out-expo);
   }
 
-  ::view-transition-new(root) {
-    mask: url("https://media.tenor.com/cyORI7kwShQAAAAi/shigure-ui-dance.gif") center / 0 no-repeat;
-    animation: theme-reveal 3s both;
+  ::view-transition-old(root) {
+    animation: none;
   }
 
-  ::view-transition-old(root),
-  .dark::view-transition-old(root) {
-    animation: theme-reveal 3s both;
+  ::view-transition-new(root) {
+    mask: url("https://media.tenor.com/cyORI7kwShQAAAAi/shigure-ui-dance.gif") center / 0 no-repeat;
+    animation: theme-reveal 1.05s var(--ease-out-expo) both;
   }
 
   @keyframes theme-reveal {
     0% {
       mask-size: 0;
     }
-    10%,
-    90% {
+    32% {
       mask-size: 50vmax;
     }
     100% {
