@@ -31,7 +31,7 @@ npx mario-charts@latest init
 npx mario-charts@latest add bar-chart kpi-card
 
 # Install peer dependencies
-npm install recharts date-fns framer-motion @radix-ui/react-tooltip
+npm install framer-motion
 ```
 
 ### Basic Usage
@@ -115,18 +115,21 @@ export function Dashboard() {
 ### Phase 1: Essential Core
 - ✅ **BarChart** - Responsive bar charts with filled/outline variants, vertical/horizontal orientations, and smooth animations
 - ✅ **LineChart** - Time series line charts
+- ✅ **AreaChart** - Area charts for cumulative data
 - ⏳ **KPICard** - Metric cards with sparklines
-- ⏳ **AreaChart** - Area charts for cumulative data
 
-### Phase 2: Fundamental Expansion  
-- ⏳ **PieChart/DonutChart** - Pie and donut charts
-- ⏳ **DataTable** - Data tables with filters and sorting
+### Phase 2: Fundamental Expansion
+- ✅ **PieChart/DonutChart** - Pie and donut charts
 - ✅ **StackedBarChart** - Multi-series bar charts
-- ⏳ **GaugeChart** - Progress and goal indicators
+- ✅ **GaugeChart** - Progress and goal indicators
+- ⏳ **DataTable** - Data tables with filters and sorting
 
 ### Phase 3: Advanced Features
-- ⏳ **ScatterPlot** - Correlation analysis charts
-- ⏳ **Heatmap** - Pattern recognition charts
+- ✅ **ScatterPlot** - Correlation analysis charts
+- ✅ **Heatmap** - Pattern recognition charts
+- ✅ **RadarChart** - Multi-axis comparison charts
+- ✅ **FunnelChart** - Conversion and drop-off charts
+- ✅ **TreeMapChart** - Hierarchical area charts
 - ⏳ **ProgressBar** - Custom progress indicators
 
 ## 🎨 Design System
