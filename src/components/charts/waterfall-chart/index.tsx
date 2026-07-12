@@ -59,6 +59,7 @@ const DEFAULT_HEIGHT = 300;
 const MARGIN = { top: 24, right: 24, bottom: 40, left: 56 };
 const ANIMATION_EASING = [0.4, 0, 0.2, 1] as const;
 const HOVER_DURATION = 0.2;
+const LEGEND_HEIGHT = 28;
 
 // Approximate horizontal character width at a given font size (SVG text has no
 // auto-ellipsis), used to trim category labels so they never collide/overflow.
@@ -84,12 +85,12 @@ function LoadingState({ height = DEFAULT_HEIGHT }: { height?: number }) {
   return (
     <div className="relative w-full" style={{ height }}>
       <div className="absolute inset-0 flex flex-col p-4">
-        <div className="animate-pulse bg-muted rounded h-3.5 w-24 mb-4 shrink-0" />
+        <div className="animate-pulse motion-reduce:animate-none bg-muted rounded h-3.5 w-24 mb-4 shrink-0" />
         <div className="relative flex-1 flex items-end gap-2 sm:gap-3 border-l border-b border-muted/25 pl-2">
           {bars.map((bar, i) => (
             <div key={i} className="flex-1 flex flex-col justify-end h-full">
               <div
-                className="w-full rounded-sm bg-muted/70 animate-pulse"
+                className="w-full rounded-sm bg-muted/70 animate-pulse motion-reduce:animate-none"
                 style={{
                   height: `${bar.h}%`,
                   marginBottom: `${bar.offset}%`,
@@ -183,7 +184,9 @@ function WaterfallChartComponent<T extends ChartDataItem>({
 
   const isVertical = orientation === "vertical";
   const chartWidth = Math.max(0, containerWidth - MARGIN.left - MARGIN.right);
-  const chartHeight = height - MARGIN.top - MARGIN.bottom;
+  // Reserve room for the legend so it stays inside the fixed-height root.
+  const svgHeight = showLegend ? Math.max(0, height - LEGEND_HEIGHT) : height;
+  const chartHeight = svgHeight - MARGIN.top - MARGIN.bottom;
 
   // Dev warning for large datasets
   if (process.env.NODE_ENV === "development" && data.length > 50) {
@@ -282,9 +285,9 @@ function WaterfallChartComponent<T extends ChartDataItem>({
     <div ref={containerRef} className={cn("relative w-full", className)} style={{ height }}>
       <svg
         width="100%"
-        height={height}
+        height={svgHeight}
         className="overflow-visible"
-        role="img"
+        role="group"
         aria-label={`Waterfall chart with ${data.length} steps in ${orientation} orientation`}
       >
         <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
@@ -573,7 +576,9 @@ function WaterfallChartComponent<T extends ChartDataItem>({
   );
 }
 
-export const WaterfallChart = memo(WaterfallChartComponent);
+// Cast preserves the generic call signature that memo() would otherwise erase,
+// so consumers keep typed `data`, `onBarClick`, and `tooltipRenderer`.
+export const WaterfallChart = memo(WaterfallChartComponent) as typeof WaterfallChartComponent;
 export type { WaterfallChartProps, WaterfallColors };
 export type { WaterfallBar, WaterfallType } from "./utils";
 export { DEFAULT_COLORS };
