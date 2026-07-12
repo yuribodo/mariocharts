@@ -19,23 +19,6 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Shiki code highlighting styles */
-  .shiki-light {
-    background-color: #ffffff !important;
-    color: #24292f !important;
-  }
-
-  /* Ensure good contrast for code elements */
-  pre[class*="shiki"] {
-    background-color: #ffffff !important;
-    color: #24292f !important;
-  }
-
-  code[class*="shiki"] {
-    background-color: #ffffff !important;
-    color: #24292f !important;
-  }
-
   /* Ultra-fast transitions - excludes transform/opacity/scale to not conflict with GSAP/Framer Motion */
   * {
     transition-property: color, background-color, border-color, text-decoration-color, box-shadow;

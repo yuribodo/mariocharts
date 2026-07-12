@@ -9,24 +9,23 @@ interface DocsLayoutProps {
 }
 
 export default function DocsLayout({ children }: DocsLayoutProps) {
-
   return (
     <div className="relative border-b">
-      <div className="container mx-auto max-w-[1400px] flex-1 items-start md:grid md:grid-cols-[240px_minmax(0,1fr)] md:gap-8 lg:grid-cols-[260px_minmax(0,1fr)_240px] lg:gap-12 xl:gap-16">
-        <aside className="fixed top-14 z-30 -ml-2 hidden h-[calc(100vh-3.5rem)] w-full shrink-0 md:sticky md:block border-r">
-          <div className="h-full py-8 pr-8 lg:py-10">
+      <div className="mx-auto w-full flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] xl:max-w-[1440px] xl:grid-cols-[240px_minmax(0,1fr)_220px]">
+        <aside className="sticky top-14 z-30 hidden h-[calc(100vh-3.5rem)] border-r bg-sidebar md:block">
+          <div className="h-full overflow-y-auto px-4 py-8 lg:px-5">
             <DocsSidebarNav />
           </div>
         </aside>
         
-        <main className="relative py-8 lg:py-10 xl:py-12">
-          <div className="mx-auto w-full min-w-0 max-w-4xl">
+        <main className="relative min-w-0 px-6 py-10 sm:px-8 lg:px-12 xl:px-14 xl:py-12">
+          <div className="mx-auto w-full min-w-0 max-w-[760px]">
             {children}
           </div>
         </main>
         
-        <aside className="fixed top-14 z-20 -mr-2 hidden h-[calc(100vh-3.5rem)] w-full shrink-0 lg:sticky lg:block border-l">
-          <div className="h-full py-8 pl-8 lg:py-10">
+        <aside className="sticky top-14 z-20 hidden h-[calc(100vh-3.5rem)] border-l bg-sidebar xl:block">
+          <div className="h-full overflow-y-auto px-5 py-8">
             <DocsRightSidebar />
           </div>
         </aside>
