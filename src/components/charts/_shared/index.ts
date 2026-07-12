@@ -20,5 +20,6 @@ export type {
   HeatmapChartTooltipData,
   AreaChartTooltipData,
   GaugeChartTooltipData,
+  WaterfallChartTooltipData,
   TooltipRenderer,
 } from "./tooltip-types";

@@ -47,6 +47,7 @@ const sidebarNavItems: SidebarNavItem[] = [
       { title: "Heatmap", href: "/docs/components/heatmap" },
       { title: "Funnel Chart", href: "/docs/components/funnel-chart" },
       { title: "TreeMap", href: "/docs/components/treemap" },
+      { title: "Waterfall Chart", href: "/docs/components/waterfall-chart" },
     ],
   },
 ];
