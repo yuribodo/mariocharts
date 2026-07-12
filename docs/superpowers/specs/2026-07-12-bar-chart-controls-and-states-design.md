@@ -10,7 +10,12 @@ Use a property-panel layout inspired by developer tools and Storybook:
 
 - Desktop uses a narrow settings column beside the chart canvas.
 - Mobile stacks settings above the chart.
-- Orientation and appearance use labeled native selects with full-width hit areas.
+- Orientation and appearance use labeled binary segmented controls.
+- Orientation options use vertical and horizontal chart icons.
+- Appearance options use filled and outline bar icons.
+- The active option uses a neutral elevated surface rather than a chart color.
+- Each option exposes `aria-pressed`, supports visible focus, and has a minimum 40px hit area.
+- Arrow keys move between options within each segmented control.
 - Each control includes a concise supporting description.
 - Animation and replay remain available in the settings panel.
 - The chart canvas keeps its existing stable height and multicolor palette.
@@ -31,11 +36,12 @@ Replace the three full chart previews with a compact documentation block titled 
 - All interactive targets are at least 40px high.
 - Replay has an accessible name and disabled state.
 - State descriptions remain readable without relying on color.
-- Keyboard behavior uses native form semantics.
+- Segmented controls expose button semantics, pressed state, and arrow-key navigation.
 
 ## Testing
 
 - Update the Bar Chart documentation test for the new heading and property-panel labels.
 - Preserve the interaction test for orientation and appearance changes.
+- Exercise button clicks, pressed state, and arrow-key selection.
 - Assert the loading, error, and empty state documentation is present.
 - Run focused Jest, TypeScript, scoped ESLint, and the complete Jest suite.
