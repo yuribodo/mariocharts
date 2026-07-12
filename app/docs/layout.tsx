@@ -11,15 +11,15 @@ interface DocsLayoutProps {
 export default function DocsLayout({ children }: DocsLayoutProps) {
   return (
     <div className="relative border-b">
-      <div className="mx-auto w-full flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] xl:max-w-[1440px] xl:grid-cols-[240px_minmax(0,1fr)_220px]">
+      <div className="mx-auto w-full flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] xl:max-w-[1600px] xl:grid-cols-[240px_minmax(0,1fr)_220px]">
         <aside className="sticky top-14 z-30 hidden h-[calc(100vh-3.5rem)] border-r bg-sidebar md:block">
           <div className="h-full overflow-y-auto px-4 py-8 lg:px-5">
             <DocsSidebarNav />
           </div>
         </aside>
         
-        <main className="relative min-w-0 px-6 py-10 sm:px-8 lg:px-12 xl:px-14 xl:py-12">
-          <div className="mx-auto w-full min-w-0 max-w-[760px]">
+        <main className="relative min-w-0 px-6 py-10 sm:px-8 lg:px-12 xl:px-10 xl:py-12">
+          <div className="mx-auto w-full min-w-0 max-w-[960px]">
             {children}
           </div>
         </main>
