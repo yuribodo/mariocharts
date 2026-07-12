@@ -34,8 +34,28 @@ function validatePath(targetPath: string, basePath: string): boolean {
 }
 
 function isValidComponentType(componentType: string): boolean {
-  const validTypes = ['chart', 'ui', 'layout', 'filter', 'primitive'];
+  const validTypes = ['chart', 'ui', 'layout', 'filter', 'primitive', 'lib', 'internal'];
   return validTypes.includes(componentType);
+}
+
+// Internal source imports (e.g. `../_shared`, `../../../../lib/utils`) only
+// resolve inside this monorepo. Rewrite them to the consumer's configured
+// aliases on install — the way shadcn's CLI does — so components compile
+// standalone. See #61.
+function rewriteInternalImports(content: string, config: any): string {
+  const utilsAlias = config.aliases.utils as string; // e.g. '@/lib/utils'
+  const libDir = path.posix.dirname(utilsAlias); // e.g. '@/lib'
+  const hooksAlias = path.posix.join(libDir, 'hooks'); // e.g. '@/lib/hooks'
+  const sharedAlias = `${config.aliases.charts}/_shared`;
+
+  // Anchored to `from "..."` (covers both `import ... from` and
+  // `export ... from`) so a bare string elsewhere in the file that happens
+  // to match one of these literals — a comment, an unrelated string — isn't
+  // rewritten.
+  return content
+    .replace(/(from\s+)(['"])\.\.\/\.\.\/\.\.\/\.\.\/lib\/utils\2/g, `$1$2${utilsAlias}$2`)
+    .replace(/(from\s+)(['"])\.\.\/\.\.\/\.\.\/\.\.\/lib\/hooks\2/g, `$1$2${hooksAlias}$2`)
+    .replace(/(from\s+)(['"])\.\.\/_shared((?:\/[^'"]*)?)\2/g, `$1$2${sharedAlias}$3$2`);
 }
 
 const logger = new Logger();
@@ -93,7 +113,12 @@ export async function addComponents(components: string[], options: AddOptions = 
     const spinner = ora('Fetching available components...').start();
     try {
       const allComponents = await defaultRegistry.getAllComponents();
-      components = allComponents.map(c => c.name);
+      // Internal support items (types 'lib' and 'internal') are pulled in
+      // automatically via registryDependencies — don't list them as
+      // top-level installable targets.
+      components = allComponents
+        .filter(c => c.type === 'chart')
+        .map(c => c.name);
       spinner.succeed(`Found ${components.length} components`);
     } catch (error) {
       spinner.fail('Failed to fetch components');
@@ -243,42 +268,54 @@ async function installComponent(
   for (const file of component.files) {
     const targetPath = resolveComponentPath(file.name, component.type, config, cwd);
     const targetDir = path.dirname(targetPath);
-    
+    const content = rewriteInternalImports(file.content, config);
+
     // Criar diretório se não existir
     await fs.ensureDir(targetDir);
-    
-    const existingContent = await fs.pathExists(targetPath) 
+
+    const existingContent = await fs.pathExists(targetPath)
       ? await fs.readFile(targetPath, 'utf8')
       : null;
 
     if (existingContent && !options.overwrite) {
       // Mostrar diff se o conteúdo for diferente
-      if (existingContent !== file.content) {
+      if (existingContent !== content) {
         logger.warn(`Component ${component.name} already exists at ${path.relative(cwd, targetPath)}`);
-        
+
         const patches = createPatch(
           file.name,
           existingContent,
-          file.content,
+          content,
           'existing',
           'new'
         );
-        
+
         if (patches.trim() !== 'Index: ' + file.name) {
           logger.plain('Changes to be made:');
           console.log(patches);
-          
-          const { overwrite } = await inquirer.prompt({
-            type: 'confirm',
-            name: 'overwrite',
-            message: `Overwrite ${file.name}?`,
-            default: false,
-          });
-          
+
+          // --yes/skipConfirm means "skip confirmation prompts" — including
+          // this one. Prompting anyway here hangs (or force-closes, aborting
+          // the rest of the install queue) under non-interactive stdin,
+          // which is exactly how `add --yes` gets used in CI/setup scripts.
+          // Default to keeping the existing file, matching the prompt's own
+          // default answer.
+          const overwrite = options.skipConfirm
+            ? false
+            : (await inquirer.prompt({
+                type: 'confirm',
+                name: 'overwrite',
+                message: `Overwrite ${file.name}?`,
+                default: false,
+              })).overwrite;
+
           if (overwrite) {
-            await fs.writeFile(targetPath, file.content);
+            await fs.writeFile(targetPath, content);
             results.updated = true;
           } else {
+            if (options.skipConfirm) {
+              logger.info(`Kept existing ${file.name} (use --overwrite to update automatically).`);
+            }
             results.skipped = true;
           }
         } else {
@@ -289,7 +326,7 @@ async function installComponent(
       }
     } else {
       // Criar ou sobrescrever arquivo
-      await fs.writeFile(targetPath, file.content);
+      await fs.writeFile(targetPath, content);
       if (existingContent) {
         results.updated = true;
       } else {
@@ -321,6 +358,9 @@ function resolveComponentPath(fileName: string, componentType: string, config: a
   let basePath: string;
   switch (componentType) {
     case 'chart':
+    case 'internal':
+      // 'internal' items (e.g. the _shared module bundle) live inside the
+      // charts directory too — they're just not user-facing top-level charts.
       basePath = config.aliases.charts.replace('@/', srcPrefix);
       break;
     case 'ui':
@@ -334,6 +374,11 @@ function resolveComponentPath(fileName: string, componentType: string, config: a
       break;
     case 'primitive':
       basePath = config.aliases.components.replace('@/', srcPrefix) + '/primitives';
+      break;
+    case 'lib':
+      // Internal helpers (cn, useIsomorphicLayoutEffect) live alongside the
+      // configured utils file, e.g. aliases.utils '@/lib/utils' -> 'lib/'.
+      basePath = path.posix.dirname(config.aliases.utils.replace('@/', srcPrefix));
       break;
     default:
       basePath = config.aliases.components.replace('@/', srcPrefix);

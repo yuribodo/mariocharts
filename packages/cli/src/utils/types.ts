@@ -33,7 +33,7 @@ export type Config = z.infer<typeof configSchema>;
 // Registry de componentes
 export const registryItemSchema = z.object({
   name: z.string(),
-  type: z.enum(['chart', 'ui', 'layout', 'filter', 'primitive']),
+  type: z.enum(['chart', 'ui', 'layout', 'filter', 'primitive', 'lib', 'internal']),
   category: z.string(),
   subcategory: z.string().optional(),
   description: z.string(),
@@ -57,7 +57,7 @@ export type RegistryItem = z.infer<typeof registryItemSchema>;
 // Schema para itens do index (sem files)
 export const registryIndexItemSchema = z.object({
   name: z.string(),
-  type: z.enum(['chart', 'ui', 'layout', 'filter', 'primitive']),
+  type: z.enum(['chart', 'ui', 'layout', 'filter', 'primitive', 'lib', 'internal']),
   category: z.string(),
   subcategory: z.string().optional(),
   description: z.string(),
