@@ -63,7 +63,31 @@ npx eslint app/docs/components/bar-chart/bar-chart-content.tsx app/docs/componen
 
 Expected: all commands pass.
 
-### Task 3: Verify and Publish
+### Task 3: Replace Native Selects with Segmented Controls
+
+**Files:**
+- Modify: `app/docs/components/bar-chart/bar-chart-content.tsx`
+- Test: `app/docs/components/bar-chart/bar-chart-content.test.tsx`
+
+- [ ] **Step 1: Update interaction coverage**
+
+Query `Horizontal` and `Outline` as buttons, click them, and assert `aria-pressed="true"`. Focus the active option, press `ArrowLeft`, and assert the previous option becomes active.
+
+- [ ] **Step 2: Run the test and verify failure**
+
+Run: `npm test -- app/docs/components/bar-chart/bar-chart-content.test.tsx --runInBand`
+
+Expected: FAIL because the current controls are native selects.
+
+- [ ] **Step 3: Implement the local segmented control**
+
+Add a typed `SegmentedControl` accepting a label, value, options, and `onChange`. Render a two-column group of buttons with `aria-pressed`, Lucide icons, 40px hit areas, neutral active elevation, visible focus, click selection, and left/right arrow navigation.
+
+- [ ] **Step 4: Verify the focused change**
+
+Run focused Jest, TypeScript, and scoped ESLint. Expected: all pass.
+
+### Task 4: Verify and Publish
 
 **Files:**
 - Verify: `app/docs/components/bar-chart/bar-chart-content.tsx`

@@ -26,12 +26,20 @@ describe("BarChartContent", () => {
     expect(screen.getByRole("heading", { level: 2, name: "API Reference" })).toBeInTheDocument();
   });
 
-  it("updates the representative preview from native controls", () => {
+  it("updates the preview from accessible segmented controls", () => {
     render(<BarChartContent />);
 
-    fireEvent.change(screen.getByLabelText("Orientation"), { target: { value: "horizontal" } });
-    fireEvent.change(screen.getByLabelText("Appearance"), { target: { value: "outline" } });
+    const horizontal = screen.getByRole("button", { name: "Horizontal" });
+    const outline = screen.getByRole("button", { name: "Outline" });
 
+    fireEvent.click(horizontal);
+    fireEvent.click(outline);
+
+    expect(horizontal).toHaveAttribute("aria-pressed", "true");
+    expect(outline).toHaveAttribute("aria-pressed", "true");
     expect(screen.getAllByTestId("bar-chart")[0]).toHaveTextContent("horizontal:outline");
+
+    fireEvent.keyDown(outline, { key: "ArrowLeft" });
+    expect(screen.getByRole("button", { name: "Filled" })).toHaveAttribute("aria-pressed", "true");
   });
 });

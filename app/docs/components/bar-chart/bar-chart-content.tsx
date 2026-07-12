@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Database, LoaderCircle, RotateCcw, TriangleAlert } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { ChartBar, ChartColumn, Check, Database, LoaderCircle, RotateCcw, Square, SquareDashed, TriangleAlert } from "lucide-react";
 import { BarChart } from "@/src/components/charts/bar-chart";
+import { cn } from "@/lib/utils";
 import { APIReference } from "../../../../components/ui/api-reference";
 import { CodeBlock } from "../../../../components/ui/code-block";
 import { CommandSnippet } from "../../../../components/ui/command-snippet";
@@ -87,6 +89,16 @@ const productionStates = [
   },
 ] as const;
 
+const orientationOptions = [
+  { value: "vertical", label: "Vertical", icon: ChartColumn },
+  { value: "horizontal", label: "Horizontal", icon: ChartBar },
+] as const;
+
+const appearanceOptions = [
+  { value: "filled", label: "Filled", icon: Square },
+  { value: "outline", label: "Outline", icon: SquareDashed },
+] as const;
+
 export function BarChartContent() {
   const [orientation, setOrientation] = useState<Orientation>("vertical");
   const [variant, setVariant] = useState<Variant>("filled");
@@ -125,23 +137,9 @@ export function BarChartContent() {
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-1">
-              <label className="block text-xs font-medium text-foreground">
-                Orientation
-                <select aria-label="Orientation" value={orientation} onChange={(event) => setOrientation(event.target.value as Orientation)} className="mt-2 h-10 w-full rounded border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <option value="vertical">Vertical</option>
-                  <option value="horizontal">Horizontal</option>
-                </select>
-                <span className="mt-1.5 block font-normal leading-5 text-muted-foreground">Direction of comparison.</span>
-              </label>
+              <SegmentedControl label="Orientation" description="Direction of comparison." value={orientation} options={orientationOptions} onChange={setOrientation} />
 
-              <label className="block text-xs font-medium text-foreground">
-                Appearance
-                <select aria-label="Appearance" value={variant} onChange={(event) => setVariant(event.target.value as Variant)} className="mt-2 h-10 w-full rounded border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <option value="filled">Filled</option>
-                  <option value="outline">Outline</option>
-                </select>
-                <span className="mt-1.5 block font-normal leading-5 text-muted-foreground">Visual weight of the bars.</span>
-              </label>
+              <SegmentedControl label="Appearance" description="Visual weight of the bars." value={variant} options={appearanceOptions} onChange={setVariant} />
             </div>
 
             <div className="mt-5 flex items-center justify-between border-t pt-4">
@@ -202,5 +200,71 @@ export function BarChartContent() {
 
       <APIReference title="API Reference" description="The core surface stays small; advanced behavior remains explicit." props={barChartProps} />
     </article>
+  );
+}
+
+interface SegmentedOption<T extends string> {
+  readonly value: T;
+  readonly label: string;
+  readonly icon: LucideIcon;
+}
+
+function SegmentedControl<T extends string>({
+  label,
+  description,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  value: T;
+  options: readonly SegmentedOption<T>[];
+  onChange: (value: T) => void;
+}) {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+
+    event.preventDefault();
+    const direction = event.key === "ArrowRight" ? 1 : -1;
+    const nextIndex = (index + direction + options.length) % options.length;
+    const nextOption = options[nextIndex];
+    if (!nextOption) return;
+
+    onChange(nextOption.value);
+    const buttons = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>("button");
+    buttons?.[nextIndex]?.focus();
+  };
+
+  return (
+    <div>
+      <span className="text-xs font-medium text-foreground">{label}</span>
+      <div role="group" aria-label={label} className="mt-2 grid grid-cols-2 gap-1 rounded-md border bg-muted/45 p-1">
+        {options.map((option, index) => {
+          const Icon = option.icon;
+          const isActive = option.value === value;
+
+          return (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={isActive}
+              onClick={() => onChange(option.value)}
+              onKeyDown={(event) => handleKeyDown(event, index)}
+              className={cn(
+                "inline-flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded text-xs font-medium transition-[color,background-color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]",
+                isActive
+                  ? "bg-background text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
+                  : "text-muted-foreground hover:bg-background/55 hover:text-foreground",
+              )}
+            >
+              <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+              <span className="truncate">{option.label}</span>
+            </button>
+          );
+        })}
+      </div>
+      <span className="mt-1.5 block text-xs font-normal leading-5 text-muted-foreground">{description}</span>
+    </div>
   );
 }
