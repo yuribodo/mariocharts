@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, RotateCcw } from "lucide-react";
+import { Check, Database, LoaderCircle, RotateCcw, TriangleAlert } from "lucide-react";
 import { BarChart } from "@/src/components/charts/bar-chart";
 import { APIReference } from "../../../../components/ui/api-reference";
 import { CodeBlock } from "../../../../components/ui/code-block";
@@ -63,6 +63,30 @@ const barChartProps = [
 type Orientation = "vertical" | "horizontal";
 type Variant = "filled" | "outline";
 
+const productionStates = [
+  {
+    title: "Loading",
+    description: "Keeps the chart frame stable while data is being resolved.",
+    prop: "loading={true}",
+    icon: LoaderCircle,
+    color: "var(--chart-blue)",
+  },
+  {
+    title: "Error",
+    description: "Replaces the plot with an actionable message without shifting the layout.",
+    prop: 'error="Could not load data"',
+    icon: TriangleAlert,
+    color: "var(--chart-coral)",
+  },
+  {
+    title: "Empty",
+    description: "Explains that no values are available instead of rendering an empty plot.",
+    prop: "data={[]}",
+    icon: Database,
+    color: "var(--chart-violet)",
+  },
+] as const;
+
 export function BarChartContent() {
   const [orientation, setOrientation] = useState<Orientation>("vertical");
   const [variant, setVariant] = useState<Variant>("filled");
@@ -93,35 +117,45 @@ export function BarChartContent() {
           <p className="mt-2 text-muted-foreground">Start with the default, then adjust only what your data needs.</p>
         </div>
 
-        <div className="overflow-hidden rounded-md border bg-card">
-          <div className="flex flex-col gap-4 border-b bg-muted/25 p-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="grid grid-cols-2 gap-3">
-              <label className="space-y-1.5 text-xs font-medium text-muted-foreground">
-                <span>Orientation</span>
-                <select aria-label="Orientation" value={orientation} onChange={(event) => setOrientation(event.target.value as Orientation)} className="h-9 min-w-32 rounded border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <div className="grid overflow-hidden rounded-md border bg-card md:grid-cols-[190px_minmax(0,1fr)]">
+          <aside className="border-b bg-muted/20 p-4 md:border-b-0 md:border-r" aria-label="Chart settings">
+            <div className="mb-5">
+              <h3 className="text-sm font-semibold">Settings</h3>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">Tune the preview without changing its data.</p>
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-1">
+              <label className="block text-xs font-medium text-foreground">
+                Orientation
+                <select aria-label="Orientation" value={orientation} onChange={(event) => setOrientation(event.target.value as Orientation)} className="mt-2 h-10 w-full rounded border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <option value="vertical">Vertical</option>
                   <option value="horizontal">Horizontal</option>
                 </select>
+                <span className="mt-1.5 block font-normal leading-5 text-muted-foreground">Direction of comparison.</span>
               </label>
-              <label className="space-y-1.5 text-xs font-medium text-muted-foreground">
-                <span>Variant</span>
-                <select aria-label="Variant" value={variant} onChange={(event) => setVariant(event.target.value as Variant)} className="h-9 min-w-32 rounded border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+
+              <label className="block text-xs font-medium text-foreground">
+                Appearance
+                <select aria-label="Appearance" value={variant} onChange={(event) => setVariant(event.target.value as Variant)} className="mt-2 h-10 w-full rounded border bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   <option value="filled">Filled</option>
                   <option value="outline">Outline</option>
                 </select>
+                <span className="mt-1.5 block font-normal leading-5 text-muted-foreground">Visual weight of the bars.</span>
               </label>
             </div>
-            <div className="flex items-center gap-3">
-              <label className="flex min-h-9 items-center gap-2 text-sm">
+
+            <div className="mt-5 flex items-center justify-between border-t pt-4">
+              <label className="flex min-h-10 items-center gap-2 text-sm">
                 <input type="checkbox" checked={animation} onChange={(event) => setAnimation(event.target.checked)} className="size-4 accent-foreground" />
                 Animate
               </label>
-              <button type="button" onClick={() => setChartKey((key) => key + 1)} disabled={!animation} className="inline-flex size-9 items-center justify-center rounded border bg-background text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40" aria-label="Replay animation" title="Replay animation">
+              <button type="button" onClick={() => setChartKey((key) => key + 1)} disabled={!animation} className="inline-flex size-10 items-center justify-center rounded border bg-background text-muted-foreground transition-colors hover:text-foreground active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40" aria-label="Replay animation" title="Replay animation">
                 <RotateCcw className="size-4" aria-hidden="true" />
               </button>
             </div>
-          </div>
-          <div className="h-[360px] p-5 sm:p-8">
+          </aside>
+
+          <div className="h-[360px] min-w-0 p-5 sm:p-8">
             <BarChart key={chartKey} data={monthlyRevenue} x="month" y="revenue" colors={chartColors} orientation={orientation} variant={variant} animation={animation} showGrid />
           </div>
         </div>
@@ -131,14 +165,28 @@ export function BarChartContent() {
 
       <section aria-labelledby="states-title" className="space-y-5">
         <div>
-          <h2 id="states-title" className="text-2xl font-semibold">Production states</h2>
-          <p className="mt-2 text-muted-foreground">Loading, failure, and empty data use the same stable chart frame.</p>
+          <h2 id="states-title" className="text-2xl font-semibold">Resilient by default</h2>
+          <p className="mt-2 text-muted-foreground">Built-in states preserve context when the data is not ready to render.</p>
         </div>
-        <div className="grid divide-y overflow-hidden rounded-md border bg-card md:grid-cols-3 md:divide-x md:divide-y-0">
-          <StatePreview title="Loading"><BarChart data={monthlyRevenue} x="month" y="revenue" loading /></StatePreview>
-          <StatePreview title="Error"><BarChart data={monthlyRevenue} x="month" y="revenue" error="Could not load revenue" /></StatePreview>
-          <StatePreview title="Empty"><BarChart data={[]} x="month" y="revenue" /></StatePreview>
-        </div>
+        <ul className="divide-y overflow-hidden rounded-md border bg-card">
+          {productionStates.map((state) => {
+            const Icon = state.icon;
+            return (
+              <li key={state.title} className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-6">
+                <div className="flex min-w-0 gap-3">
+                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded border bg-background" style={{ color: state.color }}>
+                    <Icon className="size-4" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-medium">{state.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{state.description}</p>
+                  </div>
+                </div>
+                <code className="w-fit rounded border bg-muted/35 px-2.5 py-1.5 font-mono text-xs text-muted-foreground">{state.prop}</code>
+              </li>
+            );
+          })}
+        </ul>
       </section>
 
       <section aria-labelledby="decisions-title" className="space-y-5">
@@ -155,8 +203,4 @@ export function BarChartContent() {
       <APIReference title="API Reference" description="The core surface stays small; advanced behavior remains explicit." props={barChartProps} />
     </article>
   );
-}
-
-function StatePreview({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div className="p-4"><h3 className="mb-3 font-mono text-xs uppercase text-muted-foreground">{title}</h3><div className="h-52">{children}</div></div>;
 }
