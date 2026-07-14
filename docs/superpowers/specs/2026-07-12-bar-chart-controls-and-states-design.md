@@ -14,6 +14,8 @@ Use a property-panel layout inspired by developer tools and Storybook:
 - Orientation options use vertical and horizontal chart icons.
 - Appearance options use filled and outline bar icons.
 - The active option uses a neutral elevated surface rather than a chart color.
+- A shared active indicator slides horizontally between options in `180ms` using an interruptible CSS transform transition.
+- Icon and label states transition only color and opacity; buttons do not resize or shift.
 - Each option exposes `aria-pressed`, supports visible focus, and has a minimum 40px hit area.
 - Arrow keys move between options within each segmented control.
 - Each control includes a concise supporting description.
@@ -37,6 +39,7 @@ Replace the three full chart previews with a compact documentation block titled 
 - Replay has an accessible name and disabled state.
 - State descriptions remain readable without relying on color.
 - Segmented controls expose button semantics, pressed state, and arrow-key navigation.
+- Reduced-motion users receive an immediate indicator state change.
 
 ## Testing
 

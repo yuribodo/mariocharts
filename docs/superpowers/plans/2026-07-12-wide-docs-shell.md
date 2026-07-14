@@ -4,7 +4,7 @@
 
 **Goal:** Expand the desktop documentation shell and central interactive area without widening prose or changing tablet and mobile behavior.
 
-**Architecture:** Keep the existing three-region grid and breakpoint behavior. Change only the extra-large shell width, central wrapper width, and main padding classes in `DocsLayout`, guarded by a focused structural test.
+**Architecture:** Keep the existing three-region grid and breakpoint behavior. Let the grid span the viewport so its fixed sidebars touch the outer edges while the `960px` content wrapper remains centered.
 
 **Tech Stack:** Next.js, React, TypeScript, Tailwind CSS, Jest, Testing Library.
 
@@ -18,17 +18,17 @@
 
 - [ ] **Step 1: Write the failing structural test**
 
-Mock the sidebar components, render `DocsLayout`, and assert the shell includes `xl:max-w-[1600px]`, the main wrapper includes `max-w-[960px]`, and the main element includes `xl:px-10`.
+Mock the sidebar components, render `DocsLayout`, and assert the shell does not include an extra-large max-width, while the main wrapper includes `max-w-[960px]` and the main element includes `xl:px-10`.
 
 - [ ] **Step 2: Verify the test fails**
 
 Run: `npm test -- app/docs/layout.test.tsx --runInBand`
 
-Expected: FAIL because the current classes are `1440px`, `760px`, and `xl:px-14`.
+Expected: FAIL because the current shell still includes `xl:max-w-[1600px]`.
 
 - [ ] **Step 3: Update the layout classes**
 
-In `app/docs/layout.tsx`, replace `xl:max-w-[1440px]` with `xl:max-w-[1600px]`, `max-w-[760px]` with `max-w-[960px]`, and `xl:px-14` with `xl:px-10`. Preserve all grid tracks and responsive visibility.
+In `app/docs/layout.tsx`, remove `xl:max-w-[1600px]`. Preserve the `960px` inner content width, fixed sidebar tracks, padding, and responsive visibility.
 
 - [ ] **Step 4: Run focused checks**
 

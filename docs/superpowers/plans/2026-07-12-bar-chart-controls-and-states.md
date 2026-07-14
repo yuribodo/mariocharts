@@ -89,6 +89,8 @@ Run focused Jest, TypeScript, and scoped ESLint. Expected: all pass.
 
 ### Task 4: Verify and Publish
 
+Before final verification, add a shared absolute indicator inside each segmented control. Position it at the left or right half from the active option, transition `transform` for `180ms`, keep buttons above it, and disable movement under `motion-reduce`. Add a test assertion for the indicator state without changing existing click, arrow-key, or `aria-pressed` coverage.
+
 **Files:**
 - Verify: `app/docs/components/bar-chart/bar-chart-content.tsx`
 
