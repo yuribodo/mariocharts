@@ -20,7 +20,7 @@ describe("DocsLayout", () => {
     const main = container.querySelector("main");
     const content = main?.firstElementChild;
 
-    expect(shell).toHaveClass("xl:max-w-[1600px]");
+    expect(shell).not.toHaveClass("xl:max-w-[1600px]");
     expect(main).toHaveClass("xl:px-10");
     expect(content).toHaveClass("max-w-[960px]");
   });

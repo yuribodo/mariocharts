@@ -11,7 +11,7 @@ interface DocsLayoutProps {
 export default function DocsLayout({ children }: DocsLayoutProps) {
   return (
     <div className="relative border-b">
-      <div className="mx-auto w-full flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] xl:max-w-[1600px] xl:grid-cols-[240px_minmax(0,1fr)_220px]">
+      <div className="mx-auto w-full flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)_220px]">
         <aside className="hidden self-stretch border-r bg-sidebar md:block">
           <div className="sticky top-14 z-30 h-[calc(100vh-3.5rem)] overflow-y-auto px-4 py-8 lg:px-5">
             <DocsSidebarNav />

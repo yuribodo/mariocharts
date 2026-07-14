@@ -37,6 +37,12 @@ describe("BarChartContent", () => {
 
     expect(horizontal).toHaveAttribute("aria-pressed", "true");
     expect(outline).toHaveAttribute("aria-pressed", "true");
+    expect(
+      document.querySelector('[data-segmented-indicator="Orientation"]'),
+    ).toHaveAttribute("data-position", "right");
+    expect(
+      document.querySelector('[data-segmented-indicator="Appearance"]'),
+    ).toHaveAttribute("data-position", "right");
     expect(screen.getAllByTestId("bar-chart")[0]).toHaveTextContent("horizontal:outline");
 
     fireEvent.keyDown(outline, { key: "ArrowLeft" });

@@ -222,6 +222,8 @@ function SegmentedControl<T extends string>({
   options: readonly SegmentedOption<T>[];
   onChange: (value: T) => void;
 }) {
+  const activeIndex = Math.max(0, options.findIndex((option) => option.value === value));
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
     if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
 
@@ -239,7 +241,16 @@ function SegmentedControl<T extends string>({
   return (
     <div>
       <span className="text-xs font-medium text-foreground">{label}</span>
-      <div role="group" aria-label={label} className="mt-2 grid grid-cols-2 gap-1 rounded-md border bg-muted/45 p-1">
+      <div role="group" aria-label={label} className="relative mt-2 grid grid-cols-2 gap-1 rounded-md border bg-muted/45 p-1">
+        <span
+          aria-hidden="true"
+          data-segmented-indicator={label}
+          data-position={activeIndex === 0 ? "left" : "right"}
+          className={cn(
+            "pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.375rem)] rounded bg-background shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition-transform duration-[180ms] ease-[cubic-bezier(0.2,0,0,1)] motion-reduce:transition-none",
+            activeIndex === 1 && "translate-x-[calc(100%+0.25rem)]",
+          )}
+        />
         {options.map((option, index) => {
           const Icon = option.icon;
           const isActive = option.value === value;
@@ -252,10 +263,10 @@ function SegmentedControl<T extends string>({
               onClick={() => onChange(option.value)}
               onKeyDown={(event) => handleKeyDown(event, index)}
               className={cn(
-                "inline-flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded text-xs font-medium transition-[color,background-color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]",
+                "relative z-10 inline-flex min-h-10 min-w-0 items-center justify-center gap-1.5 rounded text-xs font-medium transition-[color,opacity] duration-[180ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96] motion-reduce:transition-none",
                 isActive
-                  ? "bg-background text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
-                  : "text-muted-foreground hover:bg-background/55 hover:text-foreground",
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <Icon className="size-3.5 shrink-0" aria-hidden="true" />
