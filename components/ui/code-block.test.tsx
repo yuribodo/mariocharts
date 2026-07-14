@@ -4,17 +4,20 @@ import { CodeBlock } from "./code-block";
 
 const dispose = jest.fn();
 const codeToHtml = jest.fn(() => "<pre><code>const value = 1;</code></pre>");
+let mockResolvedTheme = "dark";
 
 jest.mock("shiki", () => ({
   createHighlighter: jest.fn(async () => ({ codeToHtml, dispose })),
 }));
 
 jest.mock("next-themes", () => ({
-  useTheme: () => ({ resolvedTheme: "dark" }),
+  useTheme: () => ({ resolvedTheme: mockResolvedTheme }),
 }));
 
 describe("CodeBlock", () => {
   beforeEach(() => {
+    mockResolvedTheme = "dark";
+    codeToHtml.mockClear();
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
       value: { writeText: jest.fn().mockResolvedValue(undefined) },
@@ -47,5 +50,25 @@ describe("CodeBlock", () => {
     });
     unmount();
     expect(dispose).toHaveBeenCalled();
+  });
+
+  it("uses explicit high-contrast surfaces with github-light tokens", async () => {
+    mockResolvedTheme = "light";
+    const { container } = render(
+      <CodeBlock code="const value = 1;" language="typescript" />,
+    );
+
+    await waitFor(() => {
+      expect(codeToHtml).toHaveBeenCalledWith(
+        "const value = 1;",
+        expect.objectContaining({ theme: "github-light" }),
+      );
+    });
+
+    const frame = container.firstElementChild;
+    expect(frame?.firstElementChild).toHaveClass("bg-[#eef1f4]");
+    expect(frame?.querySelector("pre")?.parentElement).toHaveClass(
+      "[&>pre]:bg-[#f6f8fa]",
+    );
   });
 });

@@ -14,6 +14,12 @@ interface CodeBlockProps {
 }
 
 type CopyState = "idle" | "success" | "error";
+type CodeTheme = "github-light" | "dracula";
+
+interface HighlightedCode {
+  html: string;
+  theme: CodeTheme;
+}
 
 const languageLabels: Record<string, string> = {
   javascript: "js",
@@ -27,7 +33,7 @@ export function CodeBlock({
 }: CodeBlockProps) {
   const { resolvedTheme } = useTheme();
   const [copyState, setCopyState] = useState<CopyState>("idle");
-  const [highlightedCode, setHighlightedCode] = useState<string | null>(null);
+  const [highlightedCode, setHighlightedCode] = useState<HighlightedCode | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -50,9 +56,10 @@ export function CodeBlock({
           ],
         });
 
+        const theme: CodeTheme = resolvedTheme === "dark" ? "dracula" : "github-light";
         const html = highlighter.codeToHtml(code, {
           lang: language,
-          theme: resolvedTheme === "dark" ? "dracula" : "github-light",
+          theme,
           transformers: [
             {
               pre(node) {
@@ -63,7 +70,7 @@ export function CodeBlock({
           ],
         });
 
-        if (!cancelled) setHighlightedCode(html);
+        if (!cancelled) setHighlightedCode({ html, theme });
       } catch {
         if (!cancelled) setHighlightedCode(null);
       }
@@ -102,22 +109,37 @@ export function CodeBlock({
       : copyState === "error"
         ? "Unable to copy code"
         : "";
+  const targetTheme: CodeTheme = resolvedTheme === "dark" ? "dracula" : "github-light";
+  const displayTheme = highlightedCode?.theme ?? targetTheme;
+  const isDarkCode = displayTheme === "dracula";
 
   return (
     <div
       className={cn(
-        "my-6 overflow-hidden rounded-md border dark:border-[#44475a]",
+        "my-6 overflow-hidden rounded-md border",
+        isDarkCode ? "border-[#44475a]" : "border-[#d0d7de]",
         className,
       )}
     >
-      <div className="flex min-h-11 items-center justify-between border-b bg-muted px-3 dark:border-[#44475a] dark:bg-[#21222c]">
-        <span className="font-mono text-xs font-medium text-muted-foreground dark:text-[#bd93f9]">
+      <div className={cn(
+        "flex min-h-11 items-center justify-between border-b px-3",
+        isDarkCode ? "border-[#44475a] bg-[#21222c]" : "border-[#d0d7de] bg-[#eef1f4]",
+      )}>
+        <span className={cn(
+          "font-mono text-xs font-medium",
+          isDarkCode ? "text-[#bd93f9]" : "text-[#57606a]",
+        )}>
           {languageLabels[language] ?? language}
         </span>
         <button
           type="button"
           onClick={copyToClipboard}
-          className="flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:text-[#f8f8f2] dark:hover:bg-[#44475a]"
+          className={cn(
+            "flex size-9 items-center justify-center rounded-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            isDarkCode
+              ? "text-[#f8f8f2] hover:bg-[#44475a]"
+              : "text-[#57606a] hover:bg-white hover:text-[#24292f]",
+          )}
           aria-label="Copy code"
         >
           {copyState === "success" ? (
@@ -129,12 +151,21 @@ export function CodeBlock({
       </div>
       {highlightedCode ? (
         <div
-          className="[&>pre]:m-0 [&>pre]:overflow-x-auto [&>pre]:border-none [&>pre]:bg-card [&>pre]:p-5 [&>pre]:text-sm [&_code]:font-mono dark:[&>pre]:bg-[#282a36]"
-          dangerouslySetInnerHTML={{ __html: highlightedCode }}
+          className={cn(
+            "[&>pre]:m-0 [&>pre]:overflow-x-auto [&>pre]:border-none [&>pre]:p-5 [&>pre]:text-sm [&_code]:font-mono",
+            isDarkCode ? "[&>pre]:bg-[#282a36]" : "[&>pre]:bg-[#f6f8fa]",
+          )}
+          dangerouslySetInnerHTML={{ __html: highlightedCode.html }}
         />
       ) : (
-        <pre className="m-0 overflow-x-auto border-none bg-card p-5 text-sm dark:bg-[#282a36]">
-          <code className="font-mono text-foreground dark:text-[#f8f8f2]">{code}</code>
+        <pre className={cn(
+          "m-0 overflow-x-auto border-none p-5 text-sm",
+          isDarkCode ? "bg-[#282a36]" : "bg-[#f6f8fa]",
+        )}>
+          <code className={cn(
+            "font-mono",
+            isDarkCode ? "text-[#f8f8f2]" : "text-[#24292f]",
+          )}>{code}</code>
         </pre>
       )}
       <span className="sr-only" role="status" aria-live="polite">

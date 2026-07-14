@@ -24,4 +24,20 @@ describe("DocsLayout", () => {
     expect(main).toHaveClass("xl:px-10");
     expect(content).toHaveClass("max-w-[960px]");
   });
+
+  it("stretches sidebar backgrounds while keeping their content sticky", () => {
+    const { container } = render(<DocsLayout><div>Long content</div></DocsLayout>);
+    const sidebars = Array.from(container.querySelectorAll("aside"));
+
+    expect(sidebars).toHaveLength(2);
+    sidebars.forEach((sidebar) => {
+      expect(sidebar).toHaveClass("self-stretch", "bg-sidebar");
+      expect(sidebar).not.toHaveClass("sticky");
+      expect(sidebar.firstElementChild).toHaveClass(
+        "sticky",
+        "top-14",
+        "h-[calc(100vh-3.5rem)]",
+      );
+    });
+  });
 });
