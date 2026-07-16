@@ -92,9 +92,9 @@ export const revenueTarget = {
   min: 0,
   max: 100,
   zones: [
-    { from: 0, to: 40, color: "#ef4444" },
-    { from: 40, to: 70, color: "#f59e0b" },
-    { from: 70, to: 100, color: "#10b981" },
+    { from: 0, to: 40, color: "var(--chart-coral)" },
+    { from: 40, to: 70, color: "var(--chart-amber)" },
+    { from: 70, to: 100, color: "var(--chart-green)" },
   ],
 } as const;
 
