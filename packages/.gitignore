@@ -11,10 +11,11 @@
 !.yarn/versions
 
 # testing
+# NOTE: only coverage output is ignored here. This file used to also ignore
+# `/__tests__`, `*.test.*` and `*.spec.*` — copied over from the root Next.js
+# gitignore — which silently excluded test *sources* under packages/ from git.
+# That's why packages/cli had no unit tests. Don't reintroduce those patterns.
 /coverage
-/__tests__
-*.test.*
-*.spec.*
 
 # next.js
 /.next/

@@ -6,9 +6,10 @@ import ora from 'ora';
 import { execa } from 'execa';
 import { createPatch } from 'diff';
 import { getConfig, resolveConfigPaths } from '../utils/config.js';
-import { AddOptions } from '../utils/types.js';
+import { AddOptions, Config, RegistryItem } from '../utils/types.js';
 import { Logger } from '../utils/logger.js';
 import { defaultRegistry } from '../utils/registry.js';
+import { rewriteInternalImports } from '../utils/rewrite-imports.js';
 
 // Security utilities for path validation
 function sanitizeFileName(fileName: string): string {
@@ -36,26 +37,6 @@ function validatePath(targetPath: string, basePath: string): boolean {
 function isValidComponentType(componentType: string): boolean {
   const validTypes = ['chart', 'ui', 'layout', 'filter', 'primitive', 'lib', 'internal'];
   return validTypes.includes(componentType);
-}
-
-// Internal source imports (e.g. `../_shared`, `../../../../lib/utils`) only
-// resolve inside this monorepo. Rewrite them to the consumer's configured
-// aliases on install — the way shadcn's CLI does — so components compile
-// standalone. See #61.
-function rewriteInternalImports(content: string, config: any): string {
-  const utilsAlias = config.aliases.utils as string; // e.g. '@/lib/utils'
-  const libDir = path.posix.dirname(utilsAlias); // e.g. '@/lib'
-  const hooksAlias = path.posix.join(libDir, 'hooks'); // e.g. '@/lib/hooks'
-  const sharedAlias = `${config.aliases.charts}/_shared`;
-
-  // Anchored to `from "..."` (covers both `import ... from` and
-  // `export ... from`) so a bare string elsewhere in the file that happens
-  // to match one of these literals — a comment, an unrelated string — isn't
-  // rewritten.
-  return content
-    .replace(/(from\s+)(['"])\.\.\/\.\.\/\.\.\/\.\.\/lib\/utils\2/g, `$1$2${utilsAlias}$2`)
-    .replace(/(from\s+)(['"])\.\.\/\.\.\/\.\.\/\.\.\/lib\/hooks\2/g, `$1$2${hooksAlias}$2`)
-    .replace(/(from\s+)(['"])\.\.\/_shared((?:\/[^'"]*)?)\2/g, `$1$2${sharedAlias}$3$2`);
 }
 
 const logger = new Logger();
@@ -207,6 +188,7 @@ export async function addComponents(components: string[], options: AddOptions = 
   
   for (let i = 0; i < resolved.resolved.length; i++) {
     const component = resolved.resolved[i];
+    if (!component) continue; // index access is only nominally optional; keeps the loop typed
     const spinner = ora(`Installing ${component.name} (${i + 1}/${resolved.resolved.length})...`).start();
     
     try {
@@ -258,8 +240,8 @@ export async function addComponents(components: string[], options: AddOptions = 
 }
 
 async function installComponent(
-  component: any,
-  config: any,
+  component: RegistryItem,
+  config: Config,
   cwd: string,
   options: AddOptions
 ) {
@@ -338,7 +320,7 @@ async function installComponent(
   return results;
 }
 
-function resolveComponentPath(fileName: string, componentType: string, config: any, cwd: string): string {
+function resolveComponentPath(fileName: string, componentType: string, config: Config, cwd: string): string {
   // Security: Validate component type
   if (!isValidComponentType(componentType)) {
     throw new Error(`Invalid component type: ${componentType}`);
@@ -405,7 +387,7 @@ function resolveComponentPath(fileName: string, componentType: string, config: a
   return targetPath;
 }
 
-function getComponentImportPath(component: any, config: any): string {
+function getComponentImportPath(component: RegistryItem, config: Config): string {
   const alias = config.aliases.charts;
   return `${alias}/${component.name}`;
 }
