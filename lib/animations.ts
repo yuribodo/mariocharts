@@ -187,12 +187,6 @@ export const confettiConfig = {
     origin: { y: 0.5, x: 0.5 },
     colors: ["#a855f7", "#ec4899", "#22d3ee", "#f472b6", "#facc15"],
   },
-  copy: {
-    particleCount: 30,
-    spread: 50,
-    origin: { y: 0.8, x: 0.5 },
-    colors: ["#22c55e", "#4ade80", "#86efac"],
-  },
 };
 
 // Transition presets

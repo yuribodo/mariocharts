@@ -13,7 +13,7 @@ export {
 } from "./showcase";
 
 // Code Demo Section
-export { CodeDemoSection, InteractiveCode, LivePreview } from "./code-demo";
+export { CodeDemoSection } from "./code-demo";
 
 // CTA Section
 export { CTASection, BadgeDisplay, BadgeToast } from "./cta";
