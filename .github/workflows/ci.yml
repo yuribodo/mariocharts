@@ -83,3 +83,6 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: CLI smoke test
+        run: npm run smoke-test --workspace=packages/cli
