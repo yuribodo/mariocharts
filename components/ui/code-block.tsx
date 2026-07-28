@@ -11,6 +11,10 @@ interface CodeBlockProps {
   code: string;
   language?: string;
   className?: string;
+  /** 1-based line numbers to tint. */
+  highlightedLines?: readonly number[];
+  /** Fires only after a successful clipboard write. */
+  onCopy?: () => void;
 }
 
 type CopyState = "idle" | "success" | "error";
@@ -26,36 +30,63 @@ const languageLabels: Record<string, string> = {
   typescript: "ts",
 };
 
+type Highlighter = Awaited<ReturnType<typeof createHighlighter>>;
+
+let highlighterPromise: Promise<Highlighter> | null = null;
+
+/**
+ * One highlighter for the whole app.
+ *
+ * `createHighlighter` loads two themes and eight grammars. The workbench
+ * regenerates its source on every control change, so creating one per render
+ * would bootstrap Shiki on every click. Instances share this promise and none
+ * of them dispose it.
+ */
+function getHighlighter(): Promise<Highlighter> {
+  if (!highlighterPromise) {
+    highlighterPromise = createHighlighter({
+      themes: ["github-light", "dracula"],
+      langs: [
+        "javascript",
+        "typescript",
+        "jsx",
+        "tsx",
+        "bash",
+        "json",
+        "css",
+        "html",
+      ],
+    });
+  }
+
+  return highlighterPromise;
+}
+
 export function CodeBlock({
   code,
   language = "bash",
   className,
+  highlightedLines,
+  onCopy,
 }: CodeBlockProps) {
   const { resolvedTheme } = useTheme();
   const [copyState, setCopyState] = useState<CopyState>("idle");
   const [highlightedCode, setHighlightedCode] = useState<HighlightedCode | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // `highlightedLines` is an array prop, so a caller re-rendering with a fresh
+  // literal would restart highlighting on every render. Depend on its contents.
+  const highlightKey = highlightedLines?.join(",") ?? "";
+
   useEffect(() => {
     let cancelled = false;
-    let highlighter: Awaited<ReturnType<typeof createHighlighter>> | null = null;
 
     const highlight = async () => {
       try {
-        highlighter = await createHighlighter({
-          themes: ["github-light", "dracula"],
-          langs: [
-            "javascript",
-            "typescript",
-            "jsx",
-            "tsx",
-            "bash",
-            "json",
-            "css",
-            "html",
-          ],
-        });
+        const highlighter = await getHighlighter();
+        if (cancelled) return;
 
+        const lines = highlightKey === "" ? [] : highlightKey.split(",").map(Number);
         const theme: CodeTheme = resolvedTheme === "dark" ? "dracula" : "github-light";
         const html = highlighter.codeToHtml(code, {
           lang: language,
@@ -65,6 +96,13 @@ export function CodeBlock({
               pre(node) {
                 node.properties.style = "";
                 node.properties.class = "shiki-themed";
+              },
+            },
+            {
+              line(node, line) {
+                if (lines.includes(line)) {
+                  node.properties["data-highlighted"] = "true";
+                }
               },
             },
           ],
@@ -80,9 +118,8 @@ export function CodeBlock({
 
     return () => {
       cancelled = true;
-      highlighter?.dispose();
     };
-  }, [code, language, resolvedTheme]);
+  }, [code, language, resolvedTheme, highlightKey]);
 
   useEffect(() => {
     return () => {
@@ -96,6 +133,7 @@ export function CodeBlock({
     try {
       await navigator.clipboard.writeText(code);
       setCopyState("success");
+      onCopy?.();
     } catch {
       setCopyState("error");
     }
@@ -153,7 +191,10 @@ export function CodeBlock({
         <div
           className={cn(
             "[&>pre]:m-0 [&>pre]:overflow-x-auto [&>pre]:border-none [&>pre]:p-5 [&>pre]:text-sm [&_code]:font-mono",
-            isDarkCode ? "[&>pre]:bg-[#282a36]" : "[&>pre]:bg-[#f6f8fa]",
+            "[&_.line]:-mx-5 [&_.line]:block [&_.line]:px-5 [&_.line]:transition-colors [&_.line]:duration-200 [&_.line]:ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:[&_.line]:transition-none",
+            isDarkCode
+              ? "[&>pre]:bg-[#282a36] [&_.line[data-highlighted]]:bg-[#44475a]"
+              : "[&>pre]:bg-[#f6f8fa] [&_.line[data-highlighted]]:bg-[#e7edf3]",
           )}
           dangerouslySetInnerHTML={{ __html: highlightedCode.html }}
         />
