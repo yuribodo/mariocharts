@@ -106,7 +106,14 @@ try {
   const expectedFiles = [
     'lib/utils.ts',
     'lib/hooks.ts',
+    // All six files the `_shared` barrel re-exports from. Listing only
+    // `index.ts` would let a dropped sibling (`./types`, `./utils`, `./hooks`)
+    // pass this check while leaving generated projects uncompilable — the
+    // exact regression class #61 was about.
     'components/charts/_shared/index.ts',
+    'components/charts/_shared/types.ts',
+    'components/charts/_shared/utils.ts',
+    'components/charts/_shared/hooks.ts',
     'components/charts/_shared/chart-tooltip.tsx',
     'components/charts/_shared/tooltip-types.ts',
     'components/charts/bar-chart/index.tsx',

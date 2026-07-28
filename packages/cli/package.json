@@ -19,7 +19,8 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build",
     "smoke-test": "node scripts/smoke-test.js",
-    "test": "npm run build && npm run smoke-test"
+    "test:unit": "jest --config ../../jest.config.ts packages/cli",
+    "test": "npm run test:unit && npm run build && npm run smoke-test"
   },
   "repository": {
     "type": "git",
