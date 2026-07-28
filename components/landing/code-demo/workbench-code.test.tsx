@@ -1,11 +1,17 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 
 import { WorkbenchCode } from "./workbench-code";
 
 const unlock = jest.fn();
 
+let mockReducedMotion = false;
+
 jest.mock("@/hooks", () => ({
   useBadges: () => ({ unlock }),
+}));
+
+jest.mock("framer-motion", () => ({
+  useReducedMotion: () => mockReducedMotion,
 }));
 
 jest.mock("@/components/ui/code-block", () => ({
@@ -46,6 +52,7 @@ function renderCode(overrides: Partial<Parameters<typeof WorkbenchCode>[0]> = {}
 describe("WorkbenchCode", () => {
   beforeEach(() => {
     unlock.mockClear();
+    mockReducedMotion = false;
   });
 
   it("renders source that matches the current state", () => {
@@ -98,6 +105,118 @@ describe("WorkbenchCode", () => {
     );
 
     expect(screen.getByTestId("highlighted")).toHaveTextContent("8");
+  });
+
+  it("tints every changed line when multiple props change in one rerender", () => {
+    const { rerender } = render(
+      <WorkbenchCode
+        orientation="vertical"
+        variant="filled"
+        animation
+        onOrientationChange={jest.fn()}
+        onVariantChange={jest.fn()}
+        onAnimationChange={jest.fn()}
+        onReplay={jest.fn()}
+      />,
+    );
+
+    rerender(
+      <WorkbenchCode
+        orientation="horizontal"
+        variant="outline"
+        animation
+        onOrientationChange={jest.fn()}
+        onVariantChange={jest.fn()}
+        onAnimationChange={jest.fn()}
+        onReplay={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("highlighted")).toHaveTextContent("7,8");
+  });
+
+  it("clears the tint after TINT_DURATION_MS elapses", () => {
+    jest.useFakeTimers();
+
+    try {
+      const { rerender } = render(
+        <WorkbenchCode
+          orientation="vertical"
+          variant="filled"
+          animation
+          onOrientationChange={jest.fn()}
+          onVariantChange={jest.fn()}
+          onAnimationChange={jest.fn()}
+          onReplay={jest.fn()}
+        />,
+      );
+
+      rerender(
+        <WorkbenchCode
+          orientation="horizontal"
+          variant="filled"
+          animation
+          onOrientationChange={jest.fn()}
+          onVariantChange={jest.fn()}
+          onAnimationChange={jest.fn()}
+          onReplay={jest.fn()}
+        />,
+      );
+
+      expect(screen.getByTestId("highlighted")).toHaveTextContent("7");
+
+      act(() => {
+        jest.advanceTimersByTime(700);
+      });
+
+      expect(screen.getByTestId("highlighted")).toHaveTextContent("");
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("clears an in-flight tint when reduced motion turns on", () => {
+    const { rerender } = render(
+      <WorkbenchCode
+        orientation="vertical"
+        variant="filled"
+        animation
+        onOrientationChange={jest.fn()}
+        onVariantChange={jest.fn()}
+        onAnimationChange={jest.fn()}
+        onReplay={jest.fn()}
+      />,
+    );
+
+    rerender(
+      <WorkbenchCode
+        orientation="horizontal"
+        variant="filled"
+        animation
+        onOrientationChange={jest.fn()}
+        onVariantChange={jest.fn()}
+        onAnimationChange={jest.fn()}
+        onReplay={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("highlighted")).toHaveTextContent("7");
+
+    mockReducedMotion = true;
+
+    rerender(
+      <WorkbenchCode
+        orientation="horizontal"
+        variant="outline"
+        animation
+        onOrientationChange={jest.fn()}
+        onVariantChange={jest.fn()}
+        onAnimationChange={jest.fn()}
+        onReplay={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("highlighted")).toHaveTextContent("");
   });
 
   it("unlocks the first-copy badge without any celebration", () => {

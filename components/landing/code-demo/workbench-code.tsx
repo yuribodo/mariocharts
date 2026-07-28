@@ -59,21 +59,26 @@ export function WorkbenchCode({
     const before = previous.current;
     previous.current = { orientation, variant, animation };
 
-    if (shouldReduceMotion) return;
+    if (shouldReduceMotion) {
+      // Reduced motion removes the line tint outright, even if a tint from
+      // before the preference flipped on is still in flight.
+      if (tintTimer.current) {
+        clearTimeout(tintTimer.current);
+        tintTimer.current = null;
+      }
+      setTintedLines([]);
+      return;
+    }
 
-    const changed =
-      before.orientation !== orientation
-        ? PROP_LINES.orientation
-        : before.variant !== variant
-          ? PROP_LINES.variant
-          : before.animation !== animation
-            ? PROP_LINES.animation
-            : null;
+    const changed: number[] = [];
+    if (before.orientation !== orientation) changed.push(PROP_LINES.orientation);
+    if (before.variant !== variant) changed.push(PROP_LINES.variant);
+    if (before.animation !== animation) changed.push(PROP_LINES.animation);
 
-    if (changed === null) return;
+    if (changed.length === 0) return;
 
     if (tintTimer.current) clearTimeout(tintTimer.current);
-    setTintedLines([changed]);
+    setTintedLines(changed);
     tintTimer.current = setTimeout(() => setTintedLines([]), TINT_DURATION_MS);
   }, [orientation, variant, animation, shouldReduceMotion]);
 
@@ -138,7 +143,7 @@ export function WorkbenchCode({
             type="button"
             onClick={onReplay}
             disabled={!animation}
-            className="inline-flex size-11 items-center justify-center rounded border bg-background text-muted-foreground transition-colors duration-150 hover:text-foreground active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+            className="inline-flex size-11 items-center justify-center rounded border bg-background text-muted-foreground transition-colors duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] hover:text-foreground active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
             aria-label="Replay animation"
             title="Replay animation"
           >
