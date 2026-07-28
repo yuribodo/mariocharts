@@ -56,6 +56,9 @@ function getHighlighter(): Promise<Highlighter> {
         "css",
         "html",
       ],
+    }).catch((err) => {
+      highlighterPromise = null;
+      throw err;
     });
   }
 

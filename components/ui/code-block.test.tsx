@@ -28,6 +28,35 @@ describe("CodeBlock", () => {
     });
   });
 
+  it("clears the cached highlighter promise after a rejection so a later call retries", async () => {
+    const { createHighlighter } = jest.requireMock("shiki");
+    const callsBefore = createHighlighter.mock.calls.length;
+
+    createHighlighter.mockImplementationOnce(async () => {
+      throw new Error("wasm load failed");
+    });
+
+    const { unmount } = render(
+      <CodeBlock code="const c = 3;" language="typescript" />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("const c = 3;")).toBeInTheDocument();
+    });
+    expect(createHighlighter.mock.calls.length).toBe(callsBefore + 1);
+    unmount();
+
+    render(<CodeBlock code="const d = 4;" language="typescript" />);
+
+    await waitFor(() => {
+      expect(codeToHtml).toHaveBeenCalledWith(
+        "const d = 4;",
+        expect.objectContaining({ theme: "dracula" }),
+      );
+    });
+    expect(createHighlighter.mock.calls.length).toBe(callsBefore + 2);
+  });
+
   it("keeps the copy action visible and announces success", async () => {
     render(<CodeBlock code="const value = 1;" language="typescript" />);
 
