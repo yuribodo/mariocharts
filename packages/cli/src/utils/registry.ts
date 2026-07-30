@@ -10,6 +10,13 @@ const logger = new Logger();
 
 export const DEFAULT_REGISTRY_URL = 'https://mariocharts.com/registry';
 
+// Skips the network entirely and always uses the embedded fallback registry.
+// Useful for offline environments, and for tests that need deterministic
+// fallback-only behavior regardless of whether the hosted registry is up.
+const OFFLINE = process.env.MARIO_CHARTS_OFFLINE === '1';
+
+const FETCH_TIMEOUT_MS = 5000;
+
 // Fallback registry data embedded in the CLI
 // Generated at build time by scripts/generate-fallback-registry.js
 
@@ -54,19 +61,24 @@ export class RegistryClient {
       if (this.useLocal) {
         const indexPath = path.join(this.localPath, 'index.json');
         logger.debug(`Fetching registry index from local file: ${indexPath}`);
-        
+
         if (await fs.pathExists(indexPath)) {
           const data = await fs.readJSON(indexPath);
           return registryIndexSchema.parse(data);
         }
       }
 
+      if (OFFLINE) {
+        logger.debug('Offline mode, using embedded components');
+        return registryIndexSchema.parse(FALLBACK_REGISTRY_INDEX);
+      }
+
       // Try remote
       const url = `${this.baseUrl}/index.json`;
       logger.debug(`Fetching registry index from: ${url}`);
-      
-      const response = await fetch(url);
-      
+
+      const response = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+
       if (!response.ok) {
         // If remote fails, use fallback
         logger.debug('Remote registry not available, using embedded components');
@@ -95,12 +107,20 @@ export class RegistryClient {
         }
       }
 
+      if (OFFLINE) {
+        if (FALLBACK_COMPONENTS[name]) {
+          logger.debug(`Offline mode, using embedded component: ${name}`);
+          return registryItemSchema.parse(FALLBACK_COMPONENTS[name]);
+        }
+        throw new Error(`Component "${name}" not found in registry`);
+      }
+
       // Try remote
       const url = `${this.baseUrl}/components/${name}.json`;
       logger.debug(`Fetching component from: ${url}`);
-      
-      const response = await fetch(url);
-      
+
+      const response = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+
       if (!response.ok) {
         // If remote fails, check fallback
         if (FALLBACK_COMPONENTS[name]) {

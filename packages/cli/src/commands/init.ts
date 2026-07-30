@@ -78,15 +78,19 @@ export async function init(options: InitOptions = {}) {
     await fs.ensureDir(utilsDir);
 
     // Criar arquivo utils.ts se não existir
+    // Sourced from the registry (not a hand-copied string) so it never
+    // drifts from what `add` would install for the `lib-utils` component.
     const utilsPath = path.resolve(cwd, config.aliases.utils.replace('@/', '') + '.ts');
     if (!await fs.pathExists(utilsPath)) {
-      await fs.writeFile(utilsPath, getUtilsContent());
+      const libUtils = await defaultRegistry.getComponent('lib-utils');
+      await fs.writeFile(utilsPath, libUtils.files[0]!.content);
     }
 
     // Criar arquivo hooks.ts se não existir
     const hooksPath = path.resolve(cwd, utilsDir, 'hooks.ts');
     if (!await fs.pathExists(hooksPath)) {
-      await fs.writeFile(hooksPath, getHooksContent());
+      const libHooks = await defaultRegistry.getComponent('lib-hooks');
+      await fs.writeFile(hooksPath, libHooks.files[0]!.content);
     }
 
     spinner.succeed('Project structure created');
@@ -263,26 +267,4 @@ async function installTailwindCSS(cwd: string) {
     spinner.fail('Failed to install Tailwind CSS');
     logger.error('Please install Tailwind CSS manually: https://tailwindcss.com/docs/installation');
   }
-}
-
-function getUtilsContent(): string {
-  return `import { type ClassValue, clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
-`;
-}
-
-function getHooksContent(): string {
-  return `import { useEffect, useLayoutEffect } from 'react';
-
-/**
- * Isomorphic useLayoutEffect that falls back to useEffect on the server.
- * Use for DOM measurements that may run during SSR.
- */
-export const useIsomorphicLayoutEffect =
-  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
-`;
 }

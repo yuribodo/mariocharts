@@ -34,7 +34,9 @@
       "funnel-chart",
       "gauge-chart",
       "heatmap",
-      "treemap-chart"
+      "stacked-bar-chart",
+      "treemap-chart",
+      "waterfall-chart"
     ],
     "layout": [
       "dashboard-grid",
