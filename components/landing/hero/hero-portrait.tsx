@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 
 import { HERO_ASCII, HERO_ASCII_COLUMNS } from "./hero-ascii";
+import { HeroPortraitEffect } from "./hero-portrait-effect";
 
 interface HeroPortraitProps {
   className?: string;
@@ -15,16 +16,16 @@ interface HeroPortraitProps {
  */
 export function HeroPortrait({ className }: HeroPortraitProps) {
   return (
-    <pre
-      role="img"
-      aria-label="Mario, rendered in ASCII"
-      style={{ fontSize: `min(1.6vh, calc(96vw / ${HERO_ASCII_COLUMNS} / 0.6))` }}
-      className={cn(
-        "select-none whitespace-pre font-mono leading-[1.05] text-muted-foreground",
-        className,
-      )}
-    >
-      {HERO_ASCII}
-    </pre>
+    <div className={cn("relative", className)}>
+      <pre
+        role="img"
+        aria-label="Mario, rendered in ASCII"
+        style={{ fontSize: `min(1.6vh, calc(96vw / ${HERO_ASCII_COLUMNS} / 0.6))` }}
+        className="select-none whitespace-pre font-mono leading-[1.05] text-muted-foreground"
+      >
+        {HERO_ASCII}
+      </pre>
+      <HeroPortraitEffect text={HERO_ASCII} columns={HERO_ASCII_COLUMNS} />
+    </div>
   );
 }

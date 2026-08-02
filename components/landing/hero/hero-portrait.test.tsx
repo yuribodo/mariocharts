@@ -7,6 +7,8 @@ jest.mock("./hero-ascii", () => ({
   HERO_ASCII_COLUMNS: 8,
 }));
 
+jest.mock("./hero-portrait-effect", () => ({ HeroPortraitEffect: () => null }));
+
 describe("HeroPortrait", () => {
   it("exposes one short name instead of the whole field", () => {
     render(<HeroPortrait />);
