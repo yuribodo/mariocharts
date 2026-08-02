@@ -49,6 +49,25 @@ describe("ChartIndexSection", () => {
     expect(markup).not.toContain("shadow-lg");
   });
 
+  it("takes the decorative previews out of the tab order", () => {
+    const { container } = render(<ChartIndexSection />);
+
+    // Charts make their own marks focusable. Inside a link they are
+    // decoration, and a focusable element inside an aria-hidden subtree is
+    // exactly what ARIA forbids.
+    const previews = [...container.querySelectorAll("a")]
+      .map((link) => link.firstElementChild)
+      .filter(
+        (el): el is Element =>
+          el?.tagName === "DIV" && el.getAttribute("aria-hidden") === "true",
+      );
+
+    expect(previews).toHaveLength(CHART_INDEX.length);
+    for (const preview of previews) {
+      expect(preview.hasAttribute("inert")).toBe(true);
+    }
+  });
+
   it("keeps the heading out of hero display sizing", () => {
     render(<ChartIndexSection />);
 

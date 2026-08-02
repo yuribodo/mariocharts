@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -16,6 +16,36 @@ import { CHART_INDEX } from "./chart-index-data";
 
 interface ChartIndexSectionProps {
   className?: string;
+}
+
+/**
+ * Charts mark every bar, point and tile with tabIndex={0} so they can be keyed.
+ * In a preview those marks are decoration inside a link: leaving them in the
+ * tab order puts focusable elements inside an aria-hidden subtree — which ARIA
+ * forbids — and buries the six real destinations under about thirty stops.
+ *
+ * `inert` takes the whole subtree out of focus and out of the accessibility
+ * tree. It is set from an effect rather than written as JSX: React 18's client
+ * renderer emits an `inert` attribute but its server renderer drops it, and
+ * hydration does not reconcile attribute mismatches — so writing it inline
+ * passes a client-render test while never reaching the real page.
+ */
+function ChartPreview({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    ref.current?.setAttribute("inert", "");
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      aria-hidden="true"
+      className="h-40 w-full overflow-hidden"
+    >
+      {children}
+    </div>
+  );
 }
 
 /** Every preview is the same height so hovering a cell never shifts the grid. */
@@ -76,29 +106,18 @@ const skillAxes = [
   { key: "design", label: "Design" },
 ];
 
+/**
+ * Flat, with values close enough together that squarify produces actual
+ * rectangles. Nested data with steep value gaps degenerates into full-width
+ * rows in a landscape box, which reads as a stacked bar and misrepresents the
+ * component.
+ */
 const revenueTree = [
-  {
-    name: "Cloud",
-    children: [
-      { name: "AWS", value: 80000 },
-      { name: "Azure", value: 65000 },
-      { name: "GCP", value: 33000 },
-    ],
-  },
-  {
-    name: "Hardware",
-    children: [
-      { name: "Phones", value: 52000 },
-      { name: "Laptops", value: 38000 },
-    ],
-  },
-  {
-    name: "Software",
-    children: [
-      { name: "Licences", value: 41000 },
-      { name: "Support", value: 22000 },
-    ],
-  },
+  { name: "Cloud", value: 42000 },
+  { name: "Devices", value: 31000 },
+  { name: "Software", value: 24000 },
+  { name: "Services", value: 18000 },
+  { name: "Support", value: 11000 },
 ] as const;
 
 /**
@@ -203,9 +222,7 @@ export function ChartIndexSection({ className }: ChartIndexSectionProps) {
               href={entry.href}
               className="group flex flex-col border-b border-r p-5 transition-[background-color,transform] duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring active:scale-[0.99] motion-reduce:transition-none [@media(hover:hover)]:hover:bg-accent"
             >
-              <div aria-hidden="true" className="h-40 w-full overflow-hidden">
-                {PREVIEWS[entry.name]}
-              </div>
+              <ChartPreview>{PREVIEWS[entry.name]}</ChartPreview>
               <span className="mt-4 text-sm font-medium text-foreground">
                 {entry.name}
               </span>
