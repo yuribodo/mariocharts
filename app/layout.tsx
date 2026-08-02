@@ -27,14 +27,14 @@ export const metadata: Metadata = {
     template: "%s | Mario Charts",
   },
   description:
-    "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box. Zero lock-in, copy-paste components built with TypeScript, Tailwind CSS, and Recharts.",
+    "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box. Zero lock-in, copy-paste components built with TypeScript, Tailwind CSS, and Framer Motion.",
   keywords: [
     "react charts",
     "react chart library",
     "react data visualization",
     "typescript charts",
     "tailwind charts",
-    "recharts components",
+    "framer motion charts",
     "dashboard components",
     "bar chart react",
     "line chart react",

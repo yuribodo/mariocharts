@@ -23,21 +23,47 @@ Mario Charts prioritizes ease of use, excellent developer experience, and zero l
 
 ### Installation
 
+Mario Charts is published as a [shadcn registry](https://ui.shadcn.com/docs/registry).
+In any React project with a `components.json`, add a chart directly by URL:
+
 ```bash
-# Initialize Mario Charts in your project
-npx mario-charts@latest init
-
-# Add individual components
-npx mario-charts@latest add bar-chart kpi-card
-
-# Install peer dependencies
-npm install framer-motion
+npx shadcn@latest add https://mariocharts.com/r/bar-chart.json
 ```
+
+Dependencies are resolved automatically — nothing else to install.
+
+To install charts by short name, register the namespace once in your
+`components.json`:
+
+```json
+{
+  "registries": {
+    "@mariocharts": "https://mariocharts.com/r/{name}.json"
+  }
+}
+```
+
+```bash
+npx shadcn@latest add @mariocharts/bar-chart @mariocharts/line-chart
+```
+
+Every available chart is listed at
+[mariocharts.com/r/registry.json](https://mariocharts.com/r/registry.json).
+
+<details>
+<summary>Using the Mario Charts CLI instead</summary>
+
+```bash
+npx mario-charts@latest init
+npx mario-charts@latest add bar-chart line-chart
+```
+
+</details>
 
 ### Basic Usage
 
 ```tsx
-import { BarChart, KPICard } from '@/components/charts';
+import { BarChart } from '@/components/charts/bar-chart';
 
 const data = [
   { name: 'Jan', revenue: 1000 },
@@ -48,24 +74,6 @@ const data = [
 export function Dashboard() {
   return (
     <div className="p-6 space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <KPICard
-          title="Total Revenue"
-          value={3700}
-          change={{ value: 12.5, type: "increase", period: "last month" }}
-        />
-        <KPICard
-          title="Active Users"
-          value="2.4K"
-          change={{ value: 8.2, type: "increase", period: "last week" }}
-        />
-        <KPICard
-          title="Conversion Rate"
-          value="3.2%"
-          change={{ value: 2.1, type: "decrease", period: "yesterday" }}
-        />
-      </div>
-      
       <BarChart 
         data={data}
         x="name"
@@ -116,7 +124,6 @@ export function Dashboard() {
 - ✅ **BarChart** - Responsive bar charts with filled/outline variants, vertical/horizontal orientations, and smooth animations
 - ✅ **LineChart** - Time series line charts
 - ✅ **AreaChart** - Area charts for cumulative data
-- ⏳ **KPICard** - Metric cards with sparklines
 
 ### Phase 2: Fundamental Expansion
 - ✅ **PieChart/DonutChart** - Pie and donut charts

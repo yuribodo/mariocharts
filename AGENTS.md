@@ -3,7 +3,7 @@
 ## Project Structure & Module Organization
 - Next.js pages live in `app/`; marketing blocks are in `components/site` and shared widgets in `components/ui`.
 - Published components stay in `src/components/**` with supporting hooks in `src/hooks` and shared utilities in `lib/`.
-- CLI assets sit in `packages/cli`, registry metadata in `packages/registry`, and static files in `public/`; lean on the `@/...` aliases from `tsconfig.json`.
+- CLI assets sit in `packages/cli`; the registry manifest and its emitters live in `registry/` (run `npm run build:registry` after touching a chart), and static files in `public/`; lean on the `@/...` aliases from `tsconfig.json`.
 
 ## DX & Design Principles
 - Treat documentation as product: update `docs/`, snippets, and copy whenever APIs move.
