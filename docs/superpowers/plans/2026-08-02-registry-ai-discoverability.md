@@ -831,6 +831,39 @@ describe('emitShadcn', () => {
       }
     }
   });
+
+  // The regression guard. It is what catches a future chart shipping an
+  // unrewritten import — the positive tests below only cover today's charts.
+  // Verify it actually fires: make rewriteImportsForShadcn return its input
+  // unchanged, confirm THIS test fails on the `_shared` assertion (not only
+  // the `lib/` one), then restore. A guard you have not seen fail is not a
+  // guard, and a mistyped character class here silently asserts nothing.
+  it('rewrites relative imports to canonical @/ aliases in all items', () => {
+    for (const output of outputs) {
+      if (output.path.endsWith('/registry.json')) continue;
+      const doc = JSON.parse(output.content);
+      for (const file of doc.files) {
+        expect(file.content).not.toMatch(/from\s+['"]\.\.\/\.\.\/\.\.\/\.\.\/lib\//);
+        expect(file.content).not.toMatch(/from\s+['"]\.\.\/_shared/);
+      }
+    }
+  });
+
+  it('rewrites bar-chart imports to @/lib and @/components/charts/_shared', () => {
+    const doc = JSON.parse(
+      outputs.find((o) => o.path.endsWith('/bar-chart.json')).content
+    );
+    expect(doc.files[0].content).toContain('from "@/lib/utils"');
+    expect(doc.files[0].content).toContain('from "@/components/charts/_shared"');
+  });
+
+  it('rewrites chart-shared imports to @/lib/hooks', () => {
+    const doc = JSON.parse(
+      outputs.find((o) => o.path.endsWith('/chart-shared.json')).content
+    );
+    const hooks = doc.files.find((f) => f.path === '_shared/hooks.ts');
+    expect(hooks.content).toContain('from "@/lib/hooks"');
+  });
 });
 ```
 
@@ -856,6 +889,25 @@ const REGISTRY_SCHEMA = 'https://ui.shadcn.com/schema/registry.json';
 
 function registryType(item) {
   return item.kind === 'chart' ? 'registry:component' : 'registry:lib';
+}
+
+// Component sources carry imports calibrated to this monorepo's tree
+// (`../../../../lib/utils`, `../_shared`). The shadcn CLI rewrites `@/`-style
+// aliases to the consumer's own, but leaves literal relative paths alone — so
+// shipping the raw content installs files that resolve outside the consumer's
+// project. This is the same defect issue #61 fixed for the Mario Charts CLI;
+// see packages/cli/src/utils/rewrite-imports.ts, which does this at install
+// time using the consumer's config. Here the content is static and shared by
+// every consumer, so it must be rewritten to canonical `@/` form at emit time.
+//
+// This belongs to the shadcn emitter alone. Do NOT hoist it into manifest.js:
+// the CLI does its own rewriting from the raw content, and Task 1's
+// byte-identity guarantee for fallback-generated.ts depends on it staying raw.
+function rewriteImportsForShadcn(content) {
+  return content
+    .replace(/(from\s+)(['"])\.\.\/\.\.\/\.\.\/\.\.\/lib\/utils\2/g, `$1$2@/lib/utils$2`)
+    .replace(/(from\s+)(['"])\.\.\/\.\.\/\.\.\/\.\.\/lib\/hooks\2/g, `$1$2@/lib/hooks$2`)
+    .replace(/(from\s+)(['"])\.\.\/_shared((?:\/[^'"]*)?)\2/g, `$1$2@/components/charts/_shared$3$2`);
 }
 
 // shadcn resolves `@components` / `@lib` through the consumer's components.json
@@ -887,7 +939,7 @@ function toShadcnItem(item) {
       path: file.name,
       type,
       target: targetFor(item, file.name),
-      content: file.content,
+      content: rewriteImportsForShadcn(file.content),
     })),
     categories: item.categories,
   };
@@ -944,7 +996,7 @@ module.exports = { emitShadcn, toShadcnItem, toIndexEntry, targetFor, OUTPUT_DIR
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx jest registry/emitters/shadcn.test.js`
-Expected: PASS, 12 tests
+Expected: PASS, 15 tests
 
 - [ ] **Step 5: Wire the emitter into the build**
 
