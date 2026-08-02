@@ -10,18 +10,11 @@ export function useContainerDimensions() {
   useIsomorphicLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    let rafId = 0;
-    const update = () => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => setWidth(el.getBoundingClientRect().width));
-    };
+    const update = () => setWidth(el.getBoundingClientRect().width);
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
-    return () => {
-      cancelAnimationFrame(rafId);
-      ro.disconnect();
-    };
+    return () => ro.disconnect();
   }, []);
 
   return [ref, width] as const;
