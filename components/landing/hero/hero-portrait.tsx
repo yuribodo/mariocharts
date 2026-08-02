@@ -8,9 +8,10 @@ interface HeroPortraitProps {
 
 /**
  * The portrait is server-rendered text, so it is on screen before any
- * JavaScript runs. Sizing is expressed in `ch` against the generated column
- * count: the field scales with the viewport without ever reflowing, because a
- * monospaced grid of a fixed column count has a fixed aspect.
+ * JavaScript runs. Sizing takes the smaller of a viewport-height term and a
+ * viewport-width term derived from the column count: the field scales with the
+ * viewport without ever reflowing, because a monospaced grid of a fixed column
+ * count has a fixed aspect.
  */
 export function HeroPortrait({ className }: HeroPortraitProps) {
   return (
