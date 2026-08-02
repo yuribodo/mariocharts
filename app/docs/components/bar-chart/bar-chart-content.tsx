@@ -139,7 +139,7 @@ npx mario-charts@latest init --components bar-chart`,
 npx mario-charts@latest add bar-chart
 
 # Add multiple components at once
-npx mario-charts@latest add bar-chart line-chart kpi-card`,
+npx mario-charts@latest add bar-chart line-chart`,
     language: "bash"
   },
   {
