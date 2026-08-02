@@ -112,4 +112,33 @@ describe('emitShadcn', () => {
       }
     }
   });
+
+  it('rewrites relative imports to canonical @/ aliases in all items', () => {
+    for (const output of outputs) {
+      if (output.path.endsWith('/registry.json')) continue;
+      const doc = JSON.parse(output.content);
+      for (const file of doc.files) {
+        expect(file.content).not.toMatch(/from\s+['"]\.\.\/\.\.\/\.\.\/\.\.\/lib\//);
+        expect(file.content).not.toMatch(/from\s+['"]\.\.\/\.\.\/\.\.\/\.\.\/lib\/hooks/);
+        expect(file.content).not.toMatch(/from\s+['"]\.\.\/\._shared/);
+      }
+    }
+  });
+
+  it('rewrites bar-chart imports to @/lib and @/components/charts/_shared', () => {
+    const barDoc = JSON.parse(
+      outputs.find((o) => o.path.endsWith('/bar-chart.json')).content
+    );
+    const content = barDoc.files[0].content;
+    expect(content).toContain('from "@/lib/utils"');
+    expect(content).toContain('from "@/components/charts/_shared"');
+  });
+
+  it('rewrites chart-shared imports to @/lib/hooks', () => {
+    const sharedDoc = JSON.parse(
+      outputs.find((o) => o.path.endsWith('/chart-shared.json')).content
+    );
+    const hooksFile = sharedDoc.files.find((f) => f.path === '_shared/hooks.ts');
+    expect(hooksFile.content).toContain('from "@/lib/hooks"');
+  });
 });

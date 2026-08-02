@@ -12,6 +12,16 @@ function registryType(item) {
   return item.kind === 'chart' ? 'registry:component' : 'registry:lib';
 }
 
+// Rewrite internal monorepo imports to canonical @/ aliases that shadcn
+// understands. Anchored to `from` (covers both `import ... from` and
+// `export ... from`) so unrelated strings aren't rewritten.
+function rewriteImportsForShadcn(content) {
+  return content
+    .replace(/(from\s+)(['"])\.\.\/\.\.\/\.\.\/\.\.\/lib\/utils\2/g, `$1$2@/lib/utils$2`)
+    .replace(/(from\s+)(['"])\.\.\/\.\.\/\.\.\/\.\.\/lib\/hooks\2/g, `$1$2@/lib/hooks$2`)
+    .replace(/(from\s+)(['"])\.\.\/_shared((?:\/[^'"]*)?)\2/g, `$1$2@/components/charts/_shared$3$2`);
+}
+
 // shadcn resolves `@components` / `@lib` through the consumer's components.json
 // aliases, so targets land in the right place whether the project uses src/ or
 // not. Nested targets are supported (the shadcn docs use `@ui/ai/prompt-input.tsx`),
@@ -41,7 +51,7 @@ function toShadcnItem(item) {
       path: file.name,
       type,
       target: targetFor(item, file.name),
-      content: file.content,
+      content: rewriteImportsForShadcn(file.content),
     })),
     categories: item.categories,
   };
