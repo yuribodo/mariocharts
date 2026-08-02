@@ -101,10 +101,20 @@ export function TerminalLink({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <span className="text-muted-foreground/60 transition-colors duration-150">
+      {/*
+        The link's accessible name. Everything below it is decoration: the
+        prefix is not part of the label, the width-holder repeats the text, and
+        the overlay is partial while the typing effect runs. Naming the link
+        here keeps that name stable and equal to the label.
+      */}
+      <span className="sr-only">{fullText}</span>
+      <span
+        aria-hidden="true"
+        className="text-muted-foreground transition-colors duration-150"
+      >
         {prefix}
       </span>
-      <span className="relative">
+      <span aria-hidden="true" className="relative">
         {/* Invisible text to maintain width */}
         <span className="invisible">{fullText}</span>
         {/* Visible typed text overlay */}
