@@ -173,22 +173,6 @@ export const partyMode: Variants = {
   },
 };
 
-// Confetti burst config
-export const confettiConfig = {
-  default: {
-    particleCount: 100,
-    spread: 70,
-    origin: { y: 0.6 },
-    colors: ["#a855f7", "#ec4899", "#22d3ee", "#f472b6", "#818cf8"],
-  },
-  party: {
-    particleCount: 150,
-    spread: 180,
-    origin: { y: 0.5, x: 0.5 },
-    colors: ["#a855f7", "#ec4899", "#22d3ee", "#f472b6", "#facc15"],
-  },
-};
-
 // Transition presets
 export const transitions = {
   fast: { duration: 0.2 } as Transition,

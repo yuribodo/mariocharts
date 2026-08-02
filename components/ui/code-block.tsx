@@ -13,8 +13,6 @@ interface CodeBlockProps {
   className?: string;
   /** 1-based line numbers to tint. */
   highlightedLines?: readonly number[];
-  /** Fires only after a successful clipboard write. */
-  onCopy?: () => void;
 }
 
 type CopyState = "idle" | "success" | "error";
@@ -70,7 +68,6 @@ export function CodeBlock({
   language = "bash",
   className,
   highlightedLines,
-  onCopy,
 }: CodeBlockProps) {
   const { resolvedTheme } = useTheme();
   const [copyState, setCopyState] = useState<CopyState>("idle");
@@ -136,7 +133,6 @@ export function CodeBlock({
     try {
       await navigator.clipboard.writeText(code);
       setCopyState("success");
-      onCopy?.();
     } catch {
       setCopyState("error");
     }

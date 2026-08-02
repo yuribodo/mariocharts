@@ -14,10 +14,6 @@ jest.mock("@/components/ui/code-block", () => ({
   CodeBlock: ({ code }: { code: string }) => <pre data-testid="source">{code}</pre>,
 }));
 
-jest.mock("@/hooks", () => ({
-  useBadges: () => ({ unlock: jest.fn() }),
-}));
-
 describe("CodeDemoSection", () => {
   it("leads with the connection between code and chart", () => {
     render(<CodeDemoSection />);

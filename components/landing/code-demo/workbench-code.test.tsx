@@ -2,13 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 
 import { WorkbenchCode } from "./workbench-code";
 
-const unlock = jest.fn();
-
 let mockReducedMotion = false;
-
-jest.mock("@/hooks", () => ({
-  useBadges: () => ({ unlock }),
-}));
 
 jest.mock("framer-motion", () => ({
   useReducedMotion: () => mockReducedMotion,
@@ -18,18 +12,13 @@ jest.mock("@/components/ui/code-block", () => ({
   CodeBlock: ({
     code,
     highlightedLines,
-    onCopy,
   }: {
     code: string;
     highlightedLines?: readonly number[];
-    onCopy?: () => void;
   }) => (
     <div>
       <pre>{code}</pre>
       <span data-testid="highlighted">{(highlightedLines ?? []).join(",")}</span>
-      <button type="button" onClick={onCopy}>
-        Copy code
-      </button>
     </div>
   ),
 }));
@@ -51,7 +40,6 @@ function renderCode(overrides: Partial<Parameters<typeof WorkbenchCode>[0]> = {}
 
 describe("WorkbenchCode", () => {
   beforeEach(() => {
-    unlock.mockClear();
     mockReducedMotion = false;
   });
 
@@ -217,14 +205,6 @@ describe("WorkbenchCode", () => {
     );
 
     expect(screen.getByTestId("highlighted")).toHaveTextContent("");
-  });
-
-  it("unlocks the first-copy badge without any celebration", () => {
-    renderCode();
-
-    fireEvent.click(screen.getByRole("button", { name: "Copy code" }));
-
-    expect(unlock).toHaveBeenCalledWith("first-copy");
   });
 
   it("disables replay while the animation is off", () => {

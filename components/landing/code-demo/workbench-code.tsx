@@ -6,7 +6,6 @@ import { useReducedMotion } from "framer-motion";
 
 import { CodeBlock } from "@/components/ui/code-block";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/segmented-control";
-import { useBadges } from "@/hooks";
 import {
   buildWorkbenchCode,
   PROP_LINES,
@@ -46,7 +45,6 @@ export function WorkbenchCode({
   onAnimationChange,
   onReplay,
 }: WorkbenchCodeProps) {
-  const { unlock } = useBadges();
   const shouldReduceMotion = useReducedMotion();
   const [tintedLines, setTintedLines] = useState<readonly number[]>([]);
   const previous = useRef({ orientation, variant, animation });
@@ -102,7 +100,6 @@ export function WorkbenchCode({
           code={code}
           language="tsx"
           highlightedLines={tintedLines}
-          onCopy={() => unlock("first-copy")}
           className="my-0 rounded-none border-0"
         />
       </div>

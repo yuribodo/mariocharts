@@ -134,33 +134,18 @@ describe("CodeBlock", () => {
     expect(second.properties["data-highlighted"]).toBe("true");
   });
 
-  it("reports a successful copy to its caller", async () => {
-    const onCopy = jest.fn();
-    render(
-      <CodeBlock code="const value = 1;" language="typescript" onCopy={onCopy} />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Copy code" }));
-
-    await waitFor(() => expect(onCopy).toHaveBeenCalledTimes(1));
-  });
-
-  it("does not report a copy that failed", async () => {
+  it("announces a copy that failed", async () => {
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
       value: { writeText: jest.fn().mockRejectedValue(new Error("denied")) },
     });
-    const onCopy = jest.fn();
-    render(
-      <CodeBlock code="const value = 1;" language="typescript" onCopy={onCopy} />,
-    );
+    render(<CodeBlock code="const value = 1;" language="typescript" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Copy code" }));
 
     await waitFor(() => {
       expect(screen.getByRole("status")).toHaveTextContent("Unable to copy code");
     });
-    expect(onCopy).not.toHaveBeenCalled();
   });
 
   it("uses explicit high-contrast surfaces with github-light tokens", async () => {

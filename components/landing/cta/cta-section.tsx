@@ -6,8 +6,6 @@ import Link from "next/link";
 import { ArrowRight, Github, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fadeInUp, staggerContainer, buttonHover, buttonTap } from "@/lib/animations";
-import { BadgeToast } from "./badge-display";
-import { useBadges } from "@/hooks";
 
 interface CTASectionProps {
   className?: string;
@@ -30,7 +28,6 @@ export function CTASection({ className }: CTASectionProps) {
   const [typedCommand, setTypedCommand] = useState("");
   const [isTyping, setIsTyping] = useState(true);
   const shouldReduceMotion = useReducedMotion();
-  const { lastUnlocked, clearLastUnlocked } = useBadges();
 
   // Typing animation for CLI command
   useEffect(() => {
@@ -170,9 +167,6 @@ export function CTASection({ className }: CTASectionProps) {
           </motion.div>
         </motion.div>
       </div>
-
-      {/* Badge toast */}
-      <BadgeToast badge={lastUnlocked} onDismiss={clearLastUnlocked} />
     </section>
   );
 }

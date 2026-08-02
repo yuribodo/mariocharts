@@ -16,10 +16,7 @@ export {
 export { CodeDemoSection } from "./code-demo";
 
 // CTA Section
-export { CTASection, BadgeDisplay, BadgeToast } from "./cta";
-
-// Easter Eggs
-export { EasterEggsProvider, useEasterEggs, PartyMode } from "./easter-eggs";
+export { CTASection } from "./cta";
 
 // Footer
 export { LandingFooter, TerminalLink } from "./footer";
