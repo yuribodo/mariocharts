@@ -13,7 +13,7 @@ Mario Charts prioritizes ease of use, excellent developer experience, and zero l
 - 📈 **Beautiful Charts Out-of-the-Box** - Stunning visuals with minimal configuration
 - 🎨 **Multiple Variants & Orientations** - Filled/outline styles with vertical/horizontal layouts
 - 📱 **Responsive by Default** - Works perfectly on all screen sizes
-- ♿ **Accessibility First** - Built with Radix UI primitives for full accessibility
+- ♿ **Accessibility First** - ARIA roles and labels on every chart and data point, with keyboard-focusable elements
 - 🎭 **Smooth Animations** - Powered by Framer Motion for delightful interactions
 - 📦 **Zero Lock-in** - Copy-and-paste components directly to your project
 - 🔧 **TypeScript Native** - Full type safety and excellent IntelliSense

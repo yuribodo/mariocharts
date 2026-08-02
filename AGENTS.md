@@ -117,7 +117,6 @@ mario-charts/
 │   │   │   ├── chart-container/
 │   │   │   └── responsive-container/
 │   │   ├── ui/              # Interface components
-│   │   │   ├── kpi-card/
 │   │   │   ├── data-table/
 │   │   │   ├── progress-bar/
 │   │   │   └── loading-states/
@@ -152,25 +151,24 @@ mario-charts/
 └── playground/              # Interactive playground
 ```
 
-### Core Components (MVP Roadmap)
+### Core Components
 
-#### Phase 1: Essential Core (Weeks 1-2)
-1. **BarChart** - Bar chart (95% usage in corporate dashboards)
-2. **LineChart** - Line chart for time series
-3. **KPICard** - Metric cards with sparklines
-4. **AreaChart** - Area chart for cumulative data
+The 12 charts below are the source of truth in `registry/manifest.js`; every
+generated artifact (CLI fallback, `public/r/*.json`, `llms.txt`, the sitemap,
+the markdown docs) derives from that list.
 
-#### Phase 2: Fundamental Expansion (Weeks 3-4)
-5. **PieChart/DonutChart** - Pie/donut charts
-6. **DataTable** - Data table with filters and sorting
-7. **StackedBarChart** - Stacked bar charts
-8. **GaugeChart** - Gauge for targets and goals
-
-#### Phase 3: Competitive Differentiation (Month 2)
-9. **ScatterPlot** - Scatter plot for correlation analysis
-10. **FunnelChart** - Conversion funnel
-11. **Heatmap** - Heat map for patterns
-12. **ProgressBar** - Progress indicators
+1. **BarChart** - Vertical/horizontal bar charts with filled or outline variants
+2. **LineChart** - Multi-series line charts with curve interpolation
+3. **ScatterPlot** - Scatter and bubble charts with trend lines
+4. **PieChart** - Pie and donut charts with animated segments
+5. **RadarChart** - Multi-axis radar charts
+6. **StackedBarChart** - Multi-segment stacked bar charts
+7. **GaugeChart** - Arc gauges for targets and goals
+8. **HeatmapChart** - Pattern and density heatmaps
+9. **FunnelChart** - Conversion funnels
+10. **AreaChart** - Layered area charts with gradient fills
+11. **TreemapChart** - Hierarchical treemaps
+12. **WaterfallChart** - Cumulative increases/decreases and running totals
 
 ### Code Standards & Performance
 
@@ -366,8 +364,7 @@ class ChartErrorBoundary extends Component<
 // Tree-shakeable exports
 export { BarChart } from './bar-chart';
 export { LineChart } from './line-chart';
-export { KPICard } from './kpi-card';
-export type { BarChartProps, LineChartProps, KPICardProps } from './types';
+export type { BarChartProps, LineChartProps } from './types';
 
 // Dynamic imports for heavy components
 const HeavyChart = lazy(() => import('./heavy-chart'));
@@ -525,14 +522,6 @@ export const typography = {
     value: 'text-2xl font-bold text-mario-text-primary',
     caption: 'text-xs text-mario-text-muted',
   },
-
-  // KPI card typography
-  kpi: {
-    title: 'text-sm font-medium text-mario-text-secondary',
-    value: 'text-3xl font-bold text-mario-text-primary',
-    change: 'text-sm font-medium',
-    period: 'text-xs text-mario-text-muted',
-  }
 } as const;
 ```
 
@@ -587,7 +576,6 @@ const ChartCard = {
 const LoadingPatterns = {
   barChart: 'animate-pulse bg-mario-bg-tertiary rounded',
   lineChart: 'animate-pulse bg-gradient-to-r from-mario-bg-tertiary to-transparent',
-  kpiCard: 'space-y-3 animate-pulse',
   dataTable: 'space-y-2 animate-pulse'
 };
 ```
@@ -766,7 +754,7 @@ export const motionConfig = {
 npx mario-charts@latest init
 
 # Add individual components
-npx mario-charts@latest add bar-chart line-chart kpi-card
+npx mario-charts@latest add bar-chart line-chart
 
 # List all available components
 npx mario-charts@latest list
@@ -810,7 +798,6 @@ mario-charts-registry/
 │   │   ├── line-chart.json
 │   │   └── pie-chart.json
 │   ├── ui/
-│   │   ├── kpi-card.json
 │   │   └── data-table.json
 │   └── themes/
 │       ├── default.json
@@ -875,27 +862,6 @@ interface BarChartProps<T extends Record<string, unknown>> {
   emptyState?: React.ReactNode;
   className?: string;
   onBarClick?: (data: T, index: number) => void;
-}
-```
-
-#### KPICard Component
-```typescript
-interface KPICardProps {
-  title: string;
-  value: string | number;
-  change?: {
-    readonly value: number;
-    readonly type: 'increase' | 'decrease';
-    readonly period?: string;
-  };
-  sparkline?: {
-    readonly data: readonly number[];
-    readonly type: 'line' | 'bar' | 'area';
-  };
-  icon?: React.ReactNode;
-  color?: string;
-  loading?: boolean;
-  className?: string;
 }
 ```
 
@@ -1003,7 +969,7 @@ npm install framer-motion clsx tailwind-merge
 npx mario-charts@latest init
 
 # Add your first components
-npx mario-charts@latest add bar-chart kpi-card
+npx mario-charts@latest add bar-chart
 ```
 
 #### Basic Usage
