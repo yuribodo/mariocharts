@@ -55,16 +55,16 @@ const marketShare = [
   { company: "Others", share: 26.4 },
 ] as const;
 
+/**
+ * One series, deliberately: RadarChart reserves 50px for a legend as soon as
+ * there is more than one, which at preview height leaves a radius of a few
+ * pixels and draws nothing.
+ */
 const skillSeries = [
   {
     id: "fullstack",
     name: "Full Stack",
     data: { frontend: 85, backend: 88, database: 80, devops: 70, design: 55 },
-  },
-  {
-    id: "frontend",
-    name: "Frontend",
-    data: { frontend: 95, backend: 50, database: 45, devops: 40, design: 82 },
   },
 ];
 
@@ -153,17 +153,19 @@ const PREVIEWS: Record<string, ReactNode> = {
       series={skillSeries}
       axes={skillAxes}
       colors={PREVIEW_COLORS}
+      labelOffset={16}
       height={PREVIEW_HEIGHT}
       animation={false}
     />
   ),
+  /*
+    No colors override here: TreeMapChart derives its per-tile shade by
+    appending a hex alpha suffix to the colour string, so a var(--chart-*)
+    value concatenates into invalid CSS and every tile renders black. Its own
+    default palette is hex and works.
+  */
   Treemap: (
-    <TreeMapChart
-      data={revenueTree}
-      colors={PREVIEW_COLORS}
-      height={PREVIEW_HEIGHT}
-      animation={false}
-    />
+    <TreeMapChart data={revenueTree} height={PREVIEW_HEIGHT} animation={false} />
   ),
 };
 
