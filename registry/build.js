@@ -8,6 +8,7 @@ const { emitCliFallback } = require('./emitters/cli-fallback');
 const { emitShadcn } = require('./emitters/shadcn');
 const { emitSiteData } = require('./emitters/site-data');
 const { emitLlms } = require('./emitters/llms');
+const { emitMarkdownDocs } = require('./emitters/markdown-docs');
 
 function buildAll() {
   const items = buildAllItems();
@@ -16,6 +17,7 @@ function buildAll() {
     ...emitShadcn(items),
     ...emitSiteData(items),
     ...emitLlms(items),
+    ...emitMarkdownDocs(items),
   ];
 }
 
