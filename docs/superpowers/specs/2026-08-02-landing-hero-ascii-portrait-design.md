@@ -70,17 +70,12 @@ It becomes "These are the components you install."
 
 ## The asset
 
-Source: a Mario render chosen by the project owner, to be committed at
-`public/hero-portrait.jpg`.
+Source: `public/hero-portrait.jpg`, chosen by the project owner.
 
-**Licensing, recorded as a decision.** The chosen image is a Nintendo-derived
-character render. The owner was told this is trademarked and protected artwork
-and that a public OSS landing raises the exposure, and chose it anyway. That is
-the owner's call and it is documented here so nobody re-opens it by accident. An
-original mascot remains the fallback if that changes; the pipeline below does
-not care which image it is fed.
+The pipeline is deliberately image-agnostic — it reads whatever sits at that
+path — so the portrait can be swapped without touching a line of component code.
 
-The source is 474×568 with a full luminance range. Resolution is not a
+The current source is 474×568 with a full luminance range. Resolution is not a
 constraint — the conversion samples to roughly 120 columns regardless.
 
 Two properties of the source do need work, and both happen inside the conversion
