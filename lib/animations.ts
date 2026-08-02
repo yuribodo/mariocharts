@@ -142,16 +142,6 @@ export const drawPath: Variants = {
   },
 };
 
-// Button hover animation
-export const buttonHover = {
-  scale: 1.02,
-  transition: { duration: 0.2 },
-};
-
-export const buttonTap = {
-  scale: 0.98,
-};
-
 // Gradient text animation (for CSS animation)
 export const gradientShiftKeyframes = `
 @keyframes gradientShift {
