@@ -40,4 +40,11 @@ describe("HeroPortrait", () => {
     expect(markup).not.toContain("shadow-lg");
     expect(markup).not.toContain("rounded-xl");
   });
+
+  it("shrinks the wrapper to the art instead of stretching it, so the effect's canvas grid lines up with the text grid", () => {
+    render(<HeroPortrait />);
+    const wrapper = screen.getByRole("img").parentElement;
+
+    expect(wrapper).toHaveClass("w-fit");
+  });
 });

@@ -10,7 +10,7 @@ interface HeroPortraitEffectProps {
 const HOVER_QUERY = "(hover: hover) and (pointer: fine)";
 const MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
-/** Glyphs the cursor swaps in, densest at the centre of its radius. */
+/** Glyphs the cursor swaps in, densest first: index 0 sits at the centre of its radius. */
 const DENSE = "@%#*";
 
 /** Radius of the cursor's influence, in grid cells. */
@@ -22,11 +22,25 @@ export function HeroPortraitEffect({ text, columns }: HeroPortraitEffectProps) {
 
   // Read the queries after mount, never during render: the server has no
   // matchMedia, and deciding here keeps the server tree and the reduced-motion
-  // tree identical — the portrait alone.
+  // tree identical — the portrait alone. Both queries stay subscribed for the
+  // life of the effect so a live switch (e.g. turning on reduced motion) is
+  // picked up without a reload.
   useEffect(() => {
-    const fine = window.matchMedia(HOVER_QUERY).matches;
-    const reduced = window.matchMedia(MOTION_QUERY).matches;
-    setEnabled(fine && !reduced);
+    const hoverQuery = window.matchMedia(HOVER_QUERY);
+    const motionQuery = window.matchMedia(MOTION_QUERY);
+
+    const update = () => {
+      setEnabled(hoverQuery.matches && !motionQuery.matches);
+    };
+
+    update();
+    hoverQuery.addEventListener("change", update);
+    motionQuery.addEventListener("change", update);
+
+    return () => {
+      hoverQuery.removeEventListener("change", update);
+      motionQuery.removeEventListener("change", update);
+    };
   }, []);
 
   useEffect(() => {
@@ -39,11 +53,22 @@ export function HeroPortraitEffect({ text, columns }: HeroPortraitEffectProps) {
     const rows = text.split("\n");
     let frame = 0;
     let pointer: { x: number; y: number } | null = null;
+    // CSS-pixel size of the canvas box, tracked separately from the backing
+    // store: the store is scaled by devicePixelRatio so glyphs stay crisp on
+    // HiDPI screens, but every grid/pointer calculation below stays in CSS
+    // pixels to match getBoundingClientRect and the DOM text underneath.
+    let width = 0;
+    let height = 0;
 
     const draw = () => {
-      const cellWidth = canvas.width / columns;
-      const cellHeight = canvas.height / rows.length;
-      context.clearRect(0, 0, canvas.width, canvas.height);
+      // A hidden ancestor (e.g. `hidden xl:block`) collapses the canvas to
+      // 0x0. Bail here instead of dividing by zero — an unbounded cursorRow
+      // of Infinity would otherwise spin this rAF callback forever.
+      if (width === 0 || height === 0) return;
+
+      const cellWidth = width / columns;
+      const cellHeight = height / rows.length;
+      context.clearRect(0, 0, width, height);
       if (!pointer) return;
 
       const cursorColumn = Math.floor(pointer.x / cellWidth);
@@ -60,8 +85,10 @@ export function HeroPortraitEffect({ text, columns }: HeroPortraitEffectProps) {
           if (line[x] === undefined || line[x] === " ") continue;
           const distance = Math.hypot(x - cursorColumn, y - cursorRow);
           if (distance > RADIUS) continue;
-          const step = Math.floor((1 - distance / RADIUS) * DENSE.length);
-          const glyph = DENSE[Math.min(DENSE.length - 1, step)];
+          // distance 0 (centre) -> index 0, the densest glyph; distance
+          // RADIUS (rim) -> the last, lightest glyph.
+          const step = Math.floor((distance / RADIUS) * (DENSE.length - 1));
+          const glyph = DENSE[step];
           if (!glyph) continue;
           context.fillText(glyph, x * cellWidth, y * cellHeight);
         }
@@ -75,7 +102,12 @@ export function HeroPortraitEffect({ text, columns }: HeroPortraitEffectProps) {
       frame = requestAnimationFrame(draw);
     };
 
-    const onLeave = () => {
+    // pointerleave does not bubble and window is not an element in its
+    // propagation path, so a listener bound there never fires. pointerout
+    // does bubble, and the browser reports a null relatedTarget on the event
+    // that fires as the pointer exits the viewport entirely.
+    const onOut = (event: PointerEvent) => {
+      if (event.relatedTarget !== null) return;
       pointer = null;
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(draw);
@@ -83,8 +115,12 @@ export function HeroPortraitEffect({ text, columns }: HeroPortraitEffectProps) {
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width;
-      canvas.height = rect.height;
+      const ratio = window.devicePixelRatio || 1;
+      width = rect.width;
+      height = rect.height;
+      canvas.width = width * ratio;
+      canvas.height = height * ratio;
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
       draw();
     };
 
@@ -92,13 +128,13 @@ export function HeroPortraitEffect({ text, columns }: HeroPortraitEffectProps) {
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
     window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerleave", onLeave);
+    window.addEventListener("pointerout", onOut);
 
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerleave", onLeave);
+      window.removeEventListener("pointerout", onOut);
     };
   }, [enabled, text, columns]);
 

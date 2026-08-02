@@ -16,7 +16,12 @@ interface HeroPortraitProps {
  */
 export function HeroPortrait({ className }: HeroPortraitProps) {
   return (
-    <div className={cn("relative", className)}>
+    // w-fit shrinks the wrapper to the pre's intrinsic (max-content) width
+    // instead of stretching to fill the row: the canvas is absolutely
+    // positioned inset-0 inside it, so this is what keeps the canvas grid
+    // exactly aligned to the rendered text grid rather than to whatever
+    // width the surrounding layout happens to hand the wrapper.
+    <div className={cn("relative w-fit", className)}>
       <pre
         role="img"
         aria-label="Mario, rendered in ASCII"
