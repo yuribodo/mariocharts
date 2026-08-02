@@ -12,14 +12,21 @@ interface HeroSectionProps {
 const CLI_COMMAND = "npx mario-charts@latest init";
 
 /**
- * The portrait is the hero. It is wrapped, not stretched: HeroPortrait's own
- * wrapper is `w-fit` so its canvas overlay stays pixel-aligned to the
- * rendered text grid (see hero-portrait.tsx), so this section positions that
- * intrinsically-sized block within the field instead of resizing it —
- * `inset-0 flex justify-end` centers it vertically and pins it to the right
- * edge, leaving the left of the field empty. The type sits in that emptiness,
- * on genuinely blank space rather than on top of drawn glyphs, which is why
- * no scrim is needed to keep it readable.
+ * The portrait and the copy are ordinary grid siblings, not layers stacked
+ * with absolute positioning — that's what makes "the two never overlap"
+ * true by construction rather than by careful measurement. The copy comes
+ * first in the DOM, so it's read first, and is capped to a comfortable
+ * max-width; the portrait takes the other column and clips its own
+ * overflow, so even at an extreme viewport it crops within its own box
+ * instead of spilling onto the copy. Below `sm` the two stack instead of
+ * sitting side by side — there isn't room for a legible portrait and
+ * readable copy side by side at phone widths — with the portrait given its
+ * own full-width row rather than being squeezed into a half column.
+ * HeroPortrait's `--portrait-w` custom property (see hero-portrait.tsx)
+ * tracks this same breakpoint split so the field's own sizing always
+ * matches the column the layout actually gave it. Text sits directly on the
+ * page background with no scrim, which is only safe because the two never
+ * share the same space.
  */
 export function HeroSection({ className }: HeroSectionProps) {
   return (
@@ -30,12 +37,8 @@ export function HeroSection({ className }: HeroSectionProps) {
         className,
       )}
     >
-      <div className="relative flex min-h-[calc(100svh-7rem)] items-center">
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-end">
-          <HeroPortrait />
-        </div>
-
-        <div className="relative mx-auto flex w-full max-w-7xl flex-col items-start px-6">
+      <div className="mx-auto grid min-h-[calc(100svh-7rem)] w-full max-w-7xl grid-cols-1 items-center gap-10 px-6 py-12 sm:grid-cols-2 sm:gap-6 lg:gap-12">
+        <div className="flex flex-col items-start">
           <h1
             id="hero-title"
             className="font-mono text-3xl font-semibold uppercase leading-[1.05] tracking-tight text-foreground sm:text-4xl lg:text-5xl"
@@ -48,6 +51,10 @@ export function HeroSection({ className }: HeroSectionProps) {
           <div className="mt-8 w-full max-w-md">
             <CommandSnippet command={CLI_COMMAND} />
           </div>
+        </div>
+
+        <div className="flex items-center justify-center overflow-hidden sm:justify-end">
+          <HeroPortrait />
         </div>
       </div>
     </section>
