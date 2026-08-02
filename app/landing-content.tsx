@@ -2,7 +2,7 @@
 
 import {
   HeroSection,
-  ShowcaseSection,
+  ChartIndexSection,
   CodeDemoSection,
   CTASection,
   LandingFooter,
@@ -14,7 +14,7 @@ import { LandingBackground } from "@/components/landing/shared/landing-backgroun
  *
  * A 5-section immersive experience:
  * 1. Hero - Morphing chart animation
- * 2. Showcase - Apple-style sticky scroll
+ * 2. Chart Index - Preview-first index of the shipped components
  * 3. Code Demo - Interactive code with live preview
  * 4. CTA - Final call-to-action
  * 5. Footer - Interactive chart and terminal-style links
@@ -26,7 +26,7 @@ export function LandingContent() {
 
       <div className="relative z-10">
         <HeroSection />
-        <ShowcaseSection />
+        <ChartIndexSection />
         <CodeDemoSection />
         <CTASection />
         <LandingFooter />

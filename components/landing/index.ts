@@ -1,16 +1,8 @@
 // Hero Section
 export { HeroSection, MorphingChart } from "./hero";
 
-// Showcase Section
-export {
-  ShowcaseSection,
-  ShowcaseContent,
-  ProgressDots,
-  ShowcaseChart,
-  CHART_SEQUENCE,
-  SHOWCASE_CONTENT,
-  type ChartType,
-} from "./showcase";
+// Chart Index Section
+export { ChartIndexSection } from "./chart-index";
 
 // Code Demo Section
 export { CodeDemoSection } from "./code-demo";
