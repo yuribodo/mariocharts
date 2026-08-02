@@ -119,8 +119,7 @@ describe('emitShadcn', () => {
       const doc = JSON.parse(output.content);
       for (const file of doc.files) {
         expect(file.content).not.toMatch(/from\s+['"]\.\.\/\.\.\/\.\.\/\.\.\/lib\//);
-        expect(file.content).not.toMatch(/from\s+['"]\.\.\/\.\.\/\.\.\/\.\.\/lib\/hooks/);
-        expect(file.content).not.toMatch(/from\s+['"]\.\.\/\._shared/);
+        expect(file.content).not.toMatch(/from\s+['"]\.\.\/\_shared/);
       }
     }
   });
