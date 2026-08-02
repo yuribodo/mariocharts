@@ -25,6 +25,11 @@ describe("ascii-portrait", () => {
       .filter((line) => line.trim().length > 0)
       .map((line) => line.search(/\S/));
 
+    // Guard against a vacuous pass: if the renderer regressed to producing no
+    // ink at all, inkStarts would be empty and Math.min(...[]) is Infinity,
+    // which would trivially satisfy the assertion below.
+    expect(inkStarts.length).toBeGreaterThan(0);
+
     // The source is pasted onto a 16:9 canvas at its own width, so it covers
     // roughly the right half. 45 leaves margin for rounding without letting
     // ink creep into the headline's field.
