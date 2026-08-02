@@ -1264,10 +1264,14 @@ It now derives from registry/generated/charts.ts, so the list cannot drift."
 - Generates: `public/llms.txt`, `public/llms-full.txt` (both currently hand-written and stale)
 
 **Interfaces:**
-- Produces: `registry/extract-props.js` exports
-  `extractPropsInterface(source: string): { name: string, text: string } | null`
+- Produces: `registry/extract-props.js` exports two functions:
+  - `extractPropsInterface(source: string): { name: string, text: string } | null` — pure,
+    operates on source text
+  - `readPropsInterface(chart): { name: string, text: string }` — reads the chart's
+    `propsSourceFile` from disk and throws a directed error if extraction fails
 - Produces: `registry/emitters/llms.js` exports `emitLlms(items): Array<{ path, content }>`
-- Consumes: `extractPropsInterface` is reused by Task 5's markdown emitter.
+- Consumes: **Task 5's markdown emitter calls `readPropsInterface` — do not reimplement
+  the read-and-extract logic there.**
 
 - [ ] **Step 1: Write the failing test for the props extractor**
 
@@ -1318,6 +1322,26 @@ describe('extractPropsInterface', () => {
     expect(extractPropsInterface('const a = 1;\n')).toBeNull();
   });
 });
+
+describe('readPropsInterface', () => {
+  const { CHARTS } = require('./manifest');
+
+  it.each(CHARTS.map((c) => [c.name, c]))(
+    'extracts a props interface for %s from its declared source file',
+    (_name, chart) => {
+      const result = readPropsInterface(chart);
+      expect(result.name).toMatch(/Props$/);
+      expect(result.text.length).toBeGreaterThan(0);
+    }
+  );
+
+});
+```
+
+Update the first line of the file to import both functions:
+
+```js
+const { extractPropsInterface, readPropsInterface } = require('./extract-props');
 ```
 
 - [ ] **Step 2: Run the test to verify it fails**
@@ -1331,6 +1355,12 @@ Create `registry/extract-props.js`:
 
 ```js
 'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const { ROOT_DIR } = require('./manifest');
+
+const CHARTS_SRC_DIR = path.join(ROOT_DIR, 'src', 'components', 'charts');
 
 // Chart props interfaces are declared non-exported and re-exported at the
 // bottom of the file (`export type { BarChartProps }`), so matching on
@@ -1361,13 +1391,29 @@ function extractPropsInterface(source) {
   return null;
 }
 
-module.exports = { extractPropsInterface };
+// Both the llms.txt emitter and the markdown-docs emitter need this exact
+// read-then-extract step. It lives here so neither has to reimplement it.
+function readPropsInterface(chart) {
+  const sourcePath = path.join(CHARTS_SRC_DIR, chart.name, chart.propsSourceFile);
+  const extracted = extractPropsInterface(fs.readFileSync(sourcePath, 'utf8'));
+  if (!extracted) {
+    throw new Error(
+      `Could not extract a Props interface for "${chart.name}" from ${chart.propsSourceFile}. ` +
+      'Update propsSourceFile in registry/manifest.js.'
+    );
+  }
+  return extracted;
+}
+
+module.exports = { extractPropsInterface, readPropsInterface };
 ```
 
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx jest registry/extract-props.test.js`
-Expected: PASS, 4 tests
+Expected: PASS, 16 tests (4 for `extractPropsInterface`, plus `readPropsInterface`
+exercised once per chart — this is the test that proves all 12 `propsSourceFile`
+declarations in the manifest are correct)
 
 - [ ] **Step 5: Write the failing test for the llms emitter**
 
@@ -1444,13 +1490,11 @@ generated.
 ```js
 'use strict';
 
-const fs = require('fs');
 const path = require('path');
 const { ROOT_DIR, SITE_URL } = require('../manifest');
-const { extractPropsInterface } = require('../extract-props');
+const { readPropsInterface } = require('../extract-props');
 
 const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
-const CHARTS_SRC_DIR = path.join(ROOT_DIR, 'src', 'components', 'charts');
 
 const SUMMARY =
   '> A modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box. Copy-paste components installable through the shadcn CLI — no runtime dependency on Mario Charts, no vendor lock-in.';
@@ -1550,19 +1594,6 @@ const LINKS = `## Links
 
 MIT — free for personal and commercial use.`;
 
-function propsFor(chart) {
-  if (!chart.propsSourceFile) return null;
-  const sourcePath = path.join(CHARTS_SRC_DIR, chart.name, chart.propsSourceFile);
-  const extracted = extractPropsInterface(fs.readFileSync(sourcePath, 'utf8'));
-  if (!extracted) {
-    throw new Error(
-      `Could not extract a Props interface for "${chart.name}" from ${chart.propsSourceFile}. ` +
-      'Update propsSourceFile in registry/manifest.js.'
-    );
-  }
-  return extracted;
-}
-
 function shortChartSection(chart) {
   return [
     `### ${chart.title} (\`${chart.name}\`)`,
@@ -1576,7 +1607,7 @@ function shortChartSection(chart) {
 }
 
 function fullChartSection(chart) {
-  const props = propsFor(chart);
+  const props = readPropsInterface(chart);
   return [
     `### ${chart.title} (\`${chart.name}\`)`,
     '',
@@ -1762,27 +1793,18 @@ Create `registry/emitters/markdown-docs.js`:
 ```js
 'use strict';
 
-const fs = require('fs');
 const path = require('path');
 const { ROOT_DIR, SITE_URL } = require('../manifest');
-const { extractPropsInterface } = require('../extract-props');
+const { readPropsInterface } = require('../extract-props');
 
 const OUTPUT_DIR = path.join(ROOT_DIR, 'public', 'docs', 'components');
-const CHARTS_SRC_DIR = path.join(ROOT_DIR, 'src', 'components', 'charts');
 
 // Generated from the same source files the registry ships, so the documented
 // API cannot drift from the installed component. Deliberately not scraped from
 // app/docs/components/*/**-content.tsx — those are 700+ line React components,
 // and parsing them would be both fragile and pointless for this audience.
 function renderChart(chart) {
-  const sourcePath = path.join(CHARTS_SRC_DIR, chart.name, chart.propsSourceFile);
-  const props = extractPropsInterface(fs.readFileSync(sourcePath, 'utf8'));
-  if (!props) {
-    throw new Error(
-      `Could not extract a Props interface for "${chart.name}" from ${chart.propsSourceFile}.`
-    );
-  }
-
+  const props = readPropsInterface(chart);
   const npm = chart.npmDependencies.join(', ');
 
   return [
