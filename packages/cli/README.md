@@ -69,12 +69,9 @@ Options:
   -d, --detailed       Show detailed information
 ```
 
-## Component Types
+## Available Charts
 
-- **Charts**: `bar-chart`, `line-chart`, `pie-chart`, `area-chart`, `radar-chart`, `scatter-plot`, `stacked-bar-chart`, `gauge-chart`, `heatmap`, `funnel-chart`, `treemap-chart`, `waterfall-chart`
-- **Layout**: `dashboard-grid`, `chart-container`
-- **Filters**: `date-range-picker`, `multi-select`
-- **Primitives**: `tooltip`, `legend`, `empty-state`
+`bar-chart`, `line-chart`, `pie-chart`, `area-chart`, `radar-chart`, `scatter-plot`, `stacked-bar-chart`, `gauge-chart`, `heatmap`, `funnel-chart`, `treemap-chart`, `waterfall-chart`
 
 ## Requirements
 
