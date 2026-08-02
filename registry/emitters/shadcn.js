@@ -60,7 +60,7 @@ function toShadcnItem(item) {
     doc.devDependencies = [...item.devDependencies];
   }
   if (item.kind === 'chart') {
-    doc.docs = `${SITE_URL}/docs/components/${item.name}`;
+    doc.docs = `${SITE_URL}/docs/components/${item.docsSlug}`;
   }
 
   return doc;

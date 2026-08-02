@@ -84,7 +84,7 @@ export const REGISTRY_CHARTS: readonly RegistryChartSummary[] = [
     name: "treemap-chart",
     title: "Treemap Chart",
     description: "A squarified treemap chart component for hierarchical data with nested rectangles, animated layout, interactive tooltips, and responsive design",
-    docsPath: "/docs/components/treemap-chart",
+    docsPath: "/docs/components/treemap",
     registryUrl: "https://mariocharts.com/r/treemap-chart.json",
   },
   {

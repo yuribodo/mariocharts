@@ -15,9 +15,15 @@ const AUTHOR = 'Yuri Bodo';
 // fallback, public/r/*.json, llms.txt, the sitemap, the markdown docs — derives
 // from this list. Adding a chart directory without adding an entry here fails
 // the manifest test.
+// docsSlug is the directory name under app/docs/components/. It equals
+// `name` for every chart except treemap-chart, whose docs route on disk is
+// app/docs/components/treemap (no "-chart" suffix) because that URL is
+// already live, indexed, and self-canonical — renaming the route would need
+// a redirect. Do not "simplify" this back to `name`; the mismatch is real.
 const CHARTS = [
   {
     name: 'bar-chart',
+    docsSlug: 'bar-chart',
     title: 'Bar Chart',
     description: 'A customizable bar chart component with animations, hover effects, responsive design, and support for both vertical and horizontal orientations with filled or outline variants',
     importName: 'BarChart',
@@ -28,6 +34,7 @@ const CHARTS = [
   },
   {
     name: 'line-chart',
+    docsSlug: 'line-chart',
     title: 'Line Chart',
     description: 'A sophisticated line chart component with triangular markers, textured area fills, multiple series support, gap handling, curve interpolation, and advanced animations',
     importName: 'LineChart',
@@ -38,6 +45,7 @@ const CHARTS = [
   },
   {
     name: 'scatter-plot',
+    docsSlug: 'scatter-plot',
     title: 'Scatter Plot',
     description: 'A versatile scatter plot and bubble chart component with multi-series support, trend lines, dynamic bubble sizing, responsive design, and smooth animations',
     importName: 'ScatterPlot',
@@ -48,6 +56,7 @@ const CHARTS = [
   },
   {
     name: 'pie-chart',
+    docsSlug: 'pie-chart',
     title: 'Pie Chart',
     description: 'A customizable pie and donut chart component with animated segments, interactive hover effects, center labels, and responsive design',
     importName: 'PieChart',
@@ -58,6 +67,7 @@ const CHARTS = [
   },
   {
     name: 'radar-chart',
+    docsSlug: 'radar-chart',
     title: 'Radar Chart',
     description: 'A multi-axis radar chart component with multi-series support, animated fills, interactive tooltips, and responsive design',
     importName: 'RadarChart',
@@ -68,6 +78,7 @@ const CHARTS = [
   },
   {
     name: 'stacked-bar-chart',
+    docsSlug: 'stacked-bar-chart',
     title: 'Stacked Bar Chart',
     description: 'A stacked bar chart component with multiple segment support, animated stacking, interactive tooltips, and both vertical and horizontal orientations',
     importName: 'StackedBarChart',
@@ -78,6 +89,7 @@ const CHARTS = [
   },
   {
     name: 'gauge-chart',
+    docsSlug: 'gauge-chart',
     title: 'Gauge Chart',
     description: 'A 3/4 arc gauge chart component with configurable color zones, animated needle, center value display, and responsive design',
     importName: 'GaugeChart',
@@ -88,6 +100,7 @@ const CHARTS = [
   },
   {
     name: 'heatmap',
+    docsSlug: 'heatmap',
     title: 'Heatmap Chart',
     description: 'A heatmap chart component with configurable color schemes, animated cells, interactive tooltips, row/column labels, and multiple layout variants',
     importName: 'HeatmapChart',
@@ -98,6 +111,7 @@ const CHARTS = [
   },
   {
     name: 'funnel-chart',
+    docsSlug: 'funnel-chart',
     title: 'Funnel Chart',
     description: 'A funnel chart component with vertical trapezoid and horizontal diminishing bar variants, animated segments, conversion rates, and interactive tooltips',
     importName: 'FunnelChart',
@@ -108,6 +122,7 @@ const CHARTS = [
   },
   {
     name: 'area-chart',
+    docsSlug: 'area-chart',
     title: 'Area Chart',
     description: 'A layered area chart component with multiple curve interpolations, gradient fills, multi-series support, and responsive design',
     importName: 'AreaChart',
@@ -118,6 +133,9 @@ const CHARTS = [
   },
   {
     name: 'treemap-chart',
+    // The docs route on disk is app/docs/components/treemap, not
+    // treemap-chart — see the comment above CHARTS.
+    docsSlug: 'treemap',
     title: 'Treemap Chart',
     description: 'A squarified treemap chart component for hierarchical data with nested rectangles, animated layout, interactive tooltips, and responsive design',
     importName: 'TreemapChart',
@@ -128,6 +146,7 @@ const CHARTS = [
   },
   {
     name: 'waterfall-chart',
+    docsSlug: 'waterfall-chart',
     title: 'Waterfall Chart',
     description: 'A waterfall chart component visualizing cumulative increases, decreases, and running totals with animated floating bars and connectors',
     importName: 'WaterfallChart',
@@ -182,6 +201,7 @@ function buildChartItem(chart) {
     },
     categories: chart.categories,
     propsSourceFile: chart.propsSourceFile,
+    docsSlug: chart.docsSlug,
   };
 }
 

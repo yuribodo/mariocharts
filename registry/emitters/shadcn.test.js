@@ -75,6 +75,14 @@ describe('toShadcnItem', () => {
     expect(barChart.docs).toBe('https://mariocharts.com/docs/components/bar-chart');
     expect(toShadcnItem(byName['lib-utils']).docs).toBeUndefined();
   });
+
+  // treemap-chart's docs route on disk is app/docs/components/treemap (no
+  // "-chart" suffix); the item name itself must stay treemap-chart.
+  it('points treemap-chart at its docs slug, not its item name', () => {
+    const treemap = toShadcnItem(byName['treemap-chart']);
+    expect(treemap.name).toBe('treemap-chart');
+    expect(treemap.docs).toBe('https://mariocharts.com/docs/components/treemap');
+  });
 });
 
 describe('emitShadcn', () => {

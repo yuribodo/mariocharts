@@ -84,4 +84,23 @@ describe('site data emitter', () => {
       'registryUrl: "https://mariocharts.com/r/bar-chart.json"'
     );
   });
+
+  // Guards against the treemap defect: the docs route on disk is
+  // app/docs/components/treemap, not treemap-chart. Reads the filesystem
+  // instead of a hardcoded list so it keeps working as charts are added.
+  it('emits docsPath values that resolve to a real directory under app/docs/components', () => {
+    const docsComponentsDir = path.resolve(__dirname, '..', 'app', 'docs', 'components');
+    const onDisk = new Set(
+      fs
+        .readdirSync(docsComponentsDir, { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name)
+    );
+    const [output] = emitSiteData(buildAllItems());
+    const slugs = [...output.content.matchAll(/docsPath: "\/docs\/components\/([^"]+)"/g)]
+      .map((m) => m[1]);
+    expect(slugs.length).toBeGreaterThan(0);
+    const missing = slugs.filter((slug) => !onDisk.has(slug));
+    expect(missing).toEqual([]);
+  });
 });

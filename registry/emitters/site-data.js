@@ -14,7 +14,7 @@ function emitSiteData(items) {
       `    name: ${JSON.stringify(chart.name)},`,
       `    title: ${JSON.stringify(chart.title)},`,
       `    description: ${JSON.stringify(chart.description)},`,
-      `    docsPath: ${JSON.stringify(`/docs/components/${chart.name}`)},`,
+      `    docsPath: ${JSON.stringify(`/docs/components/${chart.docsSlug}`)},`,
       `    registryUrl: ${JSON.stringify(`${SITE_URL}/r/${chart.name}.json`)},`,
       '  },',
     ].join('\n'))
