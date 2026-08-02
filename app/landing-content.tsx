@@ -7,7 +7,6 @@ import {
   CTASection,
   LandingFooter,
 } from "@/components/landing";
-import { LandingBackground } from "@/components/landing/shared/landing-background";
 
 /**
  * Mario Charts Landing Page Content
@@ -22,8 +21,6 @@ import { LandingBackground } from "@/components/landing/shared/landing-backgroun
 export function LandingContent() {
   return (
     <main className="landing-page relative min-h-screen w-full bg-background">
-      <LandingBackground className="z-0" />
-
       <div className="relative z-10">
         <HeroSection />
         <ChartIndexSection />
