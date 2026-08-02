@@ -90,9 +90,8 @@ Mario Charts is a modern React component library focused on charts and dashboard
 - **React** 18+ - Base for reusable components
 - **Tailwind CSS** - Design system and styling
 - **Radix UI** - Accessible primitives for interactive components
-- **Recharts** (peer dependency) - Chart engine foundation
-- **date-fns** - Date manipulation for filters
-- **Framer Motion** - Advanced animations and micro-interactions
+- **Framer Motion** - Chart animations and micro-interactions
+- **clsx** / **tailwind-merge** - Class name utilities for the shared `cn` helper
 
 #### Distribution
 - **shadcn/ui CLI system** - Copy-and-paste distribution for maximum flexibility
@@ -826,7 +825,7 @@ mario-charts-registry/
 {
   "name": "bar-chart",
   "type": "chart",
-  "dependencies": ["@radix-ui/react-tooltip", "recharts"],
+  "dependencies": ["framer-motion"],
   "devDependencies": [],
   "registryDependencies": ["tooltip", "responsive-container"],
   "files": [
@@ -961,7 +960,7 @@ const useFilter = <T>(initialData: readonly T[]) => {
 #### Bundle Size
 - **Zero runtime overhead** - Components copied to user's project
 - **Native tree-shaking** - Only used code included in bundle
-- **Peer dependencies** - Recharts, Framer Motion installed separately
+- **Peer dependencies** - Framer Motion installed separately
 - **Modular by design** - Install only needed components
 
 #### Runtime Performance
@@ -998,7 +997,7 @@ const debouncedFilter = useMemo(
 #### Project Setup
 ```bash
 # Install dependencies
-npm install recharts date-fns framer-motion @radix-ui/react-tooltip
+npm install framer-motion clsx tailwind-merge
 
 # Initialize Mario Charts
 npx mario-charts@latest init
