@@ -6,12 +6,14 @@ const path = require('path');
 const { buildAllItems } = require('./manifest');
 const { emitCliFallback } = require('./emitters/cli-fallback');
 const { emitShadcn } = require('./emitters/shadcn');
+const { emitSiteData } = require('./emitters/site-data');
 
 function buildAll() {
   const items = buildAllItems();
   return [
     ...emitCliFallback(items),
     ...emitShadcn(items),
+    ...emitSiteData(items),
   ];
 }
 

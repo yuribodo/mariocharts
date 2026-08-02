@@ -59,3 +59,29 @@ describe('registry manifest', () => {
     }
   });
 });
+
+const { emitSiteData } = require('./emitters/site-data');
+
+describe('site data emitter', () => {
+  it('emits one typed entry per chart', () => {
+    const [output] = emitSiteData(buildAllItems());
+    expect(output.path.endsWith('registry/generated/charts.ts')).toBe(true);
+    const names = [...output.content.matchAll(/name: "([^"]+)"/g)].map((m) => m[1]);
+    expect(names).toHaveLength(12);
+    expect(names).toContain('waterfall-chart');
+    expect(names).not.toContain('chart-shared');
+  });
+
+  it('marks the file as generated so nobody hand-edits it', () => {
+    const [output] = emitSiteData(buildAllItems());
+    expect(output.content).toContain('AUTO-GENERATED');
+  });
+
+  it('emits docs paths and registry URLs that agree with each other', () => {
+    const [output] = emitSiteData(buildAllItems());
+    expect(output.content).toContain('docsPath: "/docs/components/bar-chart"');
+    expect(output.content).toContain(
+      'registryUrl: "https://mariocharts.com/r/bar-chart.json"'
+    );
+  });
+});
