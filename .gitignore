@@ -71,9 +71,3 @@ CLAUDE.md
 eidos/
 memory/
 .eidos-config.yaml
-
-# registry
-registry/
-registry/components/
-registry/components/bar-chart.json
-registry/components/line-chart.json

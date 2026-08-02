@@ -1,89 +1,140 @@
-#!/usr/bin/env node
+'use strict';
 
 const fs = require('fs');
 const path = require('path');
 
-const rootDir = path.resolve(__dirname, '..', '..', '..');
-const cliUtilsDir = path.resolve(__dirname, '..', 'src', 'utils');
-const outputPath = path.join(cliUtilsDir, 'fallback-generated.ts');
-const chartsSrcDir = path.join(rootDir, 'src', 'components', 'charts');
+const ROOT_DIR = path.resolve(__dirname, '..');
+const CHARTS_SRC_DIR = path.join(ROOT_DIR, 'src', 'components', 'charts');
+const LIB_DIR = path.join(ROOT_DIR, 'lib');
+const SHARED_DIR = path.join(CHARTS_SRC_DIR, '_shared');
 
-// Every chart's index.tsx, plus any sibling source files it actually imports
-// (excluding *.test.*). Keep this in sync with each chart's own imports —
-// see #61: the CLI's fallback registry must embed every file a chart needs
-// to compile standalone in a consumer's project, not just index.tsx.
-const charts = [
+const SITE_URL = 'https://mariocharts.com';
+const AUTHOR = 'Yuri Bodo';
+
+// The single source of truth for what ships. Every generated artifact — the CLI
+// fallback, public/r/*.json, llms.txt, the sitemap, the markdown docs — derives
+// from this list. Adding a chart directory without adding an entry here fails
+// the manifest test.
+const CHARTS = [
   {
     name: 'bar-chart',
+    title: 'Bar Chart',
     description: 'A customizable bar chart component with animations, hover effects, responsive design, and support for both vertical and horizontal orientations with filled or outline variants',
-    meta: { importName: 'BarChart', exportName: 'BarChart', displayName: 'Bar Chart' },
+    importName: 'BarChart',
+    exportName: 'BarChart',
     siblingFiles: [],
+    categories: ['charts', 'dashboard'],
+    propsSourceFile: 'index.tsx',
   },
   {
     name: 'line-chart',
+    title: 'Line Chart',
     description: 'A sophisticated line chart component with triangular markers, textured area fills, multiple series support, gap handling, curve interpolation, and advanced animations',
-    meta: { importName: 'LineChart', exportName: 'LineChart', displayName: 'Line Chart' },
+    importName: 'LineChart',
+    exportName: 'LineChart',
     siblingFiles: [],
+    categories: ['charts', 'dashboard'],
+    propsSourceFile: 'index.tsx',
   },
   {
     name: 'scatter-plot',
+    title: 'Scatter Plot',
     description: 'A versatile scatter plot and bubble chart component with multi-series support, trend lines, dynamic bubble sizing, responsive design, and smooth animations',
-    meta: { importName: 'ScatterPlot', exportName: 'ScatterPlot', displayName: 'Scatter Plot' },
+    importName: 'ScatterPlot',
+    exportName: 'ScatterPlot',
     siblingFiles: ['types.ts', 'scales.ts', 'regression.ts'],
+    categories: ['charts', 'dashboard'],
+    propsSourceFile: 'types.ts',
   },
   {
     name: 'pie-chart',
+    title: 'Pie Chart',
     description: 'A customizable pie and donut chart component with animated segments, interactive hover effects, center labels, and responsive design',
-    meta: { importName: 'PieChart', exportName: 'PieChart', displayName: 'Pie Chart' },
+    importName: 'PieChart',
+    exportName: 'PieChart',
     siblingFiles: [],
+    categories: ['charts', 'dashboard'],
+    propsSourceFile: 'index.tsx',
   },
   {
     name: 'radar-chart',
+    title: 'Radar Chart',
     description: 'A multi-axis radar chart component with multi-series support, animated fills, interactive tooltips, and responsive design',
-    meta: { importName: 'RadarChart', exportName: 'RadarChart', displayName: 'Radar Chart' },
+    importName: 'RadarChart',
+    exportName: 'RadarChart',
     siblingFiles: ['types.ts', 'geometry.ts', 'scales.ts'],
+    categories: ['charts', 'dashboard'],
+    propsSourceFile: 'types.ts',
   },
   {
     name: 'stacked-bar-chart',
+    title: 'Stacked Bar Chart',
     description: 'A stacked bar chart component with multiple segment support, animated stacking, interactive tooltips, and both vertical and horizontal orientations',
-    meta: { importName: 'StackedBarChart', exportName: 'StackedBarChart', displayName: 'Stacked Bar Chart' },
+    importName: 'StackedBarChart',
+    exportName: 'StackedBarChart',
     siblingFiles: [],
+    categories: ['charts', 'dashboard'],
+    propsSourceFile: 'index.tsx',
   },
   {
     name: 'gauge-chart',
+    title: 'Gauge Chart',
     description: 'A 3/4 arc gauge chart component with configurable color zones, animated needle, center value display, and responsive design',
-    meta: { importName: 'GaugeChart', exportName: 'GaugeChart', displayName: 'Gauge Chart' },
+    importName: 'GaugeChart',
+    exportName: 'GaugeChart',
     siblingFiles: ['utils.ts'],
+    categories: ['charts', 'dashboard'],
+    propsSourceFile: 'index.tsx',
   },
   {
     name: 'heatmap',
+    title: 'Heatmap Chart',
     description: 'A heatmap chart component with configurable color schemes, animated cells, interactive tooltips, row/column labels, and multiple layout variants',
-    meta: { importName: 'HeatmapChart', exportName: 'HeatmapChart', displayName: 'Heatmap Chart' },
+    importName: 'HeatmapChart',
+    exportName: 'HeatmapChart',
     siblingFiles: [],
+    categories: ['charts', 'dashboard'],
+    propsSourceFile: 'index.tsx',
   },
   {
     name: 'funnel-chart',
+    title: 'Funnel Chart',
     description: 'A funnel chart component with vertical trapezoid and horizontal diminishing bar variants, animated segments, conversion rates, and interactive tooltips',
-    meta: { importName: 'FunnelChart', exportName: 'FunnelChart', displayName: 'Funnel Chart' },
+    importName: 'FunnelChart',
+    exportName: 'FunnelChart',
     siblingFiles: [],
+    categories: ['charts', 'dashboard'],
+    propsSourceFile: 'index.tsx',
   },
   {
     name: 'area-chart',
+    title: 'Area Chart',
     description: 'A layered area chart component with multiple curve interpolations, gradient fills, multi-series support, and responsive design',
-    meta: { importName: 'AreaChart', exportName: 'AreaChart', displayName: 'Area Chart' },
+    importName: 'AreaChart',
+    exportName: 'AreaChart',
     siblingFiles: [],
+    categories: ['charts', 'dashboard'],
+    propsSourceFile: 'index.tsx',
   },
   {
     name: 'treemap-chart',
+    title: 'Treemap Chart',
     description: 'A squarified treemap chart component for hierarchical data with nested rectangles, animated layout, interactive tooltips, and responsive design',
-    meta: { importName: 'TreemapChart', exportName: 'TreemapChart', displayName: 'Treemap Chart' },
+    importName: 'TreemapChart',
+    exportName: 'TreemapChart',
     siblingFiles: ['layout.ts'],
+    categories: ['charts', 'dashboard'],
+    propsSourceFile: 'index.tsx',
   },
   {
     name: 'waterfall-chart',
+    title: 'Waterfall Chart',
     description: 'A waterfall chart component visualizing cumulative increases, decreases, and running totals with animated floating bars and connectors',
-    meta: { importName: 'WaterfallChart', exportName: 'WaterfallChart', displayName: 'Waterfall Chart' },
+    importName: 'WaterfallChart',
+    exportName: 'WaterfallChart',
     siblingFiles: ['utils.ts'],
+    categories: ['charts', 'dashboard'],
+    propsSourceFile: 'index.tsx',
   },
 ];
 
@@ -91,21 +142,21 @@ const charts = [
 // pulls `cn` and `useIsomorphicLayoutEffect` directly from lib/*).
 const CHARTS_WITHOUT_SHARED = new Set(['area-chart']);
 
-function readContent(absPath) {
+function readSource(absPath) {
   if (!fs.existsSync(absPath)) {
     throw new Error(`Source file not found at ${absPath}`);
   }
   return fs.readFileSync(absPath, 'utf8');
 }
 
-function buildChartComponent(chart) {
-  const chartDir = path.join(chartsSrcDir, chart.name);
+function buildChartItem(chart) {
+  const chartDir = path.join(CHARTS_SRC_DIR, chart.name);
 
   const files = [
-    { name: `${chart.name}/index.tsx`, content: readContent(path.join(chartDir, 'index.tsx')) },
+    { name: `${chart.name}/index.tsx`, content: readSource(path.join(chartDir, 'index.tsx')) },
     ...chart.siblingFiles.map((fileName) => ({
       name: `${chart.name}/${fileName}`,
-      content: readContent(path.join(chartDir, fileName)),
+      content: readSource(path.join(chartDir, fileName)),
     })),
   ];
 
@@ -115,49 +166,56 @@ function buildChartComponent(chart) {
 
   return {
     name: chart.name,
-    type: 'chart',
-    category: 'charts',
-    subcategory: 'basic',
+    kind: 'chart',
+    legacy: { type: 'chart', category: 'charts', subcategory: 'basic' },
+    title: chart.title,
     description: chart.description,
-    dependencies: ['framer-motion'],
+    npmDependencies: ['framer-motion'],
     devDependencies: [],
-    registryDependencies,
     peerDependencies: ['react', 'react-dom'],
+    registryDependencies,
     files,
-    meta: chart.meta,
+    meta: {
+      importName: chart.importName,
+      exportName: chart.exportName,
+      displayName: chart.title,
+    },
+    categories: chart.categories,
+    propsSourceFile: chart.propsSourceFile,
   };
 }
 
-function buildSupportComponents() {
-  const libDir = path.join(rootDir, 'lib');
-  const sharedDir = path.join(chartsSrcDir, '_shared');
-
+function buildSupportItems() {
   const libUtils = {
     name: 'lib-utils',
-    type: 'lib',
-    category: 'lib',
-    subcategory: 'internal',
+    kind: 'lib',
+    legacy: { type: 'lib', category: 'lib', subcategory: 'internal' },
+    title: 'Class Name Helper',
     description: 'Internal `cn` classname helper shared by every chart component.',
-    dependencies: ['clsx', 'tailwind-merge'],
+    npmDependencies: ['clsx', 'tailwind-merge'],
     devDependencies: [],
-    registryDependencies: [],
     peerDependencies: [],
-    files: [{ name: 'utils.ts', content: readContent(path.join(libDir, 'utils.ts')) }],
+    registryDependencies: [],
+    files: [{ name: 'utils.ts', content: readSource(path.join(LIB_DIR, 'utils.ts')) }],
     meta: {},
+    categories: ['lib'],
+    propsSourceFile: null,
   };
 
   const libHooks = {
     name: 'lib-hooks',
-    type: 'lib',
-    category: 'lib',
-    subcategory: 'internal',
+    kind: 'lib',
+    legacy: { type: 'lib', category: 'lib', subcategory: 'internal' },
+    title: 'Isomorphic Layout Effect Hook',
     description: 'Internal isomorphic layout effect hook shared by chart components.',
-    dependencies: [],
+    npmDependencies: [],
     devDependencies: [],
-    registryDependencies: [],
     peerDependencies: ['react'],
-    files: [{ name: 'hooks.ts', content: readContent(path.join(libDir, 'hooks.ts')) }],
+    registryDependencies: [],
+    files: [{ name: 'hooks.ts', content: readSource(path.join(LIB_DIR, 'hooks.ts')) }],
     meta: {},
+    categories: ['lib'],
+    propsSourceFile: null,
   };
 
   // CLI writes go through sanitizeFileName(), which lowercases every path
@@ -169,17 +227,17 @@ function buildSupportComponents() {
 
   const chartShared = {
     name: 'chart-shared',
-    type: 'internal',
-    category: 'charts',
-    subcategory: 'internal',
+    kind: 'internal',
+    legacy: { type: 'internal', category: 'charts', subcategory: 'internal' },
+    title: 'Chart Shared Internals',
     description: 'Internal shared module (types, formatting, tooltip, resize hook) used by every chart component.',
-    dependencies: ['framer-motion'],
+    npmDependencies: ['framer-motion'],
     devDependencies: [],
-    registryDependencies: ['lib-hooks'],
     peerDependencies: ['react', 'react-dom'],
+    registryDependencies: ['lib-hooks'],
     files: [
       ...sharedFileNames.map((fileName) => {
-        const content = readContent(path.join(sharedDir, fileName));
+        const content = readSource(path.join(SHARED_DIR, fileName));
         return {
           name: `_shared/${fileName}`,
           content: fileName === 'index.ts'
@@ -189,71 +247,26 @@ function buildSupportComponents() {
       }),
       {
         name: '_shared/chart-tooltip.tsx',
-        content: readContent(path.join(sharedDir, 'ChartTooltip.tsx')),
+        content: readSource(path.join(SHARED_DIR, 'ChartTooltip.tsx')),
       },
     ],
     meta: {},
+    categories: ['lib'],
+    propsSourceFile: null,
   };
 
   return [libUtils, libHooks, chartShared];
 }
 
-function buildGeneratedContent() {
-  const components = [...charts.map(buildChartComponent), ...buildSupportComponents()];
-
-  const fallbackIndex = [];
-  const fallbackComponents = {};
-
-  for (const component of components) {
-    fallbackIndex.push({
-      name: component.name,
-      type: component.type,
-      category: component.category,
-      subcategory: component.subcategory,
-      description: component.description,
-      dependencies: component.dependencies,
-      devDependencies: component.devDependencies,
-      registryDependencies: component.registryDependencies,
-      peerDependencies: component.peerDependencies,
-      meta: component.meta,
-    });
-
-    fallbackComponents[component.name] = component;
-  }
-
-  return { fallbackIndex, fallbackComponents };
+function buildAllItems() {
+  return [...CHARTS.map(buildChartItem), ...buildSupportItems()];
 }
 
-function generateFile() {
-  const { fallbackIndex, fallbackComponents } = buildGeneratedContent();
-
-  const banner = [
-    '/* eslint-disable */',
-    '// This file is auto-generated by scripts/generate-fallback-registry.js',
-    '// Do not edit this file directly. Update the source components instead.',
-    '',
-  ].join('\n');
-
-  const imports = "import type { RegistryIndex, RegistryItem } from './types.js';\n\n";
-
-  const body = [
-    `export const FALLBACK_REGISTRY_INDEX: RegistryIndex = ${JSON.stringify(fallbackIndex, null, 2)};`,
-    '',
-    `export const FALLBACK_COMPONENTS: Record<string, RegistryItem> = ${JSON.stringify(fallbackComponents, null, 2)};`,
-    '',
-  ].join('\n');
-
-  const content = `${banner}${imports}${body}`;
-  const existingContent = fs.existsSync(outputPath) ? fs.readFileSync(outputPath, 'utf8') : '';
-  const hasChanges = existingContent !== content;
-
-  fs.writeFileSync(outputPath, content);
-
-  if (hasChanges) {
-    console.log('[fallback] Embedded registry updated from source components.');
-  } else {
-    console.log('[fallback] Embedded registry is up to date.');
-  }
-}
-
-generateFile();
+module.exports = {
+  ROOT_DIR,
+  SITE_URL,
+  AUTHOR,
+  CHARTS,
+  CHARTS_WITHOUT_SHARED,
+  buildAllItems,
+};
