@@ -5,10 +5,14 @@ const fs = require('fs');
 const path = require('path');
 const { buildAllItems } = require('./manifest');
 const { emitCliFallback } = require('./emitters/cli-fallback');
+const { emitShadcn } = require('./emitters/shadcn');
 
 function buildAll() {
   const items = buildAllItems();
-  return [...emitCliFallback(items)];
+  return [
+    ...emitCliFallback(items),
+    ...emitShadcn(items),
+  ];
 }
 
 function writeAll(outputs) {

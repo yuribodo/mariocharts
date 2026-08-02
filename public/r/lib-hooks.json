@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lib-hooks",
+  "type": "registry:lib",
+  "title": "Isomorphic Layout Effect Hook",
+  "description": "Internal isomorphic layout effect hook shared by chart components.",
+  "author": "Yuri Bodo",
+  "dependencies": [],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "hooks.ts",
+      "type": "registry:lib",
+      "target": "@lib/hooks.ts",
+      "content": "import { useEffect, useLayoutEffect } from 'react';\n\n/**\n * Isomorphic useLayoutEffect that falls back to useEffect on the server.\n * Use for DOM measurements that may run during SSR.\n */\nexport const useIsomorphicLayoutEffect =\n  typeof window !== 'undefined' ? useLayoutEffect : useEffect;\n"
+    }
+  ],
+  "categories": [
+    "lib"
+  ]
+}

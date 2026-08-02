@@ -1,0 +1,24 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lib-utils",
+  "type": "registry:lib",
+  "title": "Class Name Helper",
+  "description": "Internal `cn` classname helper shared by every chart component.",
+  "author": "Yuri Bodo",
+  "dependencies": [
+    "clsx",
+    "tailwind-merge"
+  ],
+  "registryDependencies": [],
+  "files": [
+    {
+      "path": "utils.ts",
+      "type": "registry:lib",
+      "target": "@lib/utils.ts",
+      "content": "import { clsx, type ClassValue } from \"clsx\"\nimport { twMerge } from \"tailwind-merge\"\n\nexport function cn(...inputs: ClassValue[]) {\n  return twMerge(clsx(inputs))\n}\n"
+    }
+  ],
+  "categories": [
+    "lib"
+  ]
+}

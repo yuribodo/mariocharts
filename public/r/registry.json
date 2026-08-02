@@ -1,0 +1,235 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "mario-charts",
+  "homepage": "https://mariocharts.com",
+  "items": [
+    {
+      "name": "bar-chart",
+      "type": "registry:component",
+      "title": "Bar Chart",
+      "description": "A customizable bar chart component with animations, hover effects, responsive design, and support for both vertical and horizontal orientations with filled or outline variants",
+      "categories": [
+        "charts",
+        "dashboard"
+      ],
+      "files": [
+        {
+          "path": "bar-chart/index.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "line-chart",
+      "type": "registry:component",
+      "title": "Line Chart",
+      "description": "A sophisticated line chart component with triangular markers, textured area fills, multiple series support, gap handling, curve interpolation, and advanced animations",
+      "categories": [
+        "charts",
+        "dashboard"
+      ],
+      "files": [
+        {
+          "path": "line-chart/index.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "scatter-plot",
+      "type": "registry:component",
+      "title": "Scatter Plot",
+      "description": "A versatile scatter plot and bubble chart component with multi-series support, trend lines, dynamic bubble sizing, responsive design, and smooth animations",
+      "categories": [
+        "charts",
+        "dashboard"
+      ],
+      "files": [
+        {
+          "path": "scatter-plot/index.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "scatter-plot/types.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "scatter-plot/scales.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "scatter-plot/regression.ts",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "pie-chart",
+      "type": "registry:component",
+      "title": "Pie Chart",
+      "description": "A customizable pie and donut chart component with animated segments, interactive hover effects, center labels, and responsive design",
+      "categories": [
+        "charts",
+        "dashboard"
+      ],
+      "files": [
+        {
+          "path": "pie-chart/index.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "radar-chart",
+      "type": "registry:component",
+      "title": "Radar Chart",
+      "description": "A multi-axis radar chart component with multi-series support, animated fills, interactive tooltips, and responsive design",
+      "categories": [
+        "charts",
+        "dashboard"
+      ],
+      "files": [
+        {
+          "path": "radar-chart/index.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "radar-chart/types.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "radar-chart/geometry.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "radar-chart/scales.ts",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "stacked-bar-chart",
+      "type": "registry:component",
+      "title": "Stacked Bar Chart",
+      "description": "A stacked bar chart component with multiple segment support, animated stacking, interactive tooltips, and both vertical and horizontal orientations",
+      "categories": [
+        "charts",
+        "dashboard"
+      ],
+      "files": [
+        {
+          "path": "stacked-bar-chart/index.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "gauge-chart",
+      "type": "registry:component",
+      "title": "Gauge Chart",
+      "description": "A 3/4 arc gauge chart component with configurable color zones, animated needle, center value display, and responsive design",
+      "categories": [
+        "charts",
+        "dashboard"
+      ],
+      "files": [
+        {
+          "path": "gauge-chart/index.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "gauge-chart/utils.ts",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "heatmap",
+      "type": "registry:component",
+      "title": "Heatmap Chart",
+      "description": "A heatmap chart component with configurable color schemes, animated cells, interactive tooltips, row/column labels, and multiple layout variants",
+      "categories": [
+        "charts",
+        "dashboard"
+      ],
+      "files": [
+        {
+          "path": "heatmap/index.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "funnel-chart",
+      "type": "registry:component",
+      "title": "Funnel Chart",
+      "description": "A funnel chart component with vertical trapezoid and horizontal diminishing bar variants, animated segments, conversion rates, and interactive tooltips",
+      "categories": [
+        "charts",
+        "dashboard"
+      ],
+      "files": [
+        {
+          "path": "funnel-chart/index.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "area-chart",
+      "type": "registry:component",
+      "title": "Area Chart",
+      "description": "A layered area chart component with multiple curve interpolations, gradient fills, multi-series support, and responsive design",
+      "categories": [
+        "charts",
+        "dashboard"
+      ],
+      "files": [
+        {
+          "path": "area-chart/index.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "treemap-chart",
+      "type": "registry:component",
+      "title": "Treemap Chart",
+      "description": "A squarified treemap chart component for hierarchical data with nested rectangles, animated layout, interactive tooltips, and responsive design",
+      "categories": [
+        "charts",
+        "dashboard"
+      ],
+      "files": [
+        {
+          "path": "treemap-chart/index.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "treemap-chart/layout.ts",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "waterfall-chart",
+      "type": "registry:component",
+      "title": "Waterfall Chart",
+      "description": "A waterfall chart component visualizing cumulative increases, decreases, and running totals with animated floating bars and connectors",
+      "categories": [
+        "charts",
+        "dashboard"
+      ],
+      "files": [
+        {
+          "path": "waterfall-chart/index.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "waterfall-chart/utils.ts",
+          "type": "registry:component"
+        }
+      ]
+    }
+  ]
+}
