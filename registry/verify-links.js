@@ -7,8 +7,23 @@ const fs = require('fs');
 const path = require('path');
 
 const LLMS_PATH = path.join(__dirname, '..', 'public', 'llms.txt');
-const URL_PATTERN = /https:\/\/mariocharts\.com[^\s`)"'>]*/g;
+// Stops at markdown/prose delimiters, including the angle brackets and curly
+// braces llms.txt uses for placeholders (`<chart-name>`, `{name}`).
+const URL_PATTERN = /https:\/\/mariocharts\.com[^\s`)"'><{}]*/g;
 const TIMEOUT_MS = 10000;
+
+// Pulls real, checkable URLs out of llms.txt's markdown. Two kinds of noise
+// need stripping: a trailing sentence-ending period ("...registry.json."),
+// and placeholder templates (`<chart-name>`, `{name}`) whose angle
+// bracket/brace got excluded from the match, leaving a truncated URL that
+// dangles on a bare trailing slash — no real published URL ends that way.
+function extractUrls(content) {
+  const raw = content.match(URL_PATTERN) ?? [];
+  const normalized = raw
+    .map((url) => url.replace(/\.+$/, ''))
+    .filter((url) => !url.endsWith('/'));
+  return [...new Set(normalized)].sort();
+}
 
 async function check(url) {
   try {
@@ -25,7 +40,7 @@ async function check(url) {
 
 async function main() {
   const content = fs.readFileSync(LLMS_PATH, 'utf8');
-  const urls = [...new Set(content.match(URL_PATTERN) ?? [])].sort();
+  const urls = extractUrls(content);
 
   if (urls.length === 0) {
     console.error('[verify-links] No mariocharts.com URLs found in llms.txt.');
@@ -46,4 +61,8 @@ async function main() {
   console.log(`[verify-links] All ${urls.length} URLs reachable.`);
 }
 
-main();
+module.exports = { extractUrls };
+
+if (require.main === module) {
+  main();
+}

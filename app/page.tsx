@@ -4,7 +4,7 @@ import { LandingContent } from "./landing-content";
 export const metadata: Metadata = {
   title: "Mario Charts - Beautiful React Chart Components",
   description:
-    "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box. Zero lock-in, copy-paste components built with TypeScript, Tailwind CSS, and Recharts.",
+    "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box. Zero lock-in, copy-paste components built with TypeScript, Tailwind CSS, and Framer Motion.",
   keywords: [
     "react charts",
     "react chart library",

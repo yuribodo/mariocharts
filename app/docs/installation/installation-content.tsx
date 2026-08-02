@@ -116,9 +116,7 @@ export function Dashboard() {
             </div>
 
             <CodeBlock
-              code={`npm install recharts framer-motion \\
-  @radix-ui/react-tooltip \\
-  class-variance-authority clsx tailwind-merge`}
+              code={`npm install framer-motion clsx tailwind-merge`}
               language="bash"
             />
           </div>
