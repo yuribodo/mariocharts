@@ -179,9 +179,17 @@ invention.
 
 3. **`app/sitemap.ts`** — 6 → 12 component routes, derived from the manifest.
 
-4. **Markdown endpoints** — `/docs/components/<name>.md` serving each doc as plain
+4. **Markdown endpoints** — `/docs/components/<name>.md` serving each chart as plain
    markdown. Generated, static. Cuts token cost and strips HTML/navigation noise for AI
    consumers.
+
+   These are **generated from source, not scraped from the TSX docs pages** (which are
+   700+ line React components). Each file contains the title, description, the canonical
+   install command, the npm dependencies, and the chart's real props interface extracted
+   from source by brace-matching `interface <Name>Props`. Verified 2026-08-02: this
+   extraction succeeds for all 12 charts — 10 from `index.tsx`, and `radar-chart` and
+   `scatter-plot` from their `types.ts`. Because the interface is read from the same file
+   the registry ships, the documented API cannot drift from the installed component.
 
 5. **Anti-signal fixes** — cheapest work in the plan, likely the highest impact:
    - `README.md:31` — remove the non-existent `kpi-card` from the install example.
@@ -197,19 +205,29 @@ invention.
 
 CI already runs typecheck, jest with coverage, and build. Add:
 
-- **Sync test** — run the generator, `git diff --exit-code` on all generated files.
-- **Schema validation** — every `public/r/*.json` validates against the shadcn
-  `registry-item.json` JSON Schema (versioned copy, not a build-time fetch).
-- **Smoke test** — `npx shadcn@latest add ./public/r/bar-chart.json` into a clean
-  fixture, then compile. `packages/cli/scripts/smoke-test.js` provides the pattern.
-- **Link test** — every URL cited in `llms.txt` returns 200.
+- **Sync test** — run the generator, `git diff --exit-code` on all generated files. The
+  drift is simulated by editing the manifest, not the output, so the test exercises the
+  real failure mode.
+- **Shape validation** — assert the invariants directly in Jest rather than pulling in a
+  JSON Schema validator: required fields present and non-empty, `type` within the allowed
+  set, every file carrying a `path`, `type`, `target`, and non-empty `content`, and every
+  `registryDependency` URL resolving to a document this build actually emits. That last
+  assertion is the one a generic schema validator could not make, and it is the one that
+  catches a broken install.
+- **Install verification** — `npx shadcn@latest add https://mariocharts.com/r/bar-chart.json`
+  into a fresh `create-next-app` project, then `tsc --noEmit`. This runs against the
+  **deployed** registry, so it is a post-merge manual step rather than a PR gate; CI
+  carries an advisory job that fetches the live endpoints and checks their shape.
+- **Link test** — every `mariocharts.com` URL cited in `llms.txt` returns 200. Advisory in
+  CI for the same reason.
 
 ## Risks
 
-- **Nested `target` paths.** `~/components/charts/bar-chart/index.tsx` must be validated
-  against the real shadcn CLI before this design is final. If nested targets are
-  rejected, fall back to a flat `~/components/charts/bar-chart.tsx` with sibling files
-  inlined.
+- ~~**Nested `target` paths.**~~ **Resolved 2026-08-02.** The shadcn docs show nested
+  targets in their own examples (`@ui/ai/prompt-input.tsx`), so
+  `@components/charts/bar-chart/index.tsx` is valid. Use the `@components/` and `@lib/`
+  placeholders rather than `~/`, so paths resolve through the consumer's
+  `components.json` aliases instead of being pinned to the project root.
 - **Two registry formats coexisting.** The CLI's custom format and the shadcn format both
   derive from one manifest, so they cannot drift — but the CLI stays on its embedded copy
   this phase, meaning a chart added between CLI releases is installable via shadcn and
