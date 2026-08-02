@@ -6,34 +6,36 @@ import { asciify, compose } from "./ascii-portrait";
 const SOURCE = path.join(process.cwd(), "public/hero-portrait.jpg");
 
 describe("ascii-portrait", () => {
-  it("composes onto a 16:9 canvas with the subject on the right", async () => {
-    const composed = await compose(await readFile(SOURCE));
+  it("composes onto a canvas the size of the source, not a padded one", async () => {
+    const source = await readFile(SOURCE);
+    const composed = await compose(source);
     const sharp = (await import("sharp")).default;
-    const { width, height } = await sharp(composed).metadata();
+    const [{ width: sourceWidth, height: sourceHeight }, { width, height }] =
+      await Promise.all([
+        sharp(source).metadata(),
+        sharp(composed).metadata(),
+      ]);
 
-    expect(width! / height!).toBeCloseTo(16 / 9, 2);
+    // The whole point of the tight composition is that no canvas padding is
+    // added: every pixel of output width holds the subject. A regression
+    // back to a padded canvas (e.g. 16:9) would change these dimensions.
+    expect(width).toBe(sourceWidth);
+    expect(height).toBe(sourceHeight);
   });
 
-  it("leaves the left half of the field empty for the headline", async () => {
+  it("uses a real spread of the character ramp rather than collapsing into a few glyphs", async () => {
     const art = await asciify(await readFile(SOURCE), { columns: 100 });
-    const lines = art.split("\n");
 
-    // Every line's ink must start past the midpoint. Anything drawn on the
-    // left would sit underneath the headline, and the design forbids the
-    // overlay that would be needed to keep the text readable.
-    const inkStarts = lines
-      .filter((line) => line.trim().length > 0)
-      .map((line) => line.search(/\S/));
+    // A legible portrait needs real tonal range. Counting distinct non-space
+    // glyphs catches a collapse into two or three characters — which is
+    // exactly what an unreadable, low-contrast portrait looks like — without
+    // being so strict that harmless resampling differences fail the test.
+    // This isn't vacuous on empty output: a blank art string has zero
+    // distinct glyphs, which fails the assertion rather than passing it.
+    const glyphs = new Set(art.replace(/\n/g, "").split(""));
+    glyphs.delete(" ");
 
-    // Guard against a vacuous pass: if the renderer regressed to producing no
-    // ink at all, inkStarts would be empty and Math.min(...[]) is Infinity,
-    // which would trivially satisfy the assertion below.
-    expect(inkStarts.length).toBeGreaterThan(0);
-
-    // The source is pasted onto a 16:9 canvas at its own width, so it covers
-    // roughly the right half. 45 leaves margin for rounding without letting
-    // ink creep into the headline's field.
-    expect(Math.min(...inkStarts)).toBeGreaterThanOrEqual(45);
+    expect(glyphs.size).toBeGreaterThanOrEqual(6);
   });
 
   it("is deterministic", async () => {

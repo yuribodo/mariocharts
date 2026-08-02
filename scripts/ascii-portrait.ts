@@ -39,16 +39,16 @@ function feather(width: number, height: number): Buffer {
 }
 
 /**
- * Places the source on a 16:9 matte-black canvas, anchored right, so the left
- * of the field is empty for the headline.
+ * Places the source on a matte-black canvas the size of the source itself, so
+ * the entire output width is spent on the subject. The feather still fades
+ * the source's blurred backdrop out at its own edges, so it dissolves into
+ * the matte instead of meeting it at a hard rectangular seam. Layout —
+ * positioning the subject within the hero and reserving room for the
+ * headline — is the caller's job, not this function's.
  */
 export async function compose(image: Buffer): Promise<Buffer> {
   const source = sharp(image);
   const { width = 0, height = 0 } = await source.metadata();
-
-  const canvasHeight = height;
-  const canvasWidth = Math.round((height * 16) / 9);
-  const inset = Math.round(height * 0.06);
 
   const feathered = await source
     .ensureAlpha()
@@ -64,15 +64,13 @@ export async function compose(image: Buffer): Promise<Buffer> {
 
   return sharp({
     create: {
-      width: canvasWidth,
-      height: canvasHeight,
+      width,
+      height,
       channels: 3,
       background: { r: 0, g: 0, b: 0 },
     },
   })
-    .composite([
-      { input: feathered, left: canvasWidth - width - inset, top: 0 },
-    ])
+    .composite([{ input: feathered, left: 0, top: 0 }])
     .png()
     .toBuffer();
 }
