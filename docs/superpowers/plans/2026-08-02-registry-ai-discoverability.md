@@ -78,7 +78,7 @@ The riskiest task, done first: move the source of truth out of the CLI package *
 
 **Interfaces:**
 - Produces: `registry/manifest.js` exports `{ ROOT_DIR, SITE_URL, AUTHOR, CHARTS, CHARTS_WITHOUT_SHARED, buildAllItems }`.
-  - `CHARTS`: `Array<{ name, title, description, importName, exportName, siblingFiles, categories, propsSourceFile }>`
+  - `CHARTS`: `Array<{ name, title, description, importName, exportName, siblingFiles, categories, propsSourceFile, docsSlug }>`
   - `buildAllItems(): Item[]` where `Item` is:
     ```js
     {
@@ -95,8 +95,18 @@ The riskiest task, done first: move the source of truth out of the CLI package *
       meta: { importName?: string, exportName?: string, displayName?: string },
       categories: string[],
       propsSourceFile: string | null,   // 'index.tsx' | 'types.ts' | null for support items
+      docsSlug: string | null,          // docs route segment; equals `name` except treemap-chart -> 'treemap'
     }
     ```
+
+    **`docsSlug` exists because one chart's docs route does not match its name.**
+    `treemap-chart` lives at `app/docs/components/treemap/`, and
+    `https://mariocharts.com/docs/components/treemap-chart` is a live 404 while the
+    short URL is 200 and self-canonical. Build **every docs URL** from `docsSlug` and
+    every registry-item URL and filename from `name`. Do not "simplify" the field away.
+    Each emitter that publishes a docs URL must carry a filesystem-backed guard test
+    that reads `app/docs/components/` from disk and fails if any generated URL has no
+    matching directory — a hardcoded list rots, a disk read does not.
 - Produces: `registry/emitters/cli-fallback.js` exports `emitCliFallback(items): Array<{ path: string, content: string }>` where `path` is absolute.
 - Produces: `registry/build.js` exports `buildAll(): Array<{ path, content }>` and writes them when run as `node registry/build.js`.
 
@@ -948,7 +958,7 @@ function toShadcnItem(item) {
     doc.devDependencies = [...item.devDependencies];
   }
   if (item.kind === 'chart') {
-    doc.docs = `${SITE_URL}/docs/components/${item.name}`;
+    doc.docs = `${SITE_URL}/docs/components/${item.docsSlug}`;
   }
 
   return doc;
@@ -1137,7 +1147,7 @@ function emitSiteData(items) {
       `    name: ${JSON.stringify(chart.name)},`,
       `    title: ${JSON.stringify(chart.title)},`,
       `    description: ${JSON.stringify(chart.description)},`,
-      `    docsPath: ${JSON.stringify(`/docs/components/${chart.name}`)},`,
+      `    docsPath: ${JSON.stringify(`/docs/components/${chart.docsSlug}`)},`,
       `    registryUrl: ${JSON.stringify(`${SITE_URL}/r/${chart.name}.json`)},`,
       '  },',
     ].join('\n'))
@@ -1653,7 +1663,7 @@ function shortChartSection(chart) {
     chart.description,
     '',
     `- Install: \`npx shadcn@latest add ${SITE_URL}/r/${chart.name}.json\``,
-    `- Docs: ${SITE_URL}/docs/components/${chart.name}`,
+    `- Docs: ${SITE_URL}/docs/components/${chart.docsSlug}`,
     `- Registry item: ${SITE_URL}/r/${chart.name}.json`,
   ].join('\n');
 }
@@ -1667,7 +1677,7 @@ function fullChartSection(chart) {
     '',
     `Install: \`npx shadcn@latest add ${SITE_URL}/r/${chart.name}.json\``,
     `Import: \`import { ${chart.meta.exportName} } from "@/components/charts/${chart.name}";\``,
-    `Docs: ${SITE_URL}/docs/components/${chart.name}`,
+    `Docs: ${SITE_URL}/docs/components/${chart.docsSlug}`,
     '',
     'Props:',
     '',
@@ -1894,7 +1904,7 @@ function renderChart(chart) {
     '',
     '## Links',
     '',
-    `- Full documentation with live examples: ${SITE_URL}/docs/components/${chart.name}`,
+    `- Full documentation with live examples: ${SITE_URL}/docs/components/${chart.docsSlug}`,
     `- Registry item (complete source): ${SITE_URL}/r/${chart.name}.json`,
     `- All charts: ${SITE_URL}/llms.txt`,
     '',
