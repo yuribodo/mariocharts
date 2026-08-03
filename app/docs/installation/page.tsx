@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { markdownAlternate } from "@/lib/markdown-alternate";
 import { InstallationContent } from "./installation-content";
 import { BreadcrumbSchema } from "../../../components/seo/json-ld";
 
@@ -14,9 +15,7 @@ export const metadata: Metadata = {
     "typescript chart setup",
     "tailwind charts config",
   ],
-  alternates: {
-    canonical: "/docs/installation",
-  },
+  alternates: markdownAlternate("/docs/installation"),
   openGraph: {
     title: "Installation Guide | Mario Charts",
     description:

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { markdownAlternate } from "@/lib/markdown-alternate";
 import { AreaChartContent } from "./area-chart-content";
 import { BreadcrumbSchema } from "../../../../components/seo/json-ld";
 
@@ -6,7 +7,7 @@ export const metadata: Metadata = {
   title: "Area Chart",
   description: "Area chart component for React with gradient fills, stacked areas, multiple series, and smooth animations. TypeScript ready.",
   keywords: ["area chart", "react area chart", "stacked area chart", "data visualization", "gradient chart"],
-  alternates: { canonical: "/docs/components/area-chart" },
+  alternates: markdownAlternate("/docs/components/area-chart"),
   openGraph: {
     title: "Area Chart Component | Mario Charts",
     description: "Versatile area chart component for React with gradient fills and stacked areas.",

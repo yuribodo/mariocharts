@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { memo, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
 import { formatValue, getNumericValue, useContainerDimensions, ChartTooltip } from "../_shared";
 import type { ChartDataItem, PieChartTooltipData, TooltipRenderer } from "../_shared";
@@ -203,6 +203,8 @@ function PieChartComponent<T extends ChartDataItem>({
 }: PieChartProps<T>) {
   const [containerRef, containerWidth] = useContainerDimensions();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const reduceMotion = useReducedMotion();
+  const shouldAnimate = animation && !reduceMotion;
 
   // Calculate chart dimensions
   const isSemi = variant === 'semi';
@@ -316,7 +318,7 @@ function PieChartComponent<T extends ChartDataItem>({
         {processedSlices.map((slice) => {
           const isHovered = hoveredIndex === slice.index;
 
-          const motionProps = animation ? {
+          const motionProps = shouldAnimate ? {
             initial: { scale: 0, opacity: 0 },
             animate: {
               scale: isHovered ? 1.03 : 1,

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { markdownAlternate } from "@/lib/markdown-alternate";
 import { TreeMapContent } from "./treemap-content";
 import { BreadcrumbSchema } from "../../../../components/seo/json-ld";
 
@@ -6,7 +7,7 @@ export const metadata: Metadata = {
   title: "TreeMap Chart",
   description: "Production-ready treemap chart component for React. Visualize hierarchical data as proportional rectangles with smooth animations and TypeScript support. Copy-paste ready.",
   keywords: ["treemap", "treemap chart", "react treemap", "hierarchical data", "data visualization", "typescript chart"],
-  alternates: { canonical: "/docs/components/treemap" },
+  alternates: markdownAlternate("/docs/components/treemap"),
   openGraph: {
     title: "TreeMap Chart Component | Mario Charts",
     description: "Production-ready treemap chart component for React with TypeScript support.",

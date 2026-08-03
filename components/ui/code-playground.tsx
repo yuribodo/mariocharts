@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 
 interface PlaygroundProps {
   defaultCode?: string;
-  component?: "bar-chart" | "kpi-card" | "line-chart";
+  component?: "bar-chart" | "line-chart";
   title?: string;
   description?: string;
 }

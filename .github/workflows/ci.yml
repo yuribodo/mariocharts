@@ -46,6 +46,40 @@ jobs:
           path: coverage/
           if-no-files-found: ignore
 
+  registry:
+    name: Registry generated files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Every artifact under public/r, public/llms*.txt, public/docs/components,
+      # registry/generated and the CLI fallback is derived from registry/manifest.js.
+      # If regenerating changes anything, the committed files are stale — that is
+      # exactly how six charts ended up missing from llms.txt and the sitemap.
+      - name: Regenerate
+        run: npm run build:registry
+
+      # `git diff` only sees tracked files. Adding a chart to the manifest
+      # produces a brand-new, untracked public/r/<chart>.json, which a diff
+      # check reports as clean — the exact "new chart silently missing from the
+      # published registry" failure this job exists to prevent. Check the
+      # worktree status instead, untracked files included.
+      - name: Fail if any generated file is out of date
+        run: |
+          if [ -n "$(git status --porcelain --untracked-files=all)" ]; then
+            git status --short
+            echo "::error::Generated registry files are stale. Run 'npm run build:registry' and commit the result."
+            exit 1
+          fi
+
   # Lint is advisory for now: the repo carries pre-existing lint debt
   # (~33 errors). This job surfaces it on every PR without blocking merges.
   # Flip `continue-on-error` to false once the debt is cleared.
@@ -86,3 +120,46 @@ jobs:
 
       - name: CLI smoke test
         run: npm run smoke-test --workspace=packages/cli
+
+  # Verifies the *deployed* site, so it can only pass once this work is live.
+  # Advisory for the same reason the lint job is: it must not block merges on
+  # conditions outside the PR. Watch it after deploying.
+  live-endpoints:
+    name: Live endpoints (advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verify every URL published in llms.txt resolves
+        run: node registry/verify-links.js
+
+      - name: Verify a chart installs from the hosted registry
+        run: |
+          mkdir -p /tmp/registry-probe && cd /tmp/registry-probe
+          curl -sf https://mariocharts.com/r/registry.json -o registry.json
+          node -e "
+            const idx = require('/tmp/registry-probe/registry.json');
+            if (idx.items.length !== 12) {
+              console.error('Expected 12 items, got ' + idx.items.length);
+              process.exit(1);
+            }
+            console.log('Registry index lists ' + idx.items.length + ' charts.');
+          "
+          curl -sf https://mariocharts.com/r/bar-chart.json -o bar-chart.json
+          node -e "
+            const item = require('/tmp/registry-probe/bar-chart.json');
+            if (item.\$schema !== 'https://ui.shadcn.com/schema/registry-item.json') {
+              console.error('Wrong schema: ' + item.\$schema);
+              process.exit(1);
+            }
+            if (!item.files?.[0]?.content) {
+              console.error('Registry item ships no file content');
+              process.exit(1);
+            }
+            console.log('bar-chart.json is a valid registry item with inlined source.');
+          "

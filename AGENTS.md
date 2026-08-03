@@ -3,7 +3,7 @@
 ## Project Structure & Module Organization
 - Next.js pages live in `app/`; marketing blocks are in `components/site` and shared widgets in `components/ui`.
 - Published components stay in `src/components/**` with supporting hooks in `src/hooks` and shared utilities in `lib/`.
-- CLI assets sit in `packages/cli`, registry metadata in `packages/registry`, and static files in `public/`; lean on the `@/...` aliases from `tsconfig.json`.
+- CLI assets sit in `packages/cli`; the registry manifest and its emitters live in `registry/` (run `npm run build:registry` after touching a chart), and static files in `public/`; lean on the `@/...` aliases from `tsconfig.json`.
 
 ## DX & Design Principles
 - Treat documentation as product: update `docs/`, snippets, and copy whenever APIs move.
@@ -89,10 +89,14 @@ Mario Charts is a modern React component library focused on charts and dashboard
 #### Core Dependencies
 - **React** 18+ - Base for reusable components
 - **Tailwind CSS** - Design system and styling
-- **Radix UI** - Accessible primitives for interactive components
-- **Recharts** (peer dependency) - Chart engine foundation
-- **date-fns** - Date manipulation for filters
-- **Framer Motion** - Advanced animations and micro-interactions
+- **Framer Motion** - Chart animations and micro-interactions
+- **clsx** / **tailwind-merge** - Class name utilities for the shared `cn` helper
+
+Those are the only packages an installed chart adds. Radix UI is in this repo's
+`package.json`, but only the docs site uses it (`components/ui/select.tsx`,
+`components/ui/sheet.tsx`) — no published chart imports it. Check
+`npmDependencies` in `registry/manifest.js` before claiming a chart dependency
+here.
 
 #### Distribution
 - **shadcn/ui CLI system** - Copy-and-paste distribution for maximum flexibility
@@ -101,77 +105,69 @@ Mario Charts is a modern React component library focused on charts and dashboard
 
 #### Project Structure
 ```
-mario-charts/
+mariocharts/
 ├── src/
-│   ├── components/
-│   │   ├── charts/          # Chart components
-│   │   │   ├── bar-chart/
-│   │   │   ├── line-chart/
-│   │   │   ├── pie-chart/
-│   │   │   ├── area-chart/
-│   │   │   ├── scatter-plot/
-│   │   │   ├── funnel-chart/
-│   │   │   ├── gauge-chart/
-│   │   │   └── heatmap/
-│   │   ├── layout/          # Containers and layouts
-│   │   │   ├── dashboard-grid/
-│   │   │   ├── chart-container/
-│   │   │   └── responsive-container/
-│   │   ├── ui/              # Interface components
-│   │   │   ├── kpi-card/
-│   │   │   ├── data-table/
-│   │   │   ├── progress-bar/
-│   │   │   └── loading-states/
-│   │   ├── filters/         # Filter components
-│   │   │   ├── date-range-picker/
-│   │   │   ├── multi-select/
-│   │   │   └── slider-range/
-│   │   └── primitives/      # Base components
-│   │       ├── tooltip/
-│   │       ├── legend/
-│   │       └── empty-state/
-│   ├── themes/              # Theme system
-│   │   ├── tokens.ts        # Design tokens
-│   │   ├── colors.ts        # Color palettes
-│   │   └── presets.ts       # Pre-configured themes
-│   ├── hooks/               # Custom React hooks
-│   │   ├── use-chart.ts     # Main chart hook
-│   │   ├── use-filter.ts    # Filter management
-│   │   ├── use-resize.ts    # Resize detection
-│   │   └── use-theme.ts     # Theme management
-│   ├── utils/               # Utilities
-│   │   ├── data-formatting.ts
-│   │   ├── color-utils.ts
-│   │   ├── chart-helpers.ts
-│   │   └── performance.ts
-│   └── types/               # TypeScript definitions
-│       ├── chart-types.ts
-│       ├── theme-types.ts
-│       └── data-types.ts
-├── docs/                    # Documentation
-├── examples/                # Usage examples
-└── playground/              # Interactive playground
+│   └── components/
+│       ├── charts/              # The published chart components
+│       │   ├── _shared/         # cn, formatValue, ChartTooltip, hooks
+│       │   ├── area-chart/
+│       │   ├── bar-chart/
+│       │   ├── funnel-chart/
+│       │   ├── gauge-chart/
+│       │   ├── heatmap/
+│       │   ├── line-chart/
+│       │   ├── pie-chart/
+│       │   ├── radar-chart/
+│       │   ├── scatter-plot/
+│       │   ├── stacked-bar-chart/
+│       │   ├── treemap-chart/
+│       │   └── waterfall-chart/
+│       └── ui/
+├── registry/                    # Build pipeline for everything published
+│   ├── manifest.js              # SINGLE SOURCE OF TRUTH — the 12 charts
+│   ├── build.js                 # Runs every emitter, prunes orphans
+│   ├── extract-props.js
+│   ├── verify-links.js
+│   ├── emitters/                # shadcn, llms, markdown-docs, site-data, cli-fallback
+│   └── generated/charts.ts      # Typed chart list consumed by the site
+├── app/                         # Next.js App Router (docs site)
+├── components/                  # Site-only components (landing, seo, site, ui)
+├── lib/                         # Site utilities and constants
+├── hooks/
+├── types/
+├── packages/cli/                # The `mario-charts` npm CLI
+├── public/
+│   ├── r/                       # GENERATED shadcn registry items
+│   ├── docs/components/         # GENERATED markdown docs
+│   └── llms.txt, llms-full.txt  # GENERATED
+└── docs/                        # Plans and specs
 ```
 
-### Core Components (MVP Roadmap)
+Everything under `public/r/`, `public/docs/components/`, `registry/generated/`,
+`public/llms*.txt` and `packages/cli/src/utils/fallback-generated.ts` is
+generated by `npm run build:registry`. Never hand-edit those files — edit
+`registry/manifest.js` or the emitters and regenerate. CI fails the build if a
+regeneration would change anything.
 
-#### Phase 1: Essential Core (Weeks 1-2)
-1. **BarChart** - Bar chart (95% usage in corporate dashboards)
-2. **LineChart** - Line chart for time series
-3. **KPICard** - Metric cards with sparklines
-4. **AreaChart** - Area chart for cumulative data
+### Core Components
 
-#### Phase 2: Fundamental Expansion (Weeks 3-4)
-5. **PieChart/DonutChart** - Pie/donut charts
-6. **DataTable** - Data table with filters and sorting
-7. **StackedBarChart** - Stacked bar charts
-8. **GaugeChart** - Gauge for targets and goals
+The 12 charts below are the source of truth in `registry/manifest.js`; every
+generated artifact (CLI fallback, `public/r/*.json`, `llms.txt`, the sitemap,
+the markdown docs) derives from that list.
 
-#### Phase 3: Competitive Differentiation (Month 2)
-9. **ScatterPlot** - Scatter plot for correlation analysis
-10. **FunnelChart** - Conversion funnel
-11. **Heatmap** - Heat map for patterns
-12. **ProgressBar** - Progress indicators
+1. **BarChart** - Vertical/horizontal bar charts with filled or outline variants
+2. **LineChart** - Multi-series line charts with curve interpolation
+3. **ScatterPlot** - Scatter and bubble charts with trend lines
+4. **PieChart** - Pie and donut charts with animated segments
+5. **RadarChart** - Multi-axis radar charts
+6. **StackedBarChart** - Multi-segment stacked bar charts
+7. **GaugeChart** - Arc gauges for targets and goals
+8. **HeatmapChart** - Pattern and density heatmaps
+9. **FunnelChart** - Conversion funnels
+10. **AreaChart** - Layered area charts with gradient fills
+11. **TreeMapChart** - Hierarchical treemaps (note the capital M — the
+    directory is `treemap-chart`, the export is `TreeMapChart`)
+12. **WaterfallChart** - Cumulative increases/decreases and running totals
 
 ### Code Standards & Performance
 
@@ -367,8 +363,7 @@ class ChartErrorBoundary extends Component<
 // Tree-shakeable exports
 export { BarChart } from './bar-chart';
 export { LineChart } from './line-chart';
-export { KPICard } from './kpi-card';
-export type { BarChartProps, LineChartProps, KPICardProps } from './types';
+export type { BarChartProps, LineChartProps } from './types';
 
 // Dynamic imports for heavy components
 const HeavyChart = lazy(() => import('./heavy-chart'));
@@ -526,14 +521,6 @@ export const typography = {
     value: 'text-2xl font-bold text-mario-text-primary',
     caption: 'text-xs text-mario-text-muted',
   },
-
-  // KPI card typography
-  kpi: {
-    title: 'text-sm font-medium text-mario-text-secondary',
-    value: 'text-3xl font-bold text-mario-text-primary',
-    change: 'text-sm font-medium',
-    period: 'text-xs text-mario-text-muted',
-  }
 } as const;
 ```
 
@@ -588,7 +575,6 @@ const ChartCard = {
 const LoadingPatterns = {
   barChart: 'animate-pulse bg-mario-bg-tertiary rounded',
   lineChart: 'animate-pulse bg-gradient-to-r from-mario-bg-tertiary to-transparent',
-  kpiCard: 'space-y-3 animate-pulse',
   dataTable: 'space-y-2 animate-pulse'
 };
 ```
@@ -767,7 +753,7 @@ export const motionConfig = {
 npx mario-charts@latest init
 
 # Add individual components
-npx mario-charts@latest add bar-chart line-chart kpi-card
+npx mario-charts@latest add bar-chart line-chart
 
 # List all available components
 npx mario-charts@latest list
@@ -803,45 +789,62 @@ npx mario-charts@latest diff bar-chart
 ```
 
 #### Registry Structure
+
+The registry is served as flat static files from `public/r/`, all generated
+from `registry/manifest.js`:
+
 ```
-mario-charts-registry/
-├── registry/
-│   ├── charts/
-│   │   ├── bar-chart.json
-│   │   ├── line-chart.json
-│   │   └── pie-chart.json
-│   ├── ui/
-│   │   ├── kpi-card.json
-│   │   └── data-table.json
-│   └── themes/
-│       ├── default.json
-│       └── dark.json
-└── templates/
-    ├── dashboard-basic/
-    └── dashboard-advanced/
+public/r/
+├── registry.json          # Index — the 12 charts, without file contents
+├── bar-chart.json         # One document per chart
+├── line-chart.json
+├── ...                    # (12 charts total)
+├── chart-shared.json      # Support items, pulled in via registryDependencies
+├── lib-utils.json
+└── lib-hooks.json
 ```
 
+There are no theme or template items — those do not exist.
+
 #### Component Registry Format
+
+Real, abridged `public/r/bar-chart.json`. It follows the shadcn
+`registry-item.json` schema, not a Mario Charts-specific one:
+
 ```json
 {
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
   "name": "bar-chart",
-  "type": "chart",
-  "dependencies": ["@radix-ui/react-tooltip", "recharts"],
-  "devDependencies": [],
-  "registryDependencies": ["tooltip", "responsive-container"],
+  "type": "registry:component",
+  "title": "Bar Chart",
+  "description": "A customizable bar chart component with animations...",
+  "author": "Yuri Bodo",
+  "dependencies": ["framer-motion"],
+  "registryDependencies": [
+    "https://mariocharts.com/r/lib-utils.json",
+    "https://mariocharts.com/r/chart-shared.json"
+  ],
   "files": [
     {
-      "name": "bar-chart.tsx",
-      "content": "// Component code here..."
+      "path": "bar-chart.tsx",
+      "type": "registry:component",
+      "target": "@components/charts/bar-chart.tsx",
+      "content": "// Component source, with imports rewritten to @/ aliases"
     }
   ],
-  "meta": {
-    "description": "Responsive and customizable bar chart component",
-    "category": "charts",
-    "subcategory": "basic"
-  }
+  "categories": ["charts", "dashboard"],
+  "docs": "https://mariocharts.com/docs/components/bar-chart"
 }
 ```
+
+Two things that are easy to get wrong:
+
+- `registryDependencies` holds **absolute URLs** for third-party registries.
+  Bare names like `"tooltip"` resolve against shadcn's own registry, not ours.
+- File `content` must have monorepo-relative imports (`../../../../lib/utils`,
+  `../_shared`) rewritten to `@/` aliases. The shadcn CLI does not rewrite
+  literal relative paths, so an unrewritten item installs a file that does not
+  compile. `registry/emitters/shadcn.js` handles this and a test guards it.
 
 ### Component API Examples
 
@@ -876,27 +879,6 @@ interface BarChartProps<T extends Record<string, unknown>> {
   emptyState?: React.ReactNode;
   className?: string;
   onBarClick?: (data: T, index: number) => void;
-}
-```
-
-#### KPICard Component
-```typescript
-interface KPICardProps {
-  title: string;
-  value: string | number;
-  change?: {
-    readonly value: number;
-    readonly type: 'increase' | 'decrease';
-    readonly period?: string;
-  };
-  sparkline?: {
-    readonly data: readonly number[];
-    readonly type: 'line' | 'bar' | 'area';
-  };
-  icon?: React.ReactNode;
-  color?: string;
-  loading?: boolean;
-  className?: string;
 }
 ```
 
@@ -961,7 +943,7 @@ const useFilter = <T>(initialData: readonly T[]) => {
 #### Bundle Size
 - **Zero runtime overhead** - Components copied to user's project
 - **Native tree-shaking** - Only used code included in bundle
-- **Peer dependencies** - Recharts, Framer Motion installed separately
+- **Peer dependencies** - Framer Motion installed separately
 - **Modular by design** - Install only needed components
 
 #### Runtime Performance
@@ -998,13 +980,13 @@ const debouncedFilter = useMemo(
 #### Project Setup
 ```bash
 # Install dependencies
-npm install recharts date-fns framer-motion @radix-ui/react-tooltip
+npm install framer-motion clsx tailwind-merge
 
 # Initialize Mario Charts
 npx mario-charts@latest init
 
 # Add your first components
-npx mario-charts@latest add bar-chart kpi-card
+npx mario-charts@latest add bar-chart
 ```
 
 #### Basic Usage

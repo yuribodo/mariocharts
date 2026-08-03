@@ -1,0 +1,55 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "chart-shared",
+  "type": "registry:lib",
+  "title": "Chart Shared Internals",
+  "description": "Internal shared module (types, formatting, tooltip, resize hook) used by every chart component.",
+  "author": "Yuri Bodo",
+  "dependencies": [
+    "framer-motion"
+  ],
+  "registryDependencies": [
+    "https://mariocharts.com/r/lib-hooks.json"
+  ],
+  "files": [
+    {
+      "path": "_shared/index.ts",
+      "type": "registry:lib",
+      "target": "@components/charts/_shared/index.ts",
+      "content": "export type { ChartDataItem } from \"./types\";\nexport {\n  formatValue,\n  getNumericValue,\n  getNumericValueOrNull,\n  calculateNiceTicks,\n  getGridDasharray,\n} from \"./utils\";\nexport { useContainerDimensions } from \"./hooks\";\nexport { ChartTooltip } from \"./chart-tooltip\";\nexport type {\n  LineChartTooltipData,\n  BarChartTooltipData,\n  PieChartTooltipData,\n  StackedBarChartTooltipData,\n  FunnelChartTooltipData,\n  TreemapChartTooltipData,\n  RadarChartTooltipData,\n  ScatterPlotTooltipData,\n  HeatmapChartTooltipData,\n  AreaChartTooltipData,\n  GaugeChartTooltipData,\n  WaterfallChartTooltipData,\n  TooltipRenderer,\n} from \"./tooltip-types\";\n"
+    },
+    {
+      "path": "_shared/types.ts",
+      "type": "registry:lib",
+      "target": "@components/charts/_shared/types.ts",
+      "content": "export type ChartDataItem = Record<string, unknown>;\n"
+    },
+    {
+      "path": "_shared/utils.ts",
+      "type": "registry:lib",
+      "target": "@components/charts/_shared/utils.ts",
+      "content": "import type { ChartDataItem } from \"./types\";\n\nexport function formatValue(value: unknown): string {\n  if (typeof value === \"number\") {\n    if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;\n    if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}K`;\n    return value.toLocaleString();\n  }\n  return String(value);\n}\n\nexport function getNumericValue(\n  data: ChartDataItem,\n  key: keyof ChartDataItem\n): number {\n  const value = data[key];\n  if (typeof value === \"number\" && isFinite(value)) return value;\n  if (typeof value === \"string\") {\n    const parsed = parseFloat(value.replace(/[,$%\\s]/g, \"\"));\n    if (isFinite(parsed)) return parsed;\n  }\n  return 0;\n}\n\nexport function getNumericValueOrNull(\n  data: ChartDataItem,\n  key: keyof ChartDataItem\n): number | null {\n  const value = data[key];\n  if (typeof value === \"number\" && isFinite(value)) return value;\n  if (typeof value === \"string\") {\n    const parsed = parseFloat(value.replace(/[,$%\\s]/g, \"\"));\n    if (isFinite(parsed)) return parsed;\n  }\n  return null;\n}\n\nexport function calculateNiceTicks(min: number, max: number, count = 5): number[] {\n  if (min === max) return [min];\n  const range = max - min;\n  const roughStep = range / (count - 1);\n  const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)));\n  const normalizedStep = roughStep / magnitude;\n  let niceStep: number;\n  if (normalizedStep <= 1) niceStep = magnitude;\n  else if (normalizedStep <= 2) niceStep = 2 * magnitude;\n  else if (normalizedStep <= 5) niceStep = 5 * magnitude;\n  else niceStep = 10 * magnitude;\n  const niceMin = Math.floor(min / niceStep) * niceStep;\n  const niceMax = Math.ceil(max / niceStep) * niceStep;\n  const ticks: number[] = [];\n  for (let tick = niceMin; tick <= niceMax; tick += niceStep) {\n    ticks.push(tick);\n  }\n  return ticks;\n}\n\nexport function getGridDasharray(gridStyle: \"solid\" | \"dashed\" | \"dotted\"): string {\n  switch (gridStyle) {\n    case \"solid\": return \"none\";\n    case \"dotted\": return \"2 4\";\n    case \"dashed\":\n    default: return \"4 4\";\n  }\n}\n"
+    },
+    {
+      "path": "_shared/hooks.ts",
+      "type": "registry:lib",
+      "target": "@components/charts/_shared/hooks.ts",
+      "content": "\"use client\";\n\nimport { useRef, useState } from \"react\";\nimport { useIsomorphicLayoutEffect } from \"@/lib/hooks\";\n\nexport function useContainerDimensions() {\n  const ref = useRef<HTMLDivElement>(null);\n  const [width, setWidth] = useState(0);\n\n  useIsomorphicLayoutEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const update = () => setWidth(el.getBoundingClientRect().width);\n    update();\n    const ro = new ResizeObserver(update);\n    ro.observe(el);\n    return () => ro.disconnect();\n  }, []);\n\n  return [ref, width] as const;\n}\n"
+    },
+    {
+      "path": "_shared/tooltip-types.ts",
+      "type": "registry:lib",
+      "target": "@components/charts/_shared/tooltip-types.ts",
+      "content": "import type { ReactNode } from \"react\";\nimport type { ChartDataItem } from \"./types\";\n\nexport type TooltipRenderer<D> = (data: D) => ReactNode;\n\nexport interface LineChartTooltipData<T extends ChartDataItem> {\n  readonly label: string;\n  readonly index: number;\n  readonly series: readonly {\n    readonly key: string;\n    readonly value: number;\n    readonly rawValue: unknown;\n    readonly color: string;\n  }[];\n}\n\nexport interface BarChartTooltipData<T extends ChartDataItem> {\n  readonly label: string;\n  readonly value: number;\n  readonly rawValue: unknown;\n  readonly color: string;\n  readonly index: number;\n  readonly data: T;\n}\n\nexport interface PieChartTooltipData<T extends ChartDataItem> {\n  readonly label: string;\n  readonly value: number;\n  readonly rawValue: unknown;\n  readonly percentage: number;\n  readonly color: string;\n  readonly index: number;\n}\n\nexport interface StackedBarChartTooltipData<T extends ChartDataItem> {\n  readonly label: string;\n  readonly index: number;\n  readonly segments: readonly {\n    readonly key: string;\n    readonly value: number;\n    readonly color: string;\n  }[];\n  readonly total: number;\n}\n\nexport interface FunnelChartTooltipData<T extends ChartDataItem> {\n  readonly label: string;\n  readonly value: number;\n  readonly rawValue: unknown;\n  readonly percentage: number;\n  readonly conversionRate: number;\n  readonly color: string;\n}\n\nexport interface TreemapChartTooltipData {\n  readonly name: string;\n  readonly value: number;\n  readonly formattedValue: string;\n  readonly percentage: number;\n  readonly path: readonly string[];\n  readonly color: string;\n}\n\nexport interface RadarChartTooltipData<T extends ChartDataItem> {\n  readonly type: string;\n  readonly seriesName: string;\n  readonly axisLabel?: string;\n  readonly value?: number;\n  readonly formattedValue?: string;\n  readonly color: string;\n  readonly data: T;\n}\n\nexport interface ScatterPlotTooltipData<T extends ChartDataItem> {\n  readonly xValue: number;\n  readonly yValue: number;\n  readonly formattedX: string;\n  readonly formattedY: string;\n  readonly seriesKey?: string;\n  readonly sizeValue?: number;\n  readonly color: string;\n}\n\nexport interface HeatmapChartTooltipData<T extends ChartDataItem> {\n  readonly xLabel: string;\n  readonly yLabel: string;\n  readonly value: number;\n  readonly formattedValue: string;\n  readonly normalizedValue: number;\n  readonly color: string;\n}\n\nexport interface AreaChartTooltipData<T extends ChartDataItem> {\n  readonly label: string;\n  readonly index: number;\n  readonly series: readonly {\n    readonly key: string;\n    readonly value: number;\n    readonly rawValue: unknown;\n    readonly color: string;\n  }[];\n}\n\nexport interface GaugeChartTooltipData {\n  readonly value: number;\n  readonly min: number;\n  readonly max: number;\n  readonly percentage: number;\n  readonly unit?: string;\n  readonly label?: string;\n  readonly zone?: {\n    readonly from: number;\n    readonly to: number;\n    readonly color: string;\n    readonly label?: string;\n  };\n}\n\nexport interface WaterfallChartTooltipData<T extends ChartDataItem> {\n  readonly label: string;\n  readonly type: \"increase\" | \"decrease\" | \"total\";\n  /** Signed delta for increase/decrease bars; the absolute value for totals. */\n  readonly value: number;\n  /** Running total after this step. */\n  readonly cumulative: number;\n  readonly color: string;\n  readonly index: number;\n  readonly data: T;\n}\n"
+    },
+    {
+      "path": "_shared/chart-tooltip.tsx",
+      "type": "registry:lib",
+      "target": "@components/charts/_shared/chart-tooltip.tsx",
+      "content": "\"use client\";\n\nimport { AnimatePresence, motion, useReducedMotion } from \"framer-motion\";\n\ninterface ChartTooltipProps {\n  readonly visible: boolean;\n  readonly x: number;\n  readonly y: number;\n  readonly children: React.ReactNode;\n  readonly className?: string;\n  readonly style?: React.CSSProperties;\n}\n\nexport function ChartTooltip({ visible, x, y, children, className, style }: ChartTooltipProps) {\n  const reduceMotion = useReducedMotion();\n\n  return (\n    <AnimatePresence>\n      {visible && (\n        <motion.div\n          className={`absolute pointer-events-none z-50 bg-popover/98 backdrop-blur-md border border-border rounded-lg px-3 py-2.5 shadow-xl ${className ?? \"\"}`}\n          style={{ left: x, top: y, ...(style as Record<string, unknown>) }}\n          initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.9 }}\n          animate={{ opacity: 1, scale: 1 }}\n          exit={{ opacity: 0, scale: reduceMotion ? 1 : 0.9 }}\n          transition={{ duration: reduceMotion ? 0 : 0.15, ease: \"easeOut\" }}\n        >\n          {children}\n        </motion.div>\n      )}\n    </AnimatePresence>\n  );\n}\n"
+    }
+  ],
+  "categories": [
+    "lib"
+  ]
+}

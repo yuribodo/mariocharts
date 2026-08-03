@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { markdownAlternate } from "@/lib/markdown-alternate";
 import { LandingContent } from "./landing-content";
 
 export const metadata: Metadata = {
   title: "Mario Charts - Beautiful React Chart Components",
   description:
-    "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box. Zero lock-in, copy-paste components built with TypeScript, Tailwind CSS, and Recharts.",
+    "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box. Zero lock-in, copy-paste components built with TypeScript, Tailwind CSS, and Framer Motion.",
   keywords: [
     "react charts",
     "react chart library",
@@ -15,9 +16,7 @@ export const metadata: Metadata = {
     "dashboard components",
     "copy paste charts",
   ],
-  alternates: {
-    canonical: "/",
-  },
+  alternates: markdownAlternate("/"),
   openGraph: {
     title: "Mario Charts - Beautiful React Chart Components",
     description:

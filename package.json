@@ -27,7 +27,8 @@
   ],
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "npm run build:cli && next build --turbopack",
+    "build": "npm run build:registry && npm run build:cli && next build --turbopack",
+    "build:registry": "node registry/build.js",
     "build:cli": "npm run build --workspace=packages/cli",
     "ascii:portrait": "tsx scripts/ascii-portrait.ts",
     "dev:cli": "npm run dev --workspace=packages/cli",

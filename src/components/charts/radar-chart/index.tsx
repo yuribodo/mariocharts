@@ -176,7 +176,9 @@ function RadarChartComponent<T extends ChartDataItem>({
   const [containerRef, containerWidth] = useContainerDimensions();
   const [hoveredState, setHoveredState] = useState<HoveredState | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
-  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Not NodeJS.Timeout: this file ships through the registry into projects
+  // that may have no @types/node, where that namespace does not resolve.
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const reduceMotion = useReducedMotion();

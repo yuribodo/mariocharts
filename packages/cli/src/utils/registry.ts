@@ -8,7 +8,12 @@ import { FALLBACK_COMPONENTS, FALLBACK_REGISTRY_INDEX } from './fallback-generat
 
 const logger = new Logger();
 
-export const DEFAULT_REGISTRY_URL = 'https://mariocharts.com/registry';
+// The hosted registry now speaks the shadcn registry-item schema at /r/, which
+// this CLI does not yet parse (see registry/manifest.js and the follow-up spec
+// for the migration). Until then the CLI runs off its embedded fallback, which
+// the smoke test covers end to end. Pointing at /r keeps the URL honest — it
+// resolves — rather than 404ing on every invocation.
+export const DEFAULT_REGISTRY_URL = 'https://mariocharts.com/r';
 
 // Skips the network entirely and always uses the embedded fallback registry.
 // Useful for offline environments, and for tests that need deterministic

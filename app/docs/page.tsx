@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { markdownAlternate } from "@/lib/markdown-alternate";
 import { DocsContent } from "./docs-content";
 import { FAQSchema } from "../../components/seo/json-ld";
 
@@ -14,9 +15,7 @@ export const metadata: Metadata = {
     "copy paste charts",
     "react data visualization",
   ],
-  alternates: {
-    canonical: "/docs",
-  },
+  alternates: markdownAlternate("/docs"),
   openGraph: {
     title: "Introduction to Mario Charts",
     description:

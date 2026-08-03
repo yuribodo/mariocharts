@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { markdownAlternate } from "@/lib/markdown-alternate";
 import { WaterfallChartContent } from "./waterfall-chart-content";
 import { BreadcrumbSchema } from "../../../../components/seo/json-ld";
 
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
     "cash flow chart",
     "data visualization",
   ],
-  alternates: { canonical: "/docs/components/waterfall-chart" },
+  alternates: markdownAlternate("/docs/components/waterfall-chart"),
   openGraph: {
     title: "Waterfall Chart Component | Mario Charts",
     description:

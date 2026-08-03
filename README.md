@@ -13,7 +13,7 @@ Mario Charts prioritizes ease of use, excellent developer experience, and zero l
 - 📈 **Beautiful Charts Out-of-the-Box** - Stunning visuals with minimal configuration
 - 🎨 **Multiple Variants & Orientations** - Filled/outline styles with vertical/horizontal layouts
 - 📱 **Responsive by Default** - Works perfectly on all screen sizes
-- ♿ **Accessibility First** - Built with Radix UI primitives for full accessibility
+- ♿ **Accessibility First** - ARIA roles and labels on every chart and data point, with keyboard-focusable elements
 - 🎭 **Smooth Animations** - Powered by Framer Motion for delightful interactions
 - 📦 **Zero Lock-in** - Copy-and-paste components directly to your project
 - 🔧 **TypeScript Native** - Full type safety and excellent IntelliSense
@@ -23,21 +23,47 @@ Mario Charts prioritizes ease of use, excellent developer experience, and zero l
 
 ### Installation
 
+Mario Charts is published as a [shadcn registry](https://ui.shadcn.com/docs/registry).
+In any React project with a `components.json`, add a chart directly by URL:
+
 ```bash
-# Initialize Mario Charts in your project
-npx mario-charts@latest init
-
-# Add individual components
-npx mario-charts@latest add bar-chart kpi-card
-
-# Install peer dependencies
-npm install framer-motion
+npx shadcn@latest add https://mariocharts.com/r/bar-chart.json
 ```
+
+Dependencies are resolved automatically — nothing else to install.
+
+To install charts by short name, register the namespace once in your
+`components.json`:
+
+```json
+{
+  "registries": {
+    "@mariocharts": "https://mariocharts.com/r/{name}.json"
+  }
+}
+```
+
+```bash
+npx shadcn@latest add @mariocharts/bar-chart @mariocharts/line-chart
+```
+
+Every available chart is listed at
+[mariocharts.com/r/registry.json](https://mariocharts.com/r/registry.json).
+
+<details>
+<summary>Using the Mario Charts CLI instead</summary>
+
+```bash
+npx mario-charts@latest init
+npx mario-charts@latest add bar-chart line-chart
+```
+
+</details>
 
 ### Basic Usage
 
 ```tsx
-import { BarChart, KPICard } from '@/components/charts';
+import { BarChart } from '@/components/charts/bar-chart';
 
 const data = [
   { name: 'Jan', revenue: 1000 },
@@ -48,24 +74,6 @@ const data = [
 export function Dashboard() {
   return (
     <div className="p-6 space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <KPICard
-          title="Total Revenue"
-          value={3700}
-          change={{ value: 12.5, type: "increase", period: "last month" }}
-        />
-        <KPICard
-          title="Active Users"
-          value="2.4K"
-          change={{ value: 8.2, type: "increase", period: "last week" }}
-        />
-        <KPICard
-          title="Conversion Rate"
-          value="3.2%"
-          change={{ value: 2.1, type: "decrease", period: "yesterday" }}
-        />
-      </div>
-      
       <BarChart 
         data={data}
         x="name"
@@ -112,25 +120,23 @@ export function Dashboard() {
 
 ## 📚 Components
 
-### Phase 1: Essential Core
-- ✅ **BarChart** - Responsive bar charts with filled/outline variants, vertical/horizontal orientations, and smooth animations
-- ✅ **LineChart** - Time series line charts
-- ✅ **AreaChart** - Area charts for cumulative data
-- ⏳ **KPICard** - Metric cards with sparklines
+All twelve charts below are shipped. The canonical list lives in
+[`registry/manifest.js`](registry/manifest.js) — every published artifact
+(`/r/*.json`, `llms.txt`, the docs pages, the sitemap) is generated from it, and
+CI fails if this file falls out of step with a regenerated build.
 
-### Phase 2: Fundamental Expansion
-- ✅ **PieChart/DonutChart** - Pie and donut charts
-- ✅ **StackedBarChart** - Multi-series bar charts
-- ✅ **GaugeChart** - Progress and goal indicators
-- ⏳ **DataTable** - Data tables with filters and sorting
-
-### Phase 3: Advanced Features
-- ✅ **ScatterPlot** - Correlation analysis charts
-- ✅ **Heatmap** - Pattern recognition charts
-- ✅ **RadarChart** - Multi-axis comparison charts
-- ✅ **FunnelChart** - Conversion and drop-off charts
-- ✅ **TreeMapChart** - Hierarchical area charts
-- ⏳ **ProgressBar** - Custom progress indicators
+- **BarChart** - Bar charts with filled/outline variants and vertical/horizontal orientations
+- **LineChart** - Time series line charts with multi-series support and curve interpolation
+- **AreaChart** - Layered area charts with gradient fills
+- **PieChart/DonutChart** - Pie and donut charts with center labels
+- **StackedBarChart** - Multi-series stacked bar charts
+- **GaugeChart** - 3/4 arc gauges with configurable color zones
+- **ScatterPlot** - Scatter and bubble charts with trend lines
+- **Heatmap** - Heatmaps with configurable color schemes
+- **RadarChart** - Multi-axis comparison charts
+- **FunnelChart** - Conversion and drop-off charts
+- **TreeMapChart** - Squarified treemaps for hierarchical data
+- **WaterfallChart** - Cumulative increases, decreases, and running totals
 
 ## 🎨 Design System
 

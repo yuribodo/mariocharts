@@ -1,0 +1,127 @@
+const path = require('path');
+const fs = require('fs');
+const { CHARTS, buildAllItems } = require('./manifest');
+
+describe('registry manifest', () => {
+  it('declares all 12 shipped charts', () => {
+    expect(CHARTS.map((c) => c.name).sort()).toEqual([
+      'area-chart',
+      'bar-chart',
+      'funnel-chart',
+      'gauge-chart',
+      'heatmap',
+      'line-chart',
+      'pie-chart',
+      'radar-chart',
+      'scatter-plot',
+      'stacked-bar-chart',
+      'treemap-chart',
+      'waterfall-chart',
+    ]);
+  });
+
+  it('declares a chart for every directory under src/components/charts', () => {
+    const chartsDir = path.resolve(__dirname, '..', 'src', 'components', 'charts');
+    const onDisk = fs
+      .readdirSync(chartsDir, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && !e.name.startsWith('_'))
+      .map((e) => e.name)
+      .sort();
+    expect(CHARTS.map((c) => c.name).sort()).toEqual(onDisk);
+  });
+
+  it('builds 15 items: 12 charts plus 3 support items', () => {
+    const items = buildAllItems();
+    expect(items).toHaveLength(15);
+    expect(items.filter((i) => i.kind === 'chart')).toHaveLength(12);
+    expect(items.map((i) => i.name)).toEqual(
+      expect.arrayContaining(['lib-utils', 'lib-hooks', 'chart-shared'])
+    );
+  });
+
+  it('embeds non-empty content for every declared file', () => {
+    for (const item of buildAllItems()) {
+      expect(item.files.length).toBeGreaterThan(0);
+      for (const file of item.files) {
+        expect(typeof file.content).toBe('string');
+        expect(file.content.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  // Every published import example (`import { X } from ...`) in llms.txt and
+  // in public/docs/components/*.md is built from exportName. If it does not
+  // match what the file actually exports, we ship a copy-paste snippet that
+  // does not compile. treemap-chart shipped exactly that: the manifest said
+  // TreemapChart, the component exports TreeMapChart.
+  it('declares an exportName that the chart source actually exports', () => {
+    const chartsDir = path.resolve(__dirname, '..', 'src', 'components', 'charts');
+    for (const chart of CHARTS) {
+      const source = fs.readFileSync(
+        path.join(chartsDir, chart.name, 'index.tsx'),
+        'utf8'
+      );
+      const exported = new RegExp(
+        `export\\s+(?:const|function|class)\\s+${chart.exportName}\\b`
+      ).test(source);
+      expect(`${chart.name}: exports ${chart.exportName} = ${exported}`).toBe(
+        `${chart.name}: exports ${chart.exportName} = true`
+      );
+    }
+  });
+
+  it('resolves every registryDependency to another item in the manifest', () => {
+    const items = buildAllItems();
+    const names = new Set(items.map((i) => i.name));
+    for (const item of items) {
+      for (const dep of item.registryDependencies) {
+        expect(names.has(dep)).toBe(true);
+      }
+    }
+  });
+});
+
+const { emitSiteData } = require('./emitters/site-data');
+
+describe('site data emitter', () => {
+  it('emits one typed entry per chart', () => {
+    const [output] = emitSiteData(buildAllItems());
+    expect(output.path.endsWith('registry/generated/charts.ts')).toBe(true);
+    const names = [...output.content.matchAll(/name: "([^"]+)"/g)].map((m) => m[1]);
+    expect(names).toHaveLength(12);
+    expect(names).toContain('waterfall-chart');
+    expect(names).not.toContain('chart-shared');
+  });
+
+  it('marks the file as generated so nobody hand-edits it', () => {
+    const [output] = emitSiteData(buildAllItems());
+    expect(output.content).toContain('AUTO-GENERATED');
+  });
+
+  it('emits docs paths and registry URLs that agree with each other', () => {
+    const [output] = emitSiteData(buildAllItems());
+    expect(output.content).toContain('docsPath: "/docs/components/bar-chart"');
+    expect(output.content).toContain(
+      'registryUrl: "https://mariocharts.com/r/bar-chart.json"'
+    );
+  });
+
+  // Guards against the treemap defect: the docs route on disk is
+  // app/docs/components/treemap, not treemap-chart. Reads the filesystem
+  // instead of a hardcoded list so it keeps working as charts are added.
+  it('emits docsPath values that resolve to a real directory under app/docs/components', () => {
+    const docsComponentsDir = path.resolve(__dirname, '..', 'app', 'docs', 'components');
+    const onDisk = new Set(
+      fs
+        .readdirSync(docsComponentsDir, { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name)
+    );
+    const [output] = emitSiteData(buildAllItems());
+    const slugs = [...output.content.matchAll(/docsPath: "\/docs\/components\/([^"]+)"/g)]
+      .map((m) => m[1]);
+    expect(slugs.length).toBeGreaterThan(0);
+    const missing = slugs.filter((slug) => !onDisk.has(slug));
+    expect(missing).toEqual([]);
+  });
+});

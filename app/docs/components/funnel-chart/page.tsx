@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { markdownAlternate } from "@/lib/markdown-alternate";
 import { FunnelChartContent } from "./funnel-chart-content";
 import { BreadcrumbSchema } from "../../../../components/seo/json-ld";
 
@@ -6,7 +7,7 @@ export const metadata: Metadata = {
   title: "Funnel Chart",
   description: "Production-ready funnel chart component for React. Visualize conversion pipelines with tapered or straight variants. Shows percentages, values, and conversion rates. Copy-paste ready.",
   keywords: ["funnel chart", "react funnel", "conversion funnel", "sales pipeline", "data visualization", "typescript chart"],
-  alternates: { canonical: "/docs/components/funnel-chart" },
+  alternates: markdownAlternate("/docs/components/funnel-chart"),
   openGraph: {
     title: "Funnel Chart Component | Mario Charts",
     description: "Production-ready funnel chart for React with tapered/straight variants and conversion rates.",
