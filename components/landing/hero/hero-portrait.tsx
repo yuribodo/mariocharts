@@ -1,11 +1,15 @@
 import { cn } from "@/lib/utils";
 
-import { HERO_ASCII, HERO_ASCII_COLUMNS } from "./hero-ascii";
+import { HERO_ASCII_COLUMNS, HERO_ASCII_DARK, HERO_ASCII_LIGHT } from "./hero-ascii";
 import { HeroPortraitEffect } from "./hero-portrait-effect";
 
 interface HeroPortraitProps {
   className?: string;
 }
+
+const PORTRAIT_STYLE = {
+  fontSize: `min(0.9vh, calc(var(--portrait-w) / ${HERO_ASCII_COLUMNS} / 0.6), calc(540px / ${HERO_ASCII_COLUMNS} / 0.6))`,
+};
 
 /**
  * The portrait is server-rendered text, so it is on screen before any
@@ -43,17 +47,43 @@ export function HeroPortrait({ className }: HeroPortraitProps) {
         className,
       )}
     >
+      {/*
+        Two variants, same grid, opposite ramp direction (see
+        scripts/ascii-portrait.ts) — one reads correctly on a dark page, the
+        other on a light one. Both stay mounted always; which one a sighted
+        visitor sees is a pure CSS switch keyed off the `dark` class next-
+        themes puts on <html>, so the correct portrait is there on first
+        paint with no client JS and no hydration risk. `[.dark_&]` targets
+        that class directly rather than Tailwind's `dark:` shorthand, which
+        in this project's Tailwind config defaults to a `prefers-color-
+        scheme` media query — that would desync from the actual theme
+        whenever a visitor's OS preference disagrees with their chosen
+        theme, since next-themes here is class-only (`enableSystem={false}`).
+        Visibility is done with a transparent text colour, not `hidden`:
+        a `display:none` variant would drop out of the accessibility tree
+        entirely, and whichever of the two is currently labelled would then
+        have no visible copy to attach that label to.
+      */}
       <pre
         role="img"
         aria-label="Mario, rendered in ASCII"
-        style={{
-          fontSize: `min(0.9vh, calc(var(--portrait-w) / ${HERO_ASCII_COLUMNS} / 0.6), calc(540px / ${HERO_ASCII_COLUMNS} / 0.6))`,
-        }}
-        className="select-none whitespace-pre font-mono leading-[1.05] text-foreground"
+        style={PORTRAIT_STYLE}
+        className="select-none whitespace-pre font-mono leading-[1.05] text-transparent [.dark_&]:text-foreground"
       >
-        {HERO_ASCII}
+        {HERO_ASCII_DARK}
       </pre>
-      <HeroPortraitEffect text={HERO_ASCII} columns={HERO_ASCII_COLUMNS} />
+      <pre
+        aria-hidden="true"
+        style={PORTRAIT_STYLE}
+        className="absolute inset-0 select-none whitespace-pre font-mono leading-[1.05] text-foreground [.dark_&]:text-transparent"
+      >
+        {HERO_ASCII_LIGHT}
+      </pre>
+      <HeroPortraitEffect
+        textDark={HERO_ASCII_DARK}
+        textLight={HERO_ASCII_LIGHT}
+        columns={HERO_ASCII_COLUMNS}
+      />
     </div>
   );
 }

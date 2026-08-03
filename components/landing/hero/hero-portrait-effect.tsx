@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 
 interface HeroPortraitEffectProps {
-  text: string;
+  textDark: string;
+  textLight: string;
   columns: number;
 }
 
@@ -16,9 +17,32 @@ const DENSE = "@%#*";
 /** Radius of the cursor's influence, in grid cells. */
 const RADIUS = 6;
 
-export function HeroPortraitEffect({ text, columns }: HeroPortraitEffectProps) {
+export function HeroPortraitEffect({ textDark, textLight, columns }: HeroPortraitEffectProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [enabled, setEnabled] = useState(false);
+  // hero-portrait.tsx renders both variants and lets CSS pick one via the
+  // `dark` class on <html> (see the note there on why it's a class, not
+  // prefers-color-scheme). This has to track the same class, or it lights up
+  // cells against the variant nobody can see. matchMedia can't do that here —
+  // next-themes is class-only in this project (enableSystem={false}), so a
+  // visitor's OS scheme and their actual theme can disagree. A
+  // MutationObserver on the class attribute is the one thing that tracks the
+  // real switch, including a live toggle click, with no reload.
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
+
+  useEffect(() => {
+    const root = document.documentElement;
+
+    const update = () => {
+      setIsDarkTheme(root.classList.contains("dark"));
+    };
+
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+
+    return () => observer.disconnect();
+  }, []);
 
   // Read the queries after mount, never during render: the server has no
   // matchMedia, and deciding here keeps the server tree and the reduced-motion
@@ -42,6 +66,8 @@ export function HeroPortraitEffect({ text, columns }: HeroPortraitEffectProps) {
       motionQuery.removeEventListener("change", update);
     };
   }, []);
+
+  const text = isDarkTheme ? textDark : textLight;
 
   useEffect(() => {
     if (!enabled) return;

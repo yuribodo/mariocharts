@@ -87,11 +87,12 @@ async function flushRaf() {
   });
 }
 
-const PROPS = { text: "..##\n..##", columns: 4 };
+const PROPS = { textDark: "..##\n..##", textLight: "..##\n..##", columns: 4 };
 
 describe("HeroPortraitEffect", () => {
   afterEach(() => {
     jest.restoreAllMocks();
+    document.documentElement.classList.remove("dark");
   });
 
   it("mounts a canvas for a fine pointer without reduced motion", () => {
@@ -223,6 +224,46 @@ describe("HeroPortraitEffect", () => {
     // cellWidth = 40/4 = 10, cellHeight = 20/2 = 10. This lands squarely in
     // the cell at column 2, row 0 — a '#' in "..##\n..##" — at distance 0
     // from itself.
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 25, clientY: 5 }));
+    });
+    await flushRaf();
+
+    const centreCall = context.fillText.mock.calls.find(
+      ([, x, y]) => x === 20 && y === 0,
+    );
+    expect(centreCall?.[0]).toBe("@");
+  });
+
+  it("draws against the light-theme grid by default and switches to the dark-theme grid when <html> gains the `dark` class", async () => {
+    const context = mockCanvas({ width: 40, height: 20 });
+    setMedia({ "(hover: hover) and (pointer: fine)": true });
+    render(
+      <HeroPortraitEffect textDark={"..##\n..##"} textLight={"    \n    "} columns={4} />,
+    );
+
+    // cellWidth = 40/4 = 10, cellHeight = 20/2 = 10 -> column 2, row 0.
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 25, clientY: 5 }));
+    });
+    await flushRaf();
+
+    // No `dark` class yet: the light grid is blank everywhere, nothing to draw.
+    expect(context.fillText).not.toHaveBeenCalled();
+
+    // The MutationObserver callback fires asynchronously, after the
+    // synchronous classList mutation returns, so give it (and the setState,
+    // re-render and effect re-subscription it triggers) a few turns before
+    // moving the pointer again.
+    await act(async () => {
+      document.documentElement.classList.add("dark");
+    });
+    await flushRaf();
+    await flushRaf();
+
+    // The grid swap resets the tracked pointer, so it takes a fresh move to
+    // draw again — this also exercises that the effect picked up the change
+    // without a reload.
     await act(async () => {
       window.dispatchEvent(new MouseEvent("pointermove", { clientX: 25, clientY: 5 }));
     });
