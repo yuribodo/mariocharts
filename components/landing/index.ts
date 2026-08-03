@@ -1,5 +1,5 @@
 // Hero Section
-export { HeroSection, MorphingChart } from "./hero";
+export { HeroSection } from "./hero";
 
 // Chart Index Section
 export { ChartIndexSection } from "./chart-index";

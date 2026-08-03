@@ -208,7 +208,7 @@ export function ChartIndexSection({ className }: ChartIndexSectionProps) {
           id="chart-index-title"
           className="mt-2 text-2xl font-semibold tracking-normal text-foreground sm:text-3xl"
         >
-          Every chart below is the component you install.
+          These are the components you install.
         </h2>
         <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
           These previews render the same code the CLI writes into your project.
