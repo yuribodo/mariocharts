@@ -1,213 +1,140 @@
 "use client";
 
-import { ChartBar, Book, Copy, Sparkle, Palette, Eye } from "@phosphor-icons/react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+
 import { AnimatedFAQ } from "../../components/ui/animated-faq";
+import { CommandSnippet } from "../../components/ui/command-snippet";
+
+const principles = [
+  {
+    title: "Own the source",
+    description:
+      "Components are copied into your application. Read them, change them, and ship them without a runtime lock-in.",
+  },
+  {
+    title: "Start with strong defaults",
+    description:
+      "Responsive layout, accessible interactions, thoughtful labels, and production-ready states are part of the starting point.",
+  },
+  {
+    title: "Customize without a ceiling",
+    description:
+      "Use the simple API first, then work directly with the TypeScript and Tailwind source when your product needs more.",
+  },
+] as const;
 
 const faqItems = [
   {
-    question: "Can I use this in my project?",
-    answer: "Yes. Mario Charts is completely free to use for personal and commercial projects. No attribution required, no licensing fees, no restrictions."
+    question: "Can I use this in a commercial project?",
+    answer:
+      "Yes. Mario Charts is free for personal and commercial projects. No attribution or licensing fee is required.",
   },
   {
-    question: "Do you plan to add more chart types?",
-    answer: "Absolutely. We already ship bar charts, line charts, pie charts, radar charts, scatter plots, and stacked bar charts. We're actively developing area charts, heatmaps, and funnel charts."
+    question: "Which chart types are available?",
+    answer:
+      "The registry includes bar, line, area, pie, radar, scatter, stacked bar, gauge, heatmap, funnel, and treemap charts.",
   },
   {
-    question: "Can I request a specific chart component?",
-    answer: "Yes! Create an issue on our GitHub repository at https://github.com/yuribodo/mariocharts/issues with your component request. Include use cases and examples if possible. We prioritize components based on community demand."
+    question: "Can I request a component?",
+    answer:
+      "Open an issue in the Mario Charts GitHub repository with the analytical use case, expected data shape, and relevant examples.",
   },
   {
-    question: "How is this different from other chart libraries?",
-    answer: "Unlike traditional libraries, you copy Mario Charts components directly into your codebase. This means zero lock-in, complete customization freedom, and no runtime dependencies to manage."
-  }
+    question: "How is this different from a chart package?",
+    answer:
+      "You install the source of each component into your project. That gives you full control over behavior, styling, and upgrades.",
+  },
 ];
 
 export function DocsContent() {
   return (
-    <div className="max-w-none">
-      {/* Hero Section */}
-      <div className="flex flex-col space-y-6 pb-16">
-        <h1 className="scroll-m-20 text-4xl font-bold tracking-tight lg:text-5xl">
-          Introduction
+    <article className="pb-20">
+      <header className="border-b pb-10">
+        <p className="mb-3 text-sm font-medium text-muted-foreground">Overview</p>
+        <h1 className="scroll-m-20 text-4xl font-semibold tracking-normal text-foreground">
+          Mario Charts
         </h1>
-        <p className="text-xl text-muted-foreground leading-relaxed max-w-3xl">
-          This is <span className="font-semibold text-foreground">not just a chart library</span>. This is how you build beautiful, customizable dashboards for your React applications.
+        <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
+          Copy production-ready chart components into your React application.
+          You own every line.
         </p>
-      </div>
+      </header>
 
-      {/* Core Value Proposition */}
-      <div className="pb-16">
-        <div className="rounded-lg border bg-muted/20 p-8">
-          <p className="text-lg leading-relaxed text-muted-foreground">
-            Copy and paste chart components into your apps. <span className="font-semibold text-foreground">Accessible</span>. <span className="font-semibold text-foreground">Customizable</span>. <span className="font-semibold text-foreground">Zero lock-in</span>.
-          </p>
-        </div>
-      </div>
-
-      {/* Core Principles */}
-      <div>
-        <div className="space-y-12 pb-16">
-          <div>
-            <h2 className="scroll-m-20 text-3xl font-bold tracking-tight mb-4">
-              How it works
-            </h2>
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              Mario Charts is built on four core principles that make building beautiful dashboards a breeze.
-            </p>
-          </div>
-
-        <div className="space-y-12">
-          {/* Copy & Paste */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Copy size={24} className="text-primary" />
-              <h3 className="text-xl font-semibold">Copy & Paste</h3>
-            </div>
-            <div className="space-y-3 text-muted-foreground leading-relaxed">
-              <p>
-                Mario Charts components are designed to be copied directly into your codebase.
-                You own the code and can modify it however you need.
-              </p>
-              <p>
-                No NPM package installations. No version conflicts. No vendor lock-in.
-                Just beautiful, working code that you can customize to your heart's content.
-              </p>
-            </div>
-          </div>
-
-          {/* Beautiful Defaults */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Sparkle size={24} className="text-primary" />
-              <h3 className="text-xl font-semibold">Beautiful Defaults</h3>
-            </div>
-            <div className="space-y-3 text-muted-foreground leading-relaxed">
-              <p>
-                Every component looks professional right out of the box. No configuration needed.
-                Clean typography, thoughtful spacing, and carefully crafted color palettes.
-              </p>
-              <p>
-                Built with accessibility in mind from day one. Proper ARIA labels, keyboard navigation,
-                and screen reader support come standard.
-              </p>
-            </div>
-          </div>
-
-          {/* Infinite Customization */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Palette size={24} className="text-primary" />
-              <h3 className="text-xl font-semibold">Infinite Customization</h3>
-            </div>
-            <div className="space-y-3 text-muted-foreground leading-relaxed">
-              <p>
-                Since you own the code, you can customize every aspect. Change colors, add animations,
-                modify layouts, or even completely rewrite components to fit your needs.
-              </p>
-              <p>
-                Built with Tailwind CSS for utility-first styling and easy theming.
-                Consistent design tokens make it simple to maintain visual coherence.
-              </p>
-            </div>
-          </div>
-
-          {/* Developer Experience */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Eye size={24} className="text-primary" />
-              <h3 className="text-xl font-semibold">Developer Experience</h3>
-            </div>
-            <div className="space-y-3 text-muted-foreground leading-relaxed">
-              <p>
-                Excellent TypeScript support with full type safety. Comprehensive documentation
-                with live examples and code snippets for every component.
-              </p>
-              <p>
-                AI-ready code structure makes it easy to understand, modify, and extend components
-                using modern development tools and workflows.
-              </p>
-            </div>
-          </div>
-        </div>
-        </div>
-      </div>
-
-      {/* Getting Started */}
-      <div>
-        <div className="space-y-8 pb-16">
-        <div>
-          <h2 className="scroll-m-20 text-3xl font-bold tracking-tight mb-4">
-            Get started
+      <section aria-labelledby="quickstart-title" className="border-b py-10">
+        <div className="mb-6">
+          <h2 id="quickstart-title" className="text-2xl font-semibold">
+            Start in one minute
           </h2>
-          <p className="text-lg text-muted-foreground leading-relaxed">
-            Choose your path to building beautiful dashboards with Mario Charts.
+          <p className="mt-2 leading-7 text-muted-foreground">
+            Initialize the registry, then add only the charts your product needs.
           </p>
         </div>
+        <CommandSnippet
+          command="npx mario-charts@latest init"
+          label="Initialize Mario Charts"
+        />
+      </section>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <Link
-            href="/docs/installation"
-            className="group relative rounded-lg border p-8 hover:border-primary/50 hover:shadow-md transition-[border-color,box-shadow] duration-200"
-          >
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Book size={20} />
-                </div>
-                <h3 className="text-xl font-semibold group-hover:text-primary transition-colors">
-                  Installation
-                </h3>
-              </div>
-              <p className="text-muted-foreground leading-relaxed">
-                Install dependencies and configure your project with our CLI tool. Get up and running in under 5 minutes.
+      <section aria-labelledby="principles-title" className="py-10">
+        <h2 id="principles-title" className="text-2xl font-semibold">
+          Built for ownership
+        </h2>
+        <div className="mt-6 border-y">
+          {principles.map((principle, index) => (
+            <div
+              key={principle.title}
+              className="grid gap-3 py-6 sm:grid-cols-[180px_1fr] sm:gap-8 [&:not(:last-child)]:border-b"
+            >
+              <h3
+                data-index={`0${index + 1}`}
+                className="text-sm font-semibold text-foreground before:mr-3 before:font-mono before:text-xs before:font-normal before:text-muted-foreground before:content-[attr(data-index)]"
+              >
+                {principle.title}
+              </h3>
+              <p className="leading-7 text-muted-foreground">
+                {principle.description}
               </p>
-              <div className="text-sm text-primary font-medium">
-                Start here →
-              </div>
             </div>
-          </Link>
-
-          <Link
-            href="/docs/components/bar-chart"
-            className="group relative rounded-lg border p-8 hover:border-primary/50 hover:shadow-md transition-[border-color,box-shadow] duration-200"
-          >
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <ChartBar size={20} />
-                </div>
-                <h3 className="text-xl font-semibold group-hover:text-primary transition-colors">
-                  Components
-                </h3>
-              </div>
-              <p className="text-muted-foreground leading-relaxed">
-                Explore our collection of chart components. Each comes with examples, props documentation, and copy-paste code.
-              </p>
-              <div className="text-sm text-primary font-medium">
-                Browse components →
-              </div>
-            </div>
-          </Link>
+          ))}
         </div>
-      </div>
-      </div>
+      </section>
 
-      {/* FAQ */}
-      <div>
-        <div className="space-y-8 pb-16">
-        <div>
-          <h2 className="scroll-m-20 text-3xl font-bold tracking-tight mb-4">
-            Frequently asked questions
-          </h2>
-          <p className="text-lg text-muted-foreground leading-relaxed">
-            Everything you need to know about Mario Charts.
-          </p>
-        </div>
+      <nav aria-label="Documentation next steps" className="grid border-y sm:grid-cols-2">
+        <Link
+          href="/docs/components"
+          aria-label="Browse charts"
+          className="group flex min-h-24 items-center justify-between gap-4 px-5 py-6 transition-colors duration-150 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:border-r"
+        >
+          <span>
+            <span className="block text-xs text-muted-foreground">Explore</span>
+            <span className="mt-1 block font-medium">Browse charts</span>
+          </span>
+          <ArrowRight className="size-4 transition-transform duration-150 group-hover:translate-x-1" />
+        </Link>
+        <Link
+          href="/docs/installation"
+          aria-label="Read installation guide"
+          className="group flex min-h-24 items-center justify-between gap-4 border-t px-5 py-6 transition-colors duration-150 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:border-t-0"
+        >
+          <span>
+            <span className="block text-xs text-muted-foreground">Continue</span>
+            <span className="mt-1 block font-medium">
+              Read installation guide
+            </span>
+          </span>
+          <ArrowRight className="size-4 transition-transform duration-150 group-hover:translate-x-1" />
+        </Link>
+      </nav>
 
-        <AnimatedFAQ items={faqItems} />
+      <section aria-labelledby="faq-title" className="pt-14">
+        <h2 id="faq-title" className="text-2xl font-semibold">
+          Frequently asked questions
+        </h2>
+        <div className="mt-6">
+          <AnimatedFAQ items={faqItems} />
         </div>
-      </div>
-    </div>
+      </section>
+    </article>
   );
 }

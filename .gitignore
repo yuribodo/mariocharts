@@ -62,6 +62,7 @@ packages/*/node_modules/
 
 # git worktrees
 .worktrees/
+.superpowers/
 
 # claude
 CLAUDE.md

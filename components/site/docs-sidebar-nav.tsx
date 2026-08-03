@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import { MagnifyingGlass, X, CaretRight } from "@phosphor-icons/react";
 import { cn } from "../../lib/utils";
 
@@ -96,15 +95,6 @@ const sidebarNavItems: SidebarNavItem[] = [
   }
 ];
 
-const searchVariants = {
-  hidden: { opacity: 0, scale: 0.95 },
-  visible: { 
-    opacity: 1, 
-    scale: 1,
-    transition: { duration: 0.2 }
-  }
-};
-
 export function DocsSidebarNav() {
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState("");
@@ -167,43 +157,39 @@ export function DocsSidebarNav() {
     <div className="w-full">
       {/* Search */}
       <div className="pb-4">
-        <motion.div 
-          className="relative"
-          variants={searchVariants}
-          initial="hidden"
-          animate="visible"
-        >
+        <div className="relative">
+          <label htmlFor="docs-search" className="sr-only">
+            Search documentation
+          </label>
           <MagnifyingGlass 
             size={16} 
             className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground"
           />
           <input
-            type="text"
+            id="docs-search"
+            type="search"
             placeholder="Search documentation..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={cn(
-              "flex h-9 w-full rounded-md border border-input bg-transparent pl-8 pr-8 py-1 text-sm shadow-sm transition-colors",
+              "flex h-9 w-full rounded-md border border-input bg-background py-1 pl-8 pr-9 text-sm transition-colors",
               "file:border-0 file:bg-transparent file:text-sm file:font-medium",
               "placeholder:text-muted-foreground",
               "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
               "disabled:cursor-not-allowed disabled:opacity-50"
             )}
           />
-          <AnimatePresence>
-            {searchQuery && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
+          {searchQuery && (
+              <button
+                type="button"
                 onClick={clearSearch}
-                className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground hover:text-foreground"
+                className="absolute right-0.5 top-0.5 flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+                aria-label="Clear search"
               >
                 <X size={16} />
-              </motion.button>
-            )}
-          </AnimatePresence>
-        </motion.div>
+              </button>
+          )}
+        </div>
       </div>
 
       {/* Navigation */}
@@ -212,13 +198,17 @@ export function DocsSidebarNav() {
           {filteredItems.map((section) => {
             const isExpanded = expandedSections.includes(section.title);
             const hasChildren = section.children && section.children.length > 0;
+            const sectionId = `docs-section-${section.title.toLowerCase().replaceAll(" ", "-")}`;
             
             return (
               <div key={section.title}>
                   {/* Section Header */}
                   {hasChildren ? (
                     <button
+                      type="button"
                       onClick={() => toggleSection(section.title)}
+                      aria-expanded={isExpanded}
+                      aria-controls={sectionId}
                       className={cn(
                         "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
                         "hover:bg-accent hover:text-accent-foreground",
@@ -226,12 +216,13 @@ export function DocsSidebarNav() {
                       )}
                     >
                       <span>{section.title}</span>
-                      <motion.div
-                        animate={{ rotate: isExpanded ? 90 : 0 }}
-                        transition={{ duration: 0.15, ease: "easeOut" }}
-                      >
-                        <CaretRight size={16} className="text-muted-foreground" />
-                      </motion.div>
+                      <CaretRight
+                        size={16}
+                        className={cn(
+                          "text-muted-foreground transition-transform duration-150",
+                          isExpanded && "rotate-90",
+                        )}
+                      />
                     </button>
                   ) : (
                     <Link
@@ -249,20 +240,23 @@ export function DocsSidebarNav() {
                   )}
                   
                   {/* Section Children */}
-                  <AnimatePresence initial={false}>
-                    {hasChildren && isExpanded && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="overflow-hidden"
+                  {hasChildren && (
+                      <div
+                        id={sectionId}
+                        className={cn(
+                          "grid transition-[grid-template-rows,opacity] duration-150",
+                          isExpanded
+                            ? "grid-rows-[1fr] opacity-100"
+                            : "grid-rows-[0fr] opacity-0",
+                        )}
                       >
-                        <div className="ml-4 space-y-1 border-l border-border pl-4 pt-2">
+                        <div className="min-h-0 overflow-hidden">
+                          <div className="ml-3 space-y-0.5 border-l border-border pl-3 pt-1.5">
                           {section.children?.map((child) => (
                             <div key={child.href}>
                               <Link
                                 href={child.href}
+                                aria-current={pathname === child.href ? "page" : undefined}
                                 className={cn(
                                   "flex w-full items-center rounded-md px-2 py-1.5 text-sm transition-colors",
                                   pathname === child.href
@@ -282,10 +276,10 @@ export function DocsSidebarNav() {
                               </Link>
                             </div>
                           ))}
+                          </div>
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                      </div>
+                  )}
               </div>
             );
           })}
@@ -293,26 +287,18 @@ export function DocsSidebarNav() {
       </div>
 
       {/* No Results */}
-      <AnimatePresence>
         {searchQuery && filteredItems.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="px-2 py-4 text-center text-sm text-muted-foreground"
-          >
-            <p>No results found for "{searchQuery}"</p>
-            <motion.button 
+          <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+            <p>No results found for &quot;{searchQuery}&quot;</p>
+            <button
+              type="button"
               onClick={clearSearch}
               className="mt-2 text-xs text-primary hover:underline"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
             >
               Clear search
-            </motion.button>
-          </motion.div>
+            </button>
+          </div>
         )}
-      </AnimatePresence>
     </div>
   );
 }

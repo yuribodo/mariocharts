@@ -1,189 +1,112 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import Link from "next/link";
-import { Copy, Check, ArrowRight } from "lucide-react";
-import { MorphingChart } from "./morphing-chart";
 import { cn } from "@/lib/utils";
-import {
-  heroTitle,
-  heroSubtitle,
-  staggerContainer,
-  staggerItem,
-  buttonHover,
-  buttonTap,
-} from "@/lib/animations";
+import { CommandSnippet } from "@/components/ui/command-snippet";
+
+import { useWorldEntrance } from "../world-entrance";
+import { HeroLiveField } from "./hero-live-field";
+import { HeroPortrait } from "./hero-portrait";
 
 interface HeroSectionProps {
   className?: string;
 }
 
-const CLI_COMMAND = "npx mario-charts add area";
+const CLI_COMMAND = "npx mario-charts@latest init";
+
+/** Small labels in the grid's own voice, kept with the copy they introduce. */
+const EYEBROW = ["MARIO CHARTS", "12 COMPONENTS", "MIT", "REACT + TS"] as const;
 
 /**
- * Hero Section Component
- *
- * The first impression - designed to capture attention in 2 seconds.
- *
- * Layout:
- * - Left: Headline, subtitle, CTAs, CLI command
- * - Right: Morphing chart animation
+ * The hero is a full-bleed character field, alive: the noise drifts, the data
+ * strip flickers, and a light trails the cursor. The welcome/portal entrance
+ * lives at the page shell ({@link WorldEntranceProvider}); this section only
+ * settles the field, copy, and portrait when that shell hands off.
  */
 export function HeroSection({ className }: HeroSectionProps) {
-  const [copied, setCopied] = useState(false);
-  const commandRef = useRef<HTMLDivElement>(null);
-  const shouldReduceMotion = useReducedMotion();
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(CLI_COMMAND);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      console.error("Failed to copy");
-    }
-  };
-
-  const variants = shouldReduceMotion ? {} : staggerContainer;
-  const itemVariants = shouldReduceMotion ? {} : staggerItem;
+  const entrance = useWorldEntrance();
 
   return (
     <section
+      aria-labelledby="hero-title"
       className={cn(
-        "relative min-h-screen w-full overflow-hidden",
-        className
+        "relative w-full overflow-hidden border-b min-h-[calc(100svh-7rem)]",
+        className,
       )}
     >
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-6 py-20 lg:flex-row lg:items-center lg:justify-between lg:py-0">
-        <motion.div
-          className="flex max-w-xl flex-col items-center text-center lg:items-start lg:text-left"
-          variants={variants}
-          initial="hidden"
-          animate="visible"
-        >
-          <motion.h1
-            variants={shouldReduceMotion ? {} : heroTitle}
-            className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-7xl"
-          >
-            Beautiful Charts.
-            <br />
-            <span className="text-primary">
-              Zero Lock-in.
-            </span>
-          </motion.h1>
+      <HeroLiveField
+        active={entrance.fieldActive}
+        reveal={entrance.fieldReveal}
+      />
 
-          <motion.p
-            variants={shouldReduceMotion ? {} : heroSubtitle}
-            className="mt-6 max-w-md text-lg text-muted-foreground"
+      <div className="relative z-[2] flex min-h-[calc(100svh-7rem)] flex-col justify-center px-6 py-12 sm:px-10 lg:px-16">
+        <div className="grid grid-cols-1 items-end gap-8 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-6 lg:gap-12">
+          <div
+            className={cn(
+              "flex flex-col items-start pb-4 sm:pb-10",
+              !entrance.copyReveal && "opacity-0",
+            )}
           >
-            The React chart library that looks amazing out-of-the-box.
-            Copy-paste components. Full control. No vendor lock-in.
-          </motion.p>
-
-          <motion.div
-            ref={commandRef}
-            variants={itemVariants}
-            className="mt-8 w-full max-w-md"
-          >
-            <div
-              onClick={handleCopy}
+            <ul
               className={cn(
-                "group relative flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-muted/50 px-4 py-3 backdrop-blur-sm transition-all",
-                "hover:border-border/80 hover:bg-muted",
-                copied && "border-green-500/50 bg-green-500/10"
+                "mb-6 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-muted-foreground",
+                entrance.copyReveal && "hero-resolve",
               )}
+              style={{ animationDelay: "0ms" }}
             >
-              <span className="text-muted-foreground">$</span>
-              <code className="flex-1 font-mono text-sm text-foreground/80">
-                {CLI_COMMAND}
-              </code>
-              <button
-                onClick={handleCopy}
-                className={cn(
-                  "relative flex h-8 w-8 items-center justify-center rounded-lg transition-all",
-                  "hover:bg-muted",
-                  copied ? "text-green-500" : "text-muted-foreground hover:text-foreground"
-                )}
-                aria-label={copied ? "Copied!" : "Copy command"}
-              >
-                <motion.div
-                  initial={false}
-                  animate={{
-                    scale: copied ? [1, 1.2, 1] : 1,
-                    rotate: copied ? [0, -10, 10, 0] : 0,
-                  }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {copied ? (
-                    <Check className="h-4 w-4" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </motion.div>
+              {EYEBROW.map((label) => (
+                <li key={label}>{label}</li>
+              ))}
+            </ul>
 
-                {copied && (
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0.5 }}
-                    animate={{ scale: 2, opacity: 0 }}
-                    transition={{ duration: 0.4 }}
-                    className="absolute inset-0 rounded-lg bg-green-400"
-                  />
-                )}
-              </button>
+            <h1
+              id="hero-title"
+              className={cn(
+                "font-mono text-4xl font-semibold uppercase leading-[1.02] tracking-tight text-foreground sm:text-5xl lg:text-6xl xl:text-7xl",
+                entrance.copyReveal && "hero-resolve",
+              )}
+              style={{ animationDelay: "60ms" }}
+            >
+              Every chart
+              <br />
+              here is yours.
+            </h1>
+
+            <p
+              className={cn(
+                "mt-6 max-w-md font-mono text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7",
+                entrance.copyReveal && "hero-resolve",
+              )}
+              style={{ animationDelay: "110ms" }}
+            >
+              React charts you paste into your repo and reshape line by line.
+              No runtime dependency on us.
+            </p>
+
+            <div
+              className={cn(
+                "mt-8 w-full max-w-md",
+                entrance.copyReveal && "hero-resolve",
+              )}
+              style={{ animationDelay: "160ms" }}
+            >
+              <CommandSnippet command={CLI_COMMAND} />
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            variants={itemVariants}
-            className="mt-8 flex flex-wrap items-center gap-4"
+          <div
+            className={cn(
+              "flex justify-center sm:justify-end sm:translate-x-2 sm:translate-y-6 lg:translate-x-4 lg:translate-y-8",
+              !entrance.portraitReveal && "opacity-0",
+            )}
           >
-            <motion.div whileHover={buttonHover} whileTap={buttonTap}>
-              <Link
-                href="/docs/installation"
-                className={cn(
-                  "group inline-flex items-center gap-2 rounded-xl px-6 py-3 font-medium transition-all",
-                  "bg-primary text-primary-foreground",
-                  "hover:bg-primary/90"
-                )}
-              >
-                Get Started
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            </motion.div>
-
-            <motion.div whileHover={buttonHover} whileTap={buttonTap}>
-              <Link
-                href="/docs/components"
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-xl px-6 py-3 font-medium transition-all",
-                  "border border-border text-foreground",
-                  "hover:border-border/80 hover:bg-muted"
-                )}
-              >
-                Browse Components
-              </Link>
-            </motion.div>
-          </motion.div>
-        </motion.div>
-
-        <motion.div
-          className="mt-12 flex w-full max-w-lg items-center justify-center lg:mt-0 lg:max-w-xl"
-          initial={{ opacity: 0, scale: 0.9, x: 50 }}
-          animate={{ opacity: 1, scale: 1, x: 0 }}
-          transition={{
-            duration: 1,
-            delay: 0.5,
-            ease: [0.16, 1, 0.3, 1],
-          }}
-        >
-          <MorphingChart
-            className="h-[300px] w-full sm:h-[350px] lg:h-[400px]"
-            showLabel
-          />
-        </motion.div>
+            <HeroPortrait
+              {...(entrance.portraitReveal
+                ? { className: "hero-resolve-rows" }
+                : {})}
+            />
+          </div>
+        </div>
       </div>
-
     </section>
   );
 }
