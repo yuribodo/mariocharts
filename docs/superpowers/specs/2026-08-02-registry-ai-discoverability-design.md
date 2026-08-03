@@ -11,7 +11,7 @@ Mario Charts today.
 
 The hosted registry the CLI points at does not exist:
 
-```
+```text
 https://mariocharts.com/registry/index.json  → 404
 https://mariocharts.com/r/bar-chart.json     → 404
 https://mariocharts.com/llms.txt             → 200
@@ -90,7 +90,7 @@ it declares all 12 charts plus `lib-utils`, `lib-hooks`, and `chart-shared`, and
 their content from disk. Promote it out of the CLI package to `registry/manifest.js` at
 the repo root, and have a single `npm run build:registry` emit:
 
-```
+```text
 registry/manifest.js  (source of truth)
         │
         ├──► packages/cli/src/utils/fallback-generated.ts   (existing behavior)

@@ -120,24 +120,23 @@ export function Dashboard() {
 
 ## 📚 Components
 
-### Phase 1: Essential Core
-- ✅ **BarChart** - Responsive bar charts with filled/outline variants, vertical/horizontal orientations, and smooth animations
-- ✅ **LineChart** - Time series line charts
-- ✅ **AreaChart** - Area charts for cumulative data
+All twelve charts below are shipped. The canonical list lives in
+[`registry/manifest.js`](registry/manifest.js) — every published artifact
+(`/r/*.json`, `llms.txt`, the docs pages, the sitemap) is generated from it, and
+CI fails if this file falls out of step with a regenerated build.
 
-### Phase 2: Fundamental Expansion
-- ✅ **PieChart/DonutChart** - Pie and donut charts
-- ✅ **StackedBarChart** - Multi-series bar charts
-- ✅ **GaugeChart** - Progress and goal indicators
-- ⏳ **DataTable** - Data tables with filters and sorting
-
-### Phase 3: Advanced Features
-- ✅ **ScatterPlot** - Correlation analysis charts
-- ✅ **Heatmap** - Pattern recognition charts
-- ✅ **RadarChart** - Multi-axis comparison charts
-- ✅ **FunnelChart** - Conversion and drop-off charts
-- ✅ **TreeMapChart** - Hierarchical area charts
-- ⏳ **ProgressBar** - Custom progress indicators
+- **BarChart** - Bar charts with filled/outline variants and vertical/horizontal orientations
+- **LineChart** - Time series line charts with multi-series support and curve interpolation
+- **AreaChart** - Layered area charts with gradient fills
+- **PieChart/DonutChart** - Pie and donut charts with center labels
+- **StackedBarChart** - Multi-series stacked bar charts
+- **GaugeChart** - 3/4 arc gauges with configurable color zones
+- **ScatterPlot** - Scatter and bubble charts with trend lines
+- **Heatmap** - Heatmaps with configurable color schemes
+- **RadarChart** - Multi-axis comparison charts
+- **FunnelChart** - Conversion and drop-off charts
+- **TreeMapChart** - Squarified treemaps for hierarchical data
+- **WaterfallChart** - Cumulative increases, decreases, and running totals
 
 ## 🎨 Design System
 

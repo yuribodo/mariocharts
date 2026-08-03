@@ -128,7 +128,7 @@ If it prints a modification, commit that first — you need a clean baseline.
 
 Open `.gitignore` and delete these five lines from the end of the file:
 
-```
+```gitignore
 # registry
 registry/
 registry/components/
@@ -359,8 +359,13 @@ const CHARTS = [
     name: 'treemap-chart',
     title: 'Treemap Chart',
     description: 'A squarified treemap chart component for hierarchical data with nested rectangles, animated layout, interactive tooltips, and responsive design',
-    importName: 'TreemapChart',
-    exportName: 'TreemapChart',
+    // Capital M. The component and the barrel both export TreeMapChart even
+    // though the directory is treemap-chart. Every published import example is
+    // built from exportName, so getting this wrong ships a copy-paste snippet
+    // that does not compile. A test in manifest.test.js asserts, for every
+    // chart, that exportName is actually exported by the source file.
+    importName: 'TreeMapChart',
+    exportName: 'TreeMapChart',
     siblingFiles: ['layout.ts'],
     categories: ['charts', 'dashboard'],
     propsSourceFile: 'index.tsx',
@@ -1044,7 +1049,7 @@ console.log('index items:', idx.items.length);
 ```
 
 Expected:
-```
+```text
 files: 16
 name: bar-chart | type: registry:component | files: 1
 target: @components/charts/bar-chart/index.tsx
@@ -2160,13 +2165,13 @@ installs the component.
 
 In `AGENTS.md:6`, replace:
 
-```
+```text
 - CLI assets sit in `packages/cli`, registry metadata in `packages/registry`, and static files in `public/`; lean on the `@/...` aliases from `tsconfig.json`.
 ```
 
 with:
 
-```
+```text
 - CLI assets sit in `packages/cli`; the registry manifest and its emitters live in `registry/` (run `npm run build:registry` after touching a chart), and static files in `public/`; lean on the `@/...` aliases from `tsconfig.json`.
 ```
 
