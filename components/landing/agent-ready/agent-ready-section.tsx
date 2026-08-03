@@ -1,6 +1,7 @@
 "use client";
 
 import { Braces, Code2, FileCode2 } from "lucide-react";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 import {
@@ -17,59 +18,139 @@ interface AgentReadySectionProps {
 
 const BULLET_ICONS = [FileCode2, Code2, Braces] as const;
 
+const EASE = [0.16, 1, 0.3, 1] as const;
+
+const introVariants: Variants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.08, delayChildren: 0.04 },
+  },
+};
+
+const introItemVariants: Variants = {
+  hidden: { opacity: 0, y: 14 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.45, ease: EASE },
+  },
+};
+
+const listVariants: Variants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.1, delayChildren: 0.06 },
+  },
+};
+
+const listItemVariants: Variants = {
+  hidden: { opacity: 0, y: 18 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: EASE },
+  },
+};
+
+const promptVariants: Variants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.45, ease: EASE, delay: 0.08 },
+  },
+};
+
 /**
  * Agent-ready landing section.
  *
- * Quiet proof that Mario Charts is easy for AI coding agents because the
- * source lives in the user's project — checklist + copyable prompt, no demo chart.
+ * Sticky belief on the left, staggered checklist + prompt on the right —
+ * quiet proof that Mario Charts is easy for AI coding agents.
  */
 export function AgentReadySection({ className }: AgentReadySectionProps) {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <section
       aria-labelledby="agent-ready-title"
-      className={cn("border-b py-16 lg:py-24", className)}
+      className={cn("border-b", className)}
     >
-      <div className="mx-auto max-w-2xl px-6">
-        <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">
-          {AGENT_READY_EYEBROW}
-        </p>
-        <h2
-          id="agent-ready-title"
-          className="mt-3 text-2xl font-semibold tracking-normal text-foreground sm:text-3xl"
-        >
-          {AGENT_READY_HEADLINE}
-        </h2>
-        <p className="mt-4 text-base leading-7 text-muted-foreground">
-          {AGENT_READY_SUPPORT}
-        </p>
+      <div className="mx-auto max-w-6xl px-6 py-16 lg:py-0">
+        <div className="lg:grid lg:grid-cols-2 lg:gap-16 xl:gap-24">
+          <motion.div
+            className="lg:sticky lg:top-14 lg:flex lg:min-h-[calc(100vh-3.5rem)] lg:flex-col lg:justify-center lg:py-24"
+            variants={shouldReduceMotion ? undefined : introVariants}
+            initial={shouldReduceMotion ? false : "hidden"}
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.4 }}
+          >
+            <motion.p
+              variants={shouldReduceMotion ? undefined : introItemVariants}
+              className="font-mono text-xs uppercase tracking-wide text-muted-foreground"
+            >
+              {AGENT_READY_EYEBROW}
+            </motion.p>
+            <motion.h2
+              id="agent-ready-title"
+              variants={shouldReduceMotion ? undefined : introItemVariants}
+              className="mt-3 max-w-md text-balance text-2xl font-semibold tracking-normal text-foreground sm:text-3xl lg:text-4xl"
+            >
+              {AGENT_READY_HEADLINE}
+            </motion.h2>
+            <motion.p
+              variants={shouldReduceMotion ? undefined : introItemVariants}
+              className="mt-4 max-w-md text-pretty text-base leading-7 text-muted-foreground"
+            >
+              {AGENT_READY_SUPPORT}
+            </motion.p>
+          </motion.div>
 
-        <ul className="mt-10 space-y-6">
-          {AGENT_READY_BULLETS.map((bullet, index) => {
-            const Icon = BULLET_ICONS[index] ?? FileCode2;
+          <div className="mt-12 flex flex-col justify-center lg:mt-0 lg:min-h-[calc(100vh-3.5rem)] lg:py-32">
+            <motion.ul
+              className="space-y-0 divide-y border-y"
+              variants={shouldReduceMotion ? undefined : listVariants}
+              initial={shouldReduceMotion ? false : "hidden"}
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.25 }}
+            >
+              {AGENT_READY_BULLETS.map((bullet, index) => {
+                const Icon = BULLET_ICONS[index] ?? FileCode2;
 
-            return (
-              <li key={bullet.title} className="flex gap-4">
-                <span
-                  className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border text-muted-foreground"
-                  aria-hidden="true"
-                >
-                  <Icon className="size-4" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">
-                    {bullet.title}
-                  </p>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    {bullet.body}
-                  </p>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                return (
+                  <motion.li
+                    key={bullet.title}
+                    variants={shouldReduceMotion ? undefined : listItemVariants}
+                    className="flex gap-4 py-6 first:pt-6 last:pb-6"
+                  >
+                    <span
+                      className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border bg-card text-muted-foreground"
+                      aria-hidden="true"
+                    >
+                      <Icon className="size-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground">
+                        {bullet.title}
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                        {bullet.body}
+                      </p>
+                    </div>
+                  </motion.li>
+                );
+              })}
+            </motion.ul>
 
-        <div className="mt-10">
-          <AgentReadyPrompt />
+            <motion.div
+              className="mt-10"
+              variants={shouldReduceMotion ? undefined : promptVariants}
+              initial={shouldReduceMotion ? false : "hidden"}
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.35 }}
+            >
+              <AgentReadyPrompt />
+            </motion.div>
+          </div>
         </div>
       </div>
     </section>

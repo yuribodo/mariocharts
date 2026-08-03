@@ -48,14 +48,14 @@ export function AgentReadyPrompt({ className }: AgentReadyPromptProps) {
         Try this prompt
       </span>
       <div className="overflow-hidden rounded-md border bg-card">
-        <div className="flex items-start gap-3 p-3 sm:p-4">
-          <pre className="min-w-0 flex-1 whitespace-pre-wrap font-mono text-[13px] leading-6 text-foreground">
+        <div className="flex items-stretch">
+          <pre className="min-w-0 flex-1 whitespace-pre-wrap p-3 font-mono text-[13px] leading-6 text-foreground sm:p-4">
             {AGENT_READY_PROMPT}
           </pre>
           <button
             type="button"
             onClick={handleCopy}
-            className="flex size-11 shrink-0 touch-manipulation items-center justify-center rounded-md text-muted-foreground transition-[transform,background-color,color] duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97] motion-reduce:transition-none [@media(hover:hover)]:hover:bg-accent [@media(hover:hover)]:hover:text-foreground"
+            className="flex w-11 shrink-0 touch-manipulation items-center justify-center border-l text-muted-foreground transition-[transform,background-color,color] duration-150 ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring active:scale-[0.97] motion-reduce:transition-none [@media(hover:hover)]:hover:bg-accent [@media(hover:hover)]:hover:text-foreground"
             aria-label="Copy prompt"
           >
             {copyState === "success" ? (
