@@ -11,11 +11,17 @@ import {
 const MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 /**
- * Once per browser tab session. Replaying the full welcome→portal every time
- * someone clicks Home is the classic intro anti-pattern — sessionStorage is
- * the usual fix (survives in-app navigations, resets on a new tab/session).
+ * Once per document load. A module flag survives Next soft-navigations back
+ * to Home (no replay), but a full reload / Ctrl+Shift+R re-evaluates the
+ * module and the intro can play again — unlike sessionStorage, which sticks
+ * across hard refresh.
  */
-const SEEN_KEY = "mario-world-entrance-seen";
+let playedThisDocument = false;
+
+/** Test-only: clear the once-per-document gate between cases. */
+export function resetHeroEntranceForTests(): void {
+  playedThisDocument = false;
+}
 
 const WELCOME_TEXT = "welcome to my world";
 /** Delay before the first glyph appears. */
@@ -109,29 +115,12 @@ const SETTLED: HeroEntranceState = {
   portraitReveal: true,
 };
 
-function hasSeenEntrance(): boolean {
-  try {
-    return window.sessionStorage.getItem(SEEN_KEY) === "1";
-  } catch {
-    // Private mode / blocked storage — fail open and play once this mount.
-    return false;
-  }
-}
-
-function markEntranceSeen(): void {
-  try {
-    window.sessionStorage.setItem(SEEN_KEY, "1");
-  } catch {
-    // Ignore quota / privacy blocks; worst case the intro can replay.
-  }
-}
-
 /**
  * Drives the Mario-World entrance beats:
  * typewriter welcome → portal warp → field/copy/Mario settle as one world.
  *
- * Plays at most once per tab session (sessionStorage). SSR / no-JS and
- * reduced-motion visitors stay settled so the headline remains visible.
+ * Plays at most once per full page load. Soft-nav back to Home is skipped;
+ * hard refresh plays again. SSR / no-JS and reduced-motion stay settled.
  */
 export function useHeroEntrance(): HeroEntranceState {
   const [state, setState] = useState<HeroEntranceState>(SETTLED);
@@ -139,10 +128,10 @@ export function useHeroEntrance(): HeroEntranceState {
   useLayoutEffect(() => {
     const motionQuery = window.matchMedia(MOTION_QUERY);
     if (motionQuery.matches) return;
-    if (hasSeenEntrance()) return;
+    if (playedThisDocument) return;
 
-    // Mark at start so leaving mid-intro (or soft-nav Home) does not replay.
-    markEntranceSeen();
+    // Mark at start so soft-nav Home mid-intro does not replay.
+    playedThisDocument = true;
 
     setState({
       status: "welcome",

@@ -1,6 +1,10 @@
-import { act, render, renderHook } from "@testing-library/react";
+import { render, renderHook } from "@testing-library/react";
 
-import { HeroWorldIntro, useHeroEntrance } from "./hero-world-intro";
+import {
+  HeroWorldIntro,
+  resetHeroEntranceForTests,
+  useHeroEntrance,
+} from "./hero-world-intro";
 
 function setMedia(matches: Record<string, boolean>) {
   window.matchMedia = jest.fn().mockImplementation((query: string) => ({
@@ -17,13 +21,13 @@ function setMedia(matches: Record<string, boolean>) {
 describe("useHeroEntrance", () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    window.sessionStorage.clear();
+    resetHeroEntranceForTests();
   });
 
   afterEach(() => {
     jest.useRealTimers();
     jest.restoreAllMocks();
-    window.sessionStorage.clear();
+    resetHeroEntranceForTests();
   });
 
   it("stays settled under reduced motion — no warp, everything revealed", () => {
@@ -45,7 +49,6 @@ describe("useHeroEntrance", () => {
 
   it("starts on the welcome line before the portal", () => {
     setMedia({});
-    window.sessionStorage.clear();
     const { result } = renderHook(() => useHeroEntrance());
 
     expect(result.current.status).toBe("welcome");
@@ -54,14 +57,15 @@ describe("useHeroEntrance", () => {
     expect(result.current.fieldActive).toBe(false);
   });
 
-  it("skips after the session has already seen the entrance", () => {
+  it("skips a second mount in the same document (soft-nav Home)", () => {
     setMedia({});
-    window.sessionStorage.setItem("mario-world-entrance-seen", "1");
-    const { result } = renderHook(() => useHeroEntrance());
+    const first = renderHook(() => useHeroEntrance());
+    expect(first.result.current.status).toBe("welcome");
+    first.unmount();
 
-    expect(result.current.status).toBe("skipped");
-    expect(result.current.fieldActive).toBe(true);
-    expect(result.current.welcomeActive).toBe(false);
+    const second = renderHook(() => useHeroEntrance());
+    expect(second.result.current.status).toBe("skipped");
+    expect(second.result.current.fieldActive).toBe(true);
   });
 });
 
