@@ -49,6 +49,27 @@ describe('registry manifest', () => {
     }
   });
 
+  // Every published import example (`import { X } from ...`) in llms.txt and
+  // in public/docs/components/*.md is built from exportName. If it does not
+  // match what the file actually exports, we ship a copy-paste snippet that
+  // does not compile. treemap-chart shipped exactly that: the manifest said
+  // TreemapChart, the component exports TreeMapChart.
+  it('declares an exportName that the chart source actually exports', () => {
+    const chartsDir = path.resolve(__dirname, '..', 'src', 'components', 'charts');
+    for (const chart of CHARTS) {
+      const source = fs.readFileSync(
+        path.join(chartsDir, chart.name, 'index.tsx'),
+        'utf8'
+      );
+      const exported = new RegExp(
+        `export\\s+(?:const|function|class)\\s+${chart.exportName}\\b`
+      ).test(source);
+      expect(`${chart.name}: exports ${chart.exportName} = ${exported}`).toBe(
+        `${chart.name}: exports ${chart.exportName} = true`
+      );
+    }
+  });
+
   it('resolves every registryDependency to another item in the manifest', () => {
     const items = buildAllItems();
     const names = new Set(items.map((i) => i.name));

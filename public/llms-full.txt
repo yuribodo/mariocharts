@@ -438,7 +438,7 @@ interface AreaChartProps<T extends ChartDataItem> {
 A squarified treemap chart component for hierarchical data with nested rectangles, animated layout, interactive tooltips, and responsive design
 
 Install: `npx shadcn@latest add https://mariocharts.com/r/treemap-chart.json`
-Import: `import { TreemapChart } from "@/components/charts/treemap-chart";`
+Import: `import { TreeMapChart } from "@/components/charts/treemap-chart";`
 Docs: https://mariocharts.com/docs/components/treemap
 
 Props:

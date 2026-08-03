@@ -15,7 +15,7 @@ dependency tree.
 ## Import
 
 ```tsx
-import { TreemapChart } from "@/components/charts/treemap-chart";
+import { TreeMapChart } from "@/components/charts/treemap-chart";
 ```
 
 ## Props

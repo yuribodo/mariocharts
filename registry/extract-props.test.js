@@ -41,6 +41,29 @@ describe('extractPropsInterface', () => {
   it('returns null when there is no Props interface', () => {
     expect(extractPropsInterface('const a = 1;\n')).toBeNull();
   });
+
+  // The positional "first interface ending in Props" strategy publishes the
+  // wrong interface here, and an assertion on /Props$/ still passes — which is
+  // why the lookup is by name.
+  it('picks the named interface, not the first one that ends in Props', () => {
+    const src = [
+      'interface TooltipRendererProps {',
+      '  label: string;',
+      '}',
+      'interface BarChartProps<T> {',
+      '  data: T[];',
+      '}',
+    ].join('\n');
+    const result = extractPropsInterface(src, 'BarChartProps');
+    expect(result.name).toBe('BarChartProps');
+    expect(result.text).toContain('data: T[];');
+    expect(result.text).not.toContain('label: string;');
+  });
+
+  it('returns null when the named interface is absent despite other Props types', () => {
+    const src = 'interface TooltipRendererProps {\n  label: string;\n}\n';
+    expect(extractPropsInterface(src, 'BarChartProps')).toBeNull();
+  });
 });
 
 describe('readPropsInterface', () => {
@@ -50,9 +73,19 @@ describe('readPropsInterface', () => {
     'extracts a props interface for %s from its declared source file',
     (_name, chart) => {
       const result = readPropsInterface(chart);
-      expect(result.name).toMatch(/Props$/);
+      // Not /Props$/ — that passes for the wrong interface too.
+      expect(result.name).toBe(`${chart.exportName}Props`);
       expect(result.text.length).toBeGreaterThan(0);
     }
   );
 
+  it('names the interface it looked for when the lookup fails', () => {
+    expect(() =>
+      readPropsInterface({
+        name: 'bar-chart',
+        exportName: 'NotARealComponent',
+        propsSourceFile: 'index.tsx',
+      })
+    ).toThrow('interface NotARealComponentProps');
+  });
 });
