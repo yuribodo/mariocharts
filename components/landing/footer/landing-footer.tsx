@@ -15,7 +15,6 @@ const NAV_LINKS = [
 
 const SOCIAL_LINKS = [
   { href: "https://github.com/yuribodo/mariocharts", label: "github", external: true },
-  { href: "https://twitter.com/marioyuriofc", label: "twitter", external: true },
 ] as const;
 
 /**

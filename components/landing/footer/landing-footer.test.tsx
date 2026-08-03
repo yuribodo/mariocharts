@@ -24,6 +24,16 @@ describe("LandingFooter", () => {
     expect(screen.getByRole("navigation", { name: /connect/i })).toBeInTheDocument();
   });
 
+  it("connects only through github", () => {
+    render(<LandingFooter />);
+
+    expect(screen.getByRole("link", { name: /^github$/i })).toHaveAttribute(
+      "href",
+      "https://github.com/yuribodo/mariocharts",
+    );
+    expect(screen.queryByRole("link", { name: /twitter/i })).not.toBeInTheDocument();
+  });
+
   it("describes the product without adjective claims", () => {
     const { container } = render(<LandingFooter />);
 

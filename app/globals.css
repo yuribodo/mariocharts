@@ -800,6 +800,22 @@ html[data-world-entering] [data-site-header] {
   }
 }
 
+/* Footer terminal links — caret blinks once the retype has landed. */
+@keyframes terminal-link-caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.terminal-link-caret {
+  animation: terminal-link-caret 1s steps(1, end) infinite;
+}
+
 /*
  * Under reduced motion the grid is simply already there. Same tree, same
  * rows, same characters — only the resolving is gone.
@@ -819,7 +835,8 @@ html[data-world-entering] [data-site-header] {
     transition: none;
   }
 
-  .hero-welcome__caret {
+  .hero-welcome__caret,
+  .terminal-link-caret {
     animation: none;
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -12,13 +12,15 @@ interface TerminalLinkProps {
   className?: string;
 }
 
+/** ms per glyph while the hover retype runs. */
+const TYPE_MS = 28;
+
 /**
- * Terminal-style link with typing effect on hover
+ * Terminal-style link.
  *
- * - Prefix: ./ for internal, @ for external
- * - Hover: character-by-character typing animation
- * - Blinking cursor at the end
- * - Fixed width to prevent layout shift
+ * Hover retypes the label without wiping it first — a ghost of the full word
+ * stays put so the row never collapses, and the bright glyphs paint over it.
+ * A caret tracks the bright edge; an underline draws in underneath.
  */
 export function TerminalLink({
   href,
@@ -28,115 +30,100 @@ export function TerminalLink({
 }: TerminalLinkProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [typedLength, setTypedLength] = useState(children.length);
-  const [cursorVisible, setCursorVisible] = useState(true);
   const shouldReduceMotion = useReducedMotion();
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const frameRef = useRef(0);
+  const startedRef = useRef(0);
 
   const prefix = external ? "@" : "./";
   const fullText = children;
 
-  // Clear any running interval
-  const clearTypingInterval = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
-
-  // Typing animation
   useEffect(() => {
-    clearTypingInterval();
+    cancelAnimationFrame(frameRef.current);
 
     if (shouldReduceMotion) {
       setTypedLength(fullText.length);
       return undefined;
     }
 
-    if (isHovered) {
-      // Start typing from 0
-      setTypedLength(0);
-
-      let currentIndex = 0;
-      intervalRef.current = setInterval(() => {
-        currentIndex++;
-        if (currentIndex <= fullText.length) {
-          setTypedLength(currentIndex);
-        } else {
-          clearTypingInterval();
-        }
-      }, 35);
-
-      return clearTypingInterval;
-    }
-
-    // Not hovered - show full text immediately
-    setTypedLength(fullText.length);
-    return undefined;
-  }, [isHovered, fullText, shouldReduceMotion, clearTypingInterval]);
-
-  // Cursor blink
-  useEffect(() => {
     if (!isHovered) {
-      setCursorVisible(true);
+      setTypedLength(fullText.length);
       return undefined;
     }
 
-    const interval = setInterval(() => {
-      setCursorVisible((v) => !v);
-    }, 530);
+    setTypedLength(0);
+    startedRef.current = performance.now();
 
-    return () => clearInterval(interval);
-  }, [isHovered]);
+    const tick = (now: number) => {
+      const elapsed = now - startedRef.current;
+      const next = Math.min(fullText.length, Math.floor(elapsed / TYPE_MS) + 1);
+      setTypedLength(next);
+      if (next < fullText.length) {
+        frameRef.current = requestAnimationFrame(tick);
+      }
+    };
+
+    frameRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameRef.current);
+  }, [isHovered, fullText, shouldReduceMotion]);
 
   const handleMouseEnter = useCallback(() => setIsHovered(true), []);
   const handleMouseLeave = useCallback(() => setIsHovered(false), []);
 
+  const bright = fullText.slice(0, typedLength);
+  const dim = fullText.slice(typedLength);
+  const showCaret = isHovered && !shouldReduceMotion;
+
   const content = (
     <span
       className={cn(
-        "group inline-flex items-center font-mono text-sm transition-colors duration-150",
-        isHovered ? "text-foreground" : "text-muted-foreground",
-        className
+        "group relative inline-flex items-baseline font-mono text-sm",
+        "text-muted-foreground transition-colors duration-200 ease-out",
+        "hover:text-foreground",
+        "focus-visible:text-foreground focus-visible:outline-none",
+        className,
       )}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/*
-        The link's accessible name. Everything below it is decoration: the
-        prefix is not part of the label, the width-holder repeats the text, and
-        the overlay is partial while the typing effect runs. Naming the link
-        here keeps that name stable and equal to the label.
-      */}
       <span className="sr-only">{fullText}</span>
+
       <span
         aria-hidden="true"
-        className="text-muted-foreground transition-colors duration-150"
+        className={cn(
+          "mr-0.5 text-muted-foreground transition-opacity duration-200 ease-out",
+          isHovered ? "opacity-60" : "opacity-70",
+        )}
       >
         {prefix}
       </span>
-      <span aria-hidden="true" className="relative">
-        {/* Invisible text to maintain width */}
-        <span className="invisible">{fullText}</span>
-        {/* Visible typed text overlay */}
-        <span className="absolute inset-0">
-          {fullText.slice(0, typedLength)}
+
+      <span aria-hidden="true" className="relative inline-flex items-baseline">
+        {/*
+          Ghost keeps the full measure while the bright run types over it —
+          that is what stopped the old hover from collapsing to zero width.
+        */}
+        <span className="text-muted-foreground opacity-35">{fullText}</span>
+        <span className="absolute inset-0 flex items-baseline text-foreground">
+          <span>{bright}</span>
+          {showCaret ? (
+            <span
+              className="terminal-link-caret ml-px inline-block h-[1em] w-[2px] translate-y-[0.08em] bg-foreground"
+              style={{ opacity: typedLength < fullText.length ? 1 : undefined }}
+            />
+          ) : null}
+          <span className="text-transparent">{dim}</span>
         </span>
-        {/* Cursor */}
-        {isHovered && (
-          <span
-            className={cn(
-              "inline-block w-[1.5px] h-[1.1em] bg-foreground align-middle transition-opacity duration-100",
-              cursorVisible ? "opacity-80" : "opacity-0"
-            )}
-            style={{
-              position: "absolute",
-              left: `${typedLength}ch`,
-              top: "50%",
-              transform: "translateY(-50%)",
-            }}
-          />
-        )}
       </span>
+
+      <span
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute -bottom-0.5 left-0 h-px origin-left bg-foreground opacity-70",
+          "transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          isHovered ? "scale-x-100" : "scale-x-0",
+        )}
+        style={{ width: "100%" }}
+      />
     </span>
   );
 
@@ -146,7 +133,7 @@ export function TerminalLink({
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-block"
+        className="inline-block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         {content}
       </a>
@@ -154,7 +141,10 @@ export function TerminalLink({
   }
 
   return (
-    <Link href={href} className="inline-block">
+    <Link
+      href={href}
+      className="inline-block rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
       {content}
     </Link>
   );
