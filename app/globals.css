@@ -627,3 +627,50 @@ code {
     @apply bg-background text-foreground;
   }
 }
+
+/*
+ * Hero grid entrance.
+ *
+ * The hero is one monospaced field, and it resolves as a wave: each row and
+ * each piece of copy carries its own delay, so the grid reads as writing
+ * itself rather than fading in as a block. Rows move a couple of pixels and
+ * settle — nothing overshoots, nothing scales, and it runs exactly once.
+ *
+ * `both` fill mode matters: without it a row would paint at full opacity for
+ * the length of its delay before jumping back to the start of the animation,
+ * which is a visible flash on every reload.
+ */
+@keyframes hero-resolve {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* A single element: the heading, the command. Its delay is set inline. */
+.hero-resolve {
+  animation: hero-resolve 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/*
+ * A field: the rows resolve, the field itself does not. Animating both would
+ * compound the two and fade the field in twice over.
+ */
+.hero-resolve-rows [data-row] {
+  animation: hero-resolve 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/*
+ * Under reduced motion the grid is simply already there. Same tree, same
+ * rows, same characters — only the resolving is gone.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .hero-resolve,
+  .hero-resolve-rows [data-row] {
+    animation: none;
+  }
+}

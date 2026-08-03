@@ -26,6 +26,19 @@ describe("HeroSection", () => {
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
 
+  it("keeps the copy as real elements rather than art", () => {
+    render(<HeroSection />);
+
+    // The whole design rests on this. The hero reads as one character grid,
+    // but that is shared metrics — not copy painted into a field. Turning the
+    // heading or the command into characters would trade the accessible name,
+    // the copy button, its live region, text selection and indexability for an
+    // effect nobody can tell apart from good alignment.
+    expect(screen.getByRole("heading", { level: 1 }).tagName).toBe("H1");
+    expect(screen.getByRole("button", { name: "Copy command" })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toBeInTheDocument();
+  });
+
   it("carries the portrait", () => {
     render(<HeroSection />);
 
