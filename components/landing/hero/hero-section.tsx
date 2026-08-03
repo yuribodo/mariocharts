@@ -100,9 +100,9 @@ export function HeroSection({ className }: HeroSectionProps) {
             )}
           >
             <HeroPortrait
-              className={
-                entrance.portraitReveal ? "hero-resolve-rows" : undefined
-              }
+              {...(entrance.portraitReveal
+                ? { className: "hero-resolve-rows" }
+                : {})}
             />
           </div>
         </div>

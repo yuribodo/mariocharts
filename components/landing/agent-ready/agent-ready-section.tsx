@@ -83,26 +83,26 @@ export function AgentReadySection({ className }: AgentReadySectionProps) {
           */}
           <motion.div
             className="lg:sticky lg:top-24 lg:self-start"
-            variants={shouldReduceMotion ? undefined : introVariants}
+            {...(shouldReduceMotion ? {} : { variants: introVariants })}
             initial={shouldReduceMotion ? false : "hidden"}
             whileInView="visible"
             viewport={{ once: true, amount: 0.4 }}
           >
             <motion.p
-              variants={shouldReduceMotion ? undefined : introItemVariants}
+              {...(shouldReduceMotion ? {} : { variants: introItemVariants })}
               className="font-mono text-xs uppercase tracking-wide text-muted-foreground"
             >
               {AGENT_READY_EYEBROW}
             </motion.p>
             <motion.h2
               id="agent-ready-title"
-              variants={shouldReduceMotion ? undefined : introItemVariants}
+              {...(shouldReduceMotion ? {} : { variants: introItemVariants })}
               className="mt-3 max-w-md text-balance text-2xl font-semibold tracking-normal text-foreground sm:text-3xl lg:text-4xl"
             >
               {AGENT_READY_HEADLINE}
             </motion.h2>
             <motion.p
-              variants={shouldReduceMotion ? undefined : introItemVariants}
+              {...(shouldReduceMotion ? {} : { variants: introItemVariants })}
               className="mt-4 max-w-md text-pretty text-base leading-7 text-muted-foreground"
             >
               {AGENT_READY_SUPPORT}
@@ -112,7 +112,7 @@ export function AgentReadySection({ className }: AgentReadySectionProps) {
           <div className="mt-12 lg:mt-0 lg:pb-40 lg:pt-2">
             <motion.ul
               className="space-y-0 divide-y border-y"
-              variants={shouldReduceMotion ? undefined : listVariants}
+              {...(shouldReduceMotion ? {} : { variants: listVariants })}
               initial={shouldReduceMotion ? false : "hidden"}
               whileInView="visible"
               viewport={{ once: true, amount: 0.2 }}
@@ -123,7 +123,9 @@ export function AgentReadySection({ className }: AgentReadySectionProps) {
                 return (
                   <motion.li
                     key={bullet.title}
-                    variants={shouldReduceMotion ? undefined : listItemVariants}
+                    {...(shouldReduceMotion
+                      ? {}
+                      : { variants: listItemVariants })}
                     className="flex gap-4 py-8 first:pt-8 last:pb-8"
                   >
                     <span
@@ -147,7 +149,7 @@ export function AgentReadySection({ className }: AgentReadySectionProps) {
 
             <motion.div
               className="mt-12"
-              variants={shouldReduceMotion ? undefined : promptVariants}
+              {...(shouldReduceMotion ? {} : { variants: promptVariants })}
               initial={shouldReduceMotion ? false : "hidden"}
               whileInView="visible"
               viewport={{ once: true, amount: 0.3 }}

@@ -42,21 +42,23 @@ export function WorldEntranceProvider({ children }: { children: ReactNode }) {
 
   useLayoutEffect(() => {
     const root = document.documentElement;
-    if (covering) {
-      root.setAttribute("data-world-entering", "");
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        root.removeAttribute("data-world-entering");
-        document.body.style.overflow = prev;
-      };
+    if (!covering) {
+      root.removeAttribute("data-world-entering");
+      return undefined;
     }
-    root.removeAttribute("data-world-entering");
+
+    root.setAttribute("data-world-entering", "");
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      root.removeAttribute("data-world-entering");
+      document.body.style.overflow = prev;
+    };
   }, [covering]);
 
   // Keep overflow locked through settle so the shell fade doesn't scroll-jump.
   useLayoutEffect(() => {
-    if (entrance.status !== "settling") return;
+    if (entrance.status !== "settling") return undefined;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {

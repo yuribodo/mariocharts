@@ -123,9 +123,9 @@ export function SiteHeader() {
   return (
     <motion.header
       data-site-header
-      data-scrolled={scrolled ? "" : undefined}
-      data-revealed={shown ? "" : undefined}
-      variants={shouldReduceMotion ? undefined : headerVariants}
+      {...(scrolled ? { "data-scrolled": "" } : {})}
+      {...(shown ? { "data-revealed": "" } : {})}
+      {...(shouldReduceMotion ? {} : { variants: headerVariants })}
       initial={shouldReduceMotion ? false : "hidden"}
       animate={shown ? "shown" : "hidden"}
       className={cn(
@@ -138,7 +138,7 @@ export function SiteHeader() {
     >
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6">
         <motion.div
-          variants={shouldReduceMotion ? undefined : itemVariants}
+          {...(shouldReduceMotion ? {} : { variants: itemVariants })}
           className="hidden items-center md:flex"
         >
           <Link
@@ -202,7 +202,7 @@ export function SiteHeader() {
         </motion.div>
 
         <motion.div
-          variants={shouldReduceMotion ? undefined : itemVariants}
+          {...(shouldReduceMotion ? {} : { variants: itemVariants })}
           className="flex min-w-0 items-center gap-2 md:hidden"
         >
           {isDocsPage ? (
@@ -223,7 +223,7 @@ export function SiteHeader() {
         </motion.div>
 
         <motion.div
-          variants={shouldReduceMotion ? undefined : itemVariants}
+          {...(shouldReduceMotion ? {} : { variants: itemVariants })}
           className="ml-auto flex items-center gap-0.5 sm:gap-1"
         >
           <ThemeToggle />
