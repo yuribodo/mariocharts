@@ -80,6 +80,7 @@ Peer dependencies: react, react-dom
 
 ## Links
 
-- Full documentation with live examples: https://mariocharts.com/docs/components/radar-chart
+- Docs (markdown): https://mariocharts.com/docs/components/radar-chart.md
+- Live examples (HTML): https://mariocharts.com/docs/components/radar-chart
 - Registry item (complete source): https://mariocharts.com/r/radar-chart.json
 - All charts: https://mariocharts.com/llms.txt

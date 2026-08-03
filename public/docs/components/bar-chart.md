@@ -49,6 +49,7 @@ Peer dependencies: react, react-dom
 
 ## Links
 
-- Full documentation with live examples: https://mariocharts.com/docs/components/bar-chart
+- Docs (markdown): https://mariocharts.com/docs/components/bar-chart.md
+- Live examples (HTML): https://mariocharts.com/docs/components/bar-chart
 - Registry item (complete source): https://mariocharts.com/r/bar-chart.json
 - All charts: https://mariocharts.com/llms.txt

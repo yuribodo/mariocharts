@@ -65,6 +65,7 @@ Peer dependencies: react, react-dom
 
 ## Links
 
-- Full documentation with live examples: https://mariocharts.com/docs/components/scatter-plot
+- Docs (markdown): https://mariocharts.com/docs/components/scatter-plot.md
+- Live examples (HTML): https://mariocharts.com/docs/components/scatter-plot
 - Registry item (complete source): https://mariocharts.com/r/scatter-plot.json
 - All charts: https://mariocharts.com/llms.txt

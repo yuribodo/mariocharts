@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { markdownAlternate } from "@/lib/markdown-alternate";
 import { BarChartContent } from "./bar-chart-content";
 import { BreadcrumbSchema } from "../../../../components/seo/json-ld";
 
@@ -6,7 +7,7 @@ export const metadata: Metadata = {
   title: "Bar Chart",
   description: "Production-ready bar chart component for React. Supports vertical and horizontal orientation, filled and outline variants, smooth animations, and TypeScript. Copy-paste ready.",
   keywords: ["bar chart", "react bar chart", "chart component", "data visualization", "typescript chart"],
-  alternates: { canonical: "/docs/components/bar-chart" },
+  alternates: markdownAlternate("/docs/components/bar-chart"),
   openGraph: {
     title: "Bar Chart Component | Mario Charts",
     description: "Production-ready bar chart component for React with TypeScript support.",

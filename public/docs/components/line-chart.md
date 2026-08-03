@@ -53,6 +53,7 @@ Peer dependencies: react, react-dom
 
 ## Links
 
-- Full documentation with live examples: https://mariocharts.com/docs/components/line-chart
+- Docs (markdown): https://mariocharts.com/docs/components/line-chart.md
+- Live examples (HTML): https://mariocharts.com/docs/components/line-chart
 - Registry item (complete source): https://mariocharts.com/r/line-chart.json
 - All charts: https://mariocharts.com/llms.txt

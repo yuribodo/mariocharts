@@ -47,6 +47,7 @@ Peer dependencies: react, react-dom
 
 ## Links
 
-- Full documentation with live examples: https://mariocharts.com/docs/components/pie-chart
+- Docs (markdown): https://mariocharts.com/docs/components/pie-chart.md
+- Live examples (HTML): https://mariocharts.com/docs/components/pie-chart
 - Registry item (complete source): https://mariocharts.com/r/pie-chart.json
 - All charts: https://mariocharts.com/llms.txt

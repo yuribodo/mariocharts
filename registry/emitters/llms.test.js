@@ -72,4 +72,11 @@ describe('emitLlms', () => {
     const missing = slugs.filter((slug) => !onDisk.has(slug));
     expect(missing).toEqual([]);
   });
+
+  it('points chart docs links at the markdown twin', () => {
+    expect(short).toContain('https://mariocharts.com/docs/components/bar-chart.md');
+    expect(short).toContain('https://mariocharts.com/docs/components/treemap.md');
+    expect(short).toContain('## Site pages (markdown)');
+    expect(short).toContain('https://mariocharts.com/index.md');
+  });
 });

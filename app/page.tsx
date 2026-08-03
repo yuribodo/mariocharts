@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { markdownAlternate } from "@/lib/markdown-alternate";
 import { LandingContent } from "./landing-content";
 
 export const metadata: Metadata = {
@@ -15,9 +16,7 @@ export const metadata: Metadata = {
     "dashboard components",
     "copy paste charts",
   ],
-  alternates: {
-    canonical: "/",
-  },
+  alternates: markdownAlternate("/"),
   openGraph: {
     title: "Mario Charts - Beautiful React Chart Components",
     description:

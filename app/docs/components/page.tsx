@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { markdownAlternate } from "@/lib/markdown-alternate";
 import { ComponentsContent } from "./components-content";
 import { BreadcrumbSchema } from "../../../components/seo/json-ld";
 
@@ -16,9 +17,7 @@ export const metadata: Metadata = {
     "stacked bar chart",
     "dashboard components",
   ],
-  alternates: {
-    canonical: "/docs/components",
-  },
+  alternates: markdownAlternate("/docs/components"),
   openGraph: {
     title: "Chart Components | Mario Charts",
     description:

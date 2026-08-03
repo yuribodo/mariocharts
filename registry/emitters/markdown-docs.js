@@ -51,8 +51,10 @@ function renderChart(chart) {
     '',
     // docsSlug, not name: the docs route on disk can differ from the chart
     // name (treemap-chart's docs route is /docs/components/treemap). See
-    // the comment above CHARTS in registry/manifest.js.
-    `- Full documentation with live examples: ${SITE_URL}/docs/components/${chart.docsSlug}`,
+    // the comment above CHARTS in registry/manifest.js. Agents get the
+    // markdown sibling (append .md); humans get the live HTML docs.
+    `- Docs (markdown): ${SITE_URL}/docs/components/${chart.docsSlug}.md`,
+    `- Live examples (HTML): ${SITE_URL}/docs/components/${chart.docsSlug}`,
     `- Registry item (complete source): ${SITE_URL}/r/${chart.name}.json`,
     `- All charts: ${SITE_URL}/llms.txt`,
     '',
@@ -63,7 +65,9 @@ function emitMarkdownDocs(items) {
   return items
     .filter((item) => item.kind === 'chart')
     .map((chart) => ({
-      path: path.join(OUTPUT_DIR, `${chart.name}.md`),
+      // docsSlug so /docs/components/<slug>.md matches append-.md on the HTML URL
+      // (treemap-chart → treemap.md, not treemap-chart.md).
+      path: path.join(OUTPUT_DIR, `${chart.docsSlug}.md`),
       content: renderChart(chart),
     }));
 }

@@ -1,4 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { markdownAlternate } from "@/lib/markdown-alternate";
+
+export const metadata: Metadata = {
+  title: "Examples",
+  description:
+    "Pre-built dashboards showcasing Mario Charts components in real-world scenarios.",
+  alternates: markdownAlternate("/examples"),
+};
 
 const dashboards = [
   {

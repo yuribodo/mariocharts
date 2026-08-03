@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { markdownAlternate } from "@/lib/markdown-alternate";
 import { PieChartContent } from "./pie-chart-content";
 import { BreadcrumbSchema } from "../../../../components/seo/json-ld";
 
@@ -6,7 +7,7 @@ export const metadata: Metadata = {
   title: "Pie Chart",
   description: "Beautiful pie and donut chart component for React. Supports pie, donut, and semi-circle variants with center content, smooth animations, and keyboard navigation.",
   keywords: ["pie chart", "donut chart", "react pie chart", "data visualization", "proportions chart"],
-  alternates: { canonical: "/docs/components/pie-chart" },
+  alternates: markdownAlternate("/docs/components/pie-chart"),
   openGraph: {
     title: "Pie Chart Component | Mario Charts",
     description: "Beautiful pie and donut chart component for React with center content support.",

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { markdownAlternate } from "@/lib/markdown-alternate";
 import { GaugeChartContent } from "./gauge-chart-content";
 import { BreadcrumbSchema } from "../../../../components/seo/json-ld";
 
@@ -6,7 +7,7 @@ export const metadata: Metadata = {
   title: "Gauge Chart",
   description: "Production-ready gauge chart component for React. Displays a single value with configurable color zones on a 3/4 arc. Copy-paste ready.",
   keywords: ["gauge chart", "react gauge", "speedometer chart", "data visualization", "typescript chart"],
-  alternates: { canonical: "/docs/components/gauge-chart" },
+  alternates: markdownAlternate("/docs/components/gauge-chart"),
   openGraph: {
     title: "Gauge Chart Component | Mario Charts",
     description: "Production-ready gauge chart component for React with configurable zones.",

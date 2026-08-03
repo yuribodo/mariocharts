@@ -42,6 +42,7 @@ Peer dependencies: react, react-dom
 
 ## Links
 
-- Full documentation with live examples: https://mariocharts.com/docs/components/treemap
+- Docs (markdown): https://mariocharts.com/docs/components/treemap.md
+- Live examples (HTML): https://mariocharts.com/docs/components/treemap
 - Registry item (complete source): https://mariocharts.com/r/treemap-chart.json
 - All charts: https://mariocharts.com/llms.txt

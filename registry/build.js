@@ -9,6 +9,7 @@ const { emitShadcn } = require('./emitters/shadcn');
 const { emitSiteData } = require('./emitters/site-data');
 const { emitLlms } = require('./emitters/llms');
 const { emitMarkdownDocs } = require('./emitters/markdown-docs');
+const { emitSiteMarkdown } = require('./emitters/site-markdown');
 
 function buildAll() {
   const items = buildAllItems();
@@ -18,6 +19,7 @@ function buildAll() {
     ...emitSiteData(items),
     ...emitLlms(items),
     ...emitMarkdownDocs(items),
+    ...emitSiteMarkdown(),
   ];
 }
 

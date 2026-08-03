@@ -31,17 +31,21 @@ describe('emitMarkdownDocs', () => {
     expect(bar).toContain('interface BarChartProps');
   });
 
-  it('links back to the HTML docs and the registry item', () => {
+  it('links back to the markdown docs, HTML docs, and the registry item', () => {
     const bar = outputs.find((o) => o.path.endsWith('bar-chart.md')).content;
+    expect(bar).toContain('https://mariocharts.com/docs/components/bar-chart.md');
     expect(bar).toContain('https://mariocharts.com/docs/components/bar-chart');
     expect(bar).toContain('https://mariocharts.com/r/bar-chart.json');
   });
 
   // Guards against the treemap defect: docsSlug can differ from name (the
   // treemap-chart docs route on disk is app/docs/components/treemap, not
-  // treemap-chart). Reads the filesystem instead of a hardcoded list so it
-  // keeps working as charts are added. Mirrors the guard in llms.test.js.
-  it('emits docs URLs that resolve to a real directory under app/docs/components', () => {
+  // treemap-chart). Filename and URL must both use docsSlug so append-.md works.
+  it('names files and docs URLs with docsSlug, not chart name', () => {
+    const names = outputs.map((o) => path.basename(o.path));
+    expect(names).toContain('treemap.md');
+    expect(names).not.toContain('treemap-chart.md');
+
     const docsComponentsDir = path.resolve(__dirname, '..', '..', 'app', 'docs', 'components');
     const onDisk = new Set(
       fs
@@ -54,5 +58,10 @@ describe('emitMarkdownDocs', () => {
     expect(slugs.length).toBeGreaterThan(0);
     const missing = slugs.filter((slug) => !onDisk.has(slug));
     expect(missing).toEqual([]);
+
+    for (const output of outputs) {
+      const slug = path.basename(output.path, '.md');
+      expect(onDisk.has(slug)).toBe(true);
+    }
   });
 });

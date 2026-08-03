@@ -95,7 +95,8 @@ The only npm package a chart adds is \`framer-motion\` (plus \`clsx\` and
 const LINKS = `## Links
 
 - Website: ${SITE_URL}
-- Documentation: ${SITE_URL}/docs
+- Website (markdown): ${SITE_URL}/index.md
+- Documentation: ${SITE_URL}/docs.md
 - Registry index: ${SITE_URL}/r/registry.json
 - GitHub: https://github.com/yuribodo/mariocharts
 - npm (CLI): https://www.npmjs.com/package/mario-charts
@@ -104,6 +105,19 @@ const LINKS = `## Links
 
 MIT — free for personal and commercial use.`;
 
+const SITE_PAGES = `## Site pages (markdown)
+
+Every product page has a markdown twin. Append \`.md\` to any URL, or send
+\`Accept: text/markdown\` on the HTML URL.
+
+- Home: ${SITE_URL}/index.md
+- Docs: ${SITE_URL}/docs.md
+- Installation: ${SITE_URL}/docs/installation.md
+- Components: ${SITE_URL}/docs/components.md
+- Examples: ${SITE_URL}/examples.md
+- Sales dashboard: ${SITE_URL}/examples/dashboards/sales.md
+- Analytics dashboard: ${SITE_URL}/examples/dashboards/analytics.md`;
+
 function shortChartSection(chart) {
   return [
     `### ${chart.title} (\`${chart.name}\`)`,
@@ -111,7 +125,7 @@ function shortChartSection(chart) {
     chart.description,
     '',
     `- Install: \`npx shadcn@latest add ${SITE_URL}/r/${chart.name}.json\``,
-    `- Docs: ${SITE_URL}/docs/components/${chart.docsSlug}`,
+    `- Docs: ${SITE_URL}/docs/components/${chart.docsSlug}.md`,
     `- Registry item: ${SITE_URL}/r/${chart.name}.json`,
   ].join('\n');
 }
@@ -125,7 +139,7 @@ function fullChartSection(chart) {
     '',
     `Install: \`npx shadcn@latest add ${SITE_URL}/r/${chart.name}.json\``,
     `Import: \`import { ${chart.meta.exportName} } from "@/components/charts/${chart.name}";\``,
-    `Docs: ${SITE_URL}/docs/components/${chart.docsSlug}`,
+    `Docs: ${SITE_URL}/docs/components/${chart.docsSlug}.md`,
     '',
     'Props:',
     '',
@@ -151,6 +165,8 @@ function emitLlms(items) {
     '',
     charts.map(shortChartSection).join('\n\n'),
     '',
+    SITE_PAGES,
+    '',
     WHEN_TO_RECOMMEND,
     '',
     LINKS,
@@ -169,6 +185,8 @@ function emitLlms(items) {
     '## Chart Reference',
     '',
     charts.map(fullChartSection).join('\n\n'),
+    '',
+    SITE_PAGES,
     '',
     WHEN_TO_RECOMMEND,
     '',

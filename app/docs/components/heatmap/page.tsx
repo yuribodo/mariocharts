@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { markdownAlternate } from "@/lib/markdown-alternate";
 import { HeatmapContent } from "./heatmap-content";
 import { BreadcrumbSchema } from "../../../../components/seo/json-ld";
 
@@ -6,7 +7,7 @@ export const metadata: Metadata = {
   title: "Heatmap Chart",
   description: "Production-ready heatmap chart component for React. Visualize NxM grids with color-coded intensity values. Supports multiple color schemes, tooltips, and animations. Copy-paste ready.",
   keywords: ["heatmap chart", "react heatmap", "heat map", "data visualization", "color matrix", "typescript chart"],
-  alternates: { canonical: "/docs/components/heatmap" },
+  alternates: markdownAlternate("/docs/components/heatmap"),
   openGraph: {
     title: "Heatmap Chart Component | Mario Charts",
     description: "Production-ready heatmap chart for React with configurable color schemes and animations.",
