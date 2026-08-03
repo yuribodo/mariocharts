@@ -39,6 +39,10 @@ export function WorldEntranceProvider({ children }: { children: ReactNode }) {
   const entrance = useHeroEntrance();
   const covering =
     entrance.status === "welcome" || entrance.status === "warping";
+  const shellUp =
+    entrance.welcomeActive ||
+    entrance.warpActive ||
+    entrance.status === "settling";
 
   useLayoutEffect(() => {
     const root = document.documentElement;
@@ -56,6 +60,17 @@ export function WorldEntranceProvider({ children }: { children: ReactNode }) {
     };
   }, [covering]);
 
+  // Drop the FOUC plate the instant the real shell is in the DOM — keeps the
+  // portal→field morph unobstructed while still covering SSR before hydrate.
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    if (shellUp) root.setAttribute("data-world-entrance-ready", "");
+    else root.removeAttribute("data-world-entrance-ready");
+    return () => {
+      root.removeAttribute("data-world-entrance-ready");
+    };
+  }, [shellUp]);
+
   // Keep overflow locked through settle so the shell fade doesn't scroll-jump.
   useLayoutEffect(() => {
     if (entrance.status !== "settling") return undefined;
@@ -65,11 +80,6 @@ export function WorldEntranceProvider({ children }: { children: ReactNode }) {
       document.body.style.overflow = prev;
     };
   }, [entrance.status]);
-
-  const shellUp =
-    entrance.welcomeActive ||
-    entrance.warpActive ||
-    entrance.status === "settling";
 
   return (
     <EntranceContext.Provider value={entrance}>

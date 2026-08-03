@@ -766,11 +766,11 @@ html[data-world-entering] [data-site-header] {
 }
 
 /*
- * Anti-FOUC plate: the head boot script sets data-world-entering before paint
- * so SSR content never flashes under the welcome. z-index sits under
- * .world-entrance (100) so React's shell takes over seamlessly.
+ * Anti-FOUC plate only until React mounts the real entrance shell
+ * (`data-world-entrance-ready`). If it stayed for the whole warp, it would
+ * sit under the clearing shell and kill the portal → field morph.
  */
-html[data-world-entering]::before {
+html[data-world-entering]:not([data-world-entrance-ready])::before {
   content: "";
   position: fixed;
   inset: 0;
