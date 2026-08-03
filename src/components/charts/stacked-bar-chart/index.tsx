@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { memo, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
 import { ChartTooltip, formatValue, getNumericValue, useContainerDimensions, type ChartDataItem } from "../_shared";
 import type { StackedBarChartTooltipData, TooltipRenderer } from "../_shared";
@@ -155,6 +155,8 @@ function StackedBarChartComponent<T extends ChartDataItem>({
 }: StackedBarChartProps<T>) {
   const [containerRef, containerWidth] = useContainerDimensions();
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
+  const reduceMotion = useReducedMotion();
+  const shouldAnimate = animation && !reduceMotion;
 
   const chartWidth = Math.max(0, containerWidth - MARGIN.left - MARGIN.right);
   const chartHeight = height - MARGIN.top - MARGIN.bottom;
@@ -466,7 +468,7 @@ function StackedBarChartComponent<T extends ChartDataItem>({
                 const isFilled = variant === 'filled';
                 const isVertical = orientation === 'vertical';
 
-                const motionProps = animation ? {
+                const motionProps = shouldAnimate ? {
                   initial: isVertical ? { scaleY: 0 } : { scaleX: 0 },
                   animate: isVertical ? { scaleY: 1 } : { scaleX: 1 },
                   transition: {
