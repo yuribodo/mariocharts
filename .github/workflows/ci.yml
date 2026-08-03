@@ -67,9 +67,15 @@ jobs:
       - name: Regenerate
         run: npm run build:registry
 
+      # `git diff` only sees tracked files. Adding a chart to the manifest
+      # produces a brand-new, untracked public/r/<chart>.json, which a diff
+      # check reports as clean — the exact "new chart silently missing from the
+      # published registry" failure this job exists to prevent. Check the
+      # worktree status instead, untracked files included.
       - name: Fail if any generated file is out of date
         run: |
-          if ! git diff --exit-code --stat; then
+          if [ -n "$(git status --porcelain --untracked-files=all)" ]; then
+            git status --short
             echo "::error::Generated registry files are stale. Run 'npm run build:registry' and commit the result."
             exit 1
           fi
