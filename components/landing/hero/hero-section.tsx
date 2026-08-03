@@ -3,8 +3,12 @@
 import { cn } from "@/lib/utils";
 import { CommandSnippet } from "@/components/ui/command-snippet";
 
-import { BACKDROP_COLUMNS, HERO_BACKDROP } from "./hero-backdrop";
-import { HeroChartField } from "./hero-chart-field";
+import {
+  BACKDROP_COLUMNS,
+  HERO_BACKDROP,
+  HERO_BACKDROP_CHART,
+} from "./hero-backdrop";
+import { HeroFieldEffect } from "./hero-field-effect";
 import { HeroPortrait } from "./hero-portrait";
 import { TextField } from "./text-field";
 
@@ -13,6 +17,16 @@ interface HeroSectionProps {
 }
 
 const CLI_COMMAND = "npx mario-charts@latest init";
+
+/**
+ * The larger of a width-fit and a height-fit term, so the field always covers
+ * the section in both dimensions and the overflow is clipped — width-fit alone
+ * left the field shorter than tall viewports and taller than wide ones, with
+ * its lower rows below the fold.
+ */
+const BACKDROP_STYLE = {
+  fontSize: `max(7px, calc(108vw / ${BACKDROP_COLUMNS} / 0.6), calc(104svh / 90 / 1.05))`,
+};
 
 /** Small labels along the top rule, in the grid's own voice. */
 const EYEBROW = ["MARIO CHARTS", "12 COMPONENTS", "MIT", "REACT + TS"] as const;
@@ -44,13 +58,31 @@ export function HeroSection({ className }: HeroSectionProps) {
         The backdrop bleeds past all four edges and is clipped by the section,
         so no viewport can reach its end and expose a hard boundary. It is
         decoration and unnamed, so it adds nothing for a screen reader.
+
+        Two layers over the same grid, same metrics: the noise field as
+        texture, and the chart silhouette — real committed data — drawn
+        brighter across the full width, so the hero of a chart library is
+        itself a chart. The spotlight canvas re-inks the noise layer's own
+        glyphs near the cursor.
+      */}
+      <div className="pointer-events-none absolute -left-4 -top-4 select-none">
+        <TextField
+          text={HERO_BACKDROP}
+          className="text-foreground/[0.16]"
+          style={BACKDROP_STYLE}
+        />
+        <HeroFieldEffect text={HERO_BACKDROP} columns={BACKDROP_COLUMNS} />
+      </div>
+
+      {/*
+        The data strip: an area chart across the section's full width, pinned
+        to its bottom edge so it is always above the fold's floor — baked into
+        the field's own lower rows it sat below the fold on most screens.
       */}
       <TextField
-        text={HERO_BACKDROP}
-        className="pointer-events-none absolute -left-4 -top-4 select-none text-foreground/[0.09]"
-        style={{
-          fontSize: `max(7px, calc(108vw / ${BACKDROP_COLUMNS} / 0.6))`,
-        }}
+        text={HERO_BACKDROP_CHART}
+        className="pointer-events-none absolute -bottom-1 -left-4 select-none text-foreground/[0.4]"
+        style={BACKDROP_STYLE}
       />
 
       <div className="relative flex min-h-[calc(100svh-7rem)] flex-col justify-center gap-10 px-6 py-12 sm:px-10 lg:px-16">
@@ -88,8 +120,6 @@ export function HeroSection({ className }: HeroSectionProps) {
                 <CommandSnippet command={CLI_COMMAND} />
               </div>
             </div>
-
-            <HeroChartField className="hero-resolve-rows mt-12 w-full [--chart-w:82vw] sm:[--chart-w:44vw]" />
           </div>
 
           <div className="flex items-center justify-center overflow-hidden sm:justify-end">

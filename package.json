@@ -30,7 +30,6 @@
     "build": "npm run build:cli && next build --turbopack",
     "build:cli": "npm run build --workspace=packages/cli",
     "ascii:portrait": "tsx scripts/ascii-portrait.ts",
-    "ascii:chart": "tsx scripts/ascii-chart.ts",
     "dev:cli": "npm run dev --workspace=packages/cli",
     "start": "next start",
     "lint": "eslint",

@@ -1,7 +1,6 @@
 import { cn } from "@/lib/utils";
 
 import { HERO_ASCII_COLUMNS, HERO_ASCII_DARK, HERO_ASCII_LIGHT } from "./hero-ascii";
-import { HeroPortraitEffect } from "./hero-portrait-effect";
 import { TextField } from "./text-field";
 
 /**
@@ -84,11 +83,6 @@ export function HeroPortrait({ className }: HeroPortraitProps) {
         style={PORTRAIT_STYLE}
         rowDelayMs={ROW_DELAY_MS}
         className="absolute inset-0 text-foreground [.dark_&]:text-transparent"
-      />
-      <HeroPortraitEffect
-        textDark={HERO_ASCII_DARK}
-        textLight={HERO_ASCII_LIGHT}
-        columns={HERO_ASCII_COLUMNS}
       />
     </div>
   );

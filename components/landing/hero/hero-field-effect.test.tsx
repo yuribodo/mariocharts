@@ -1,6 +1,6 @@
 import { act, render } from "@testing-library/react";
 
-import { HeroPortraitEffect } from "./hero-portrait-effect";
+import { HeroFieldEffect } from "./hero-field-effect";
 
 function setMedia(matches: Record<string, boolean>) {
   window.matchMedia = jest.fn().mockImplementation((query: string) => ({
@@ -63,6 +63,7 @@ function mockCanvas({ width = 40, height = 20 }: { width?: number; height?: numb
     font: "",
     fillStyle: "",
     textBaseline: "",
+    globalAlpha: 1,
   };
   jest
     .spyOn(HTMLCanvasElement.prototype, "getContext")
@@ -87,17 +88,16 @@ async function flushRaf() {
   });
 }
 
-const PROPS = { textDark: "..##\n..##", textLight: "..##\n..##", columns: 4 };
+const PROPS = { text: "..##\n..##", columns: 4 };
 
-describe("HeroPortraitEffect", () => {
+describe("HeroFieldEffect", () => {
   afterEach(() => {
     jest.restoreAllMocks();
-    document.documentElement.classList.remove("dark");
   });
 
   it("mounts a canvas for a fine pointer without reduced motion", () => {
     setMedia({ "(hover: hover) and (pointer: fine)": true });
-    const { container } = render(<HeroPortraitEffect {...PROPS} />);
+    const { container } = render(<HeroFieldEffect {...PROPS} />);
 
     expect(container.querySelector("canvas")).toBeInTheDocument();
   });
@@ -107,21 +107,21 @@ describe("HeroPortraitEffect", () => {
       "(hover: hover) and (pointer: fine)": true,
       "(prefers-reduced-motion: reduce)": true,
     });
-    const { container } = render(<HeroPortraitEffect {...PROPS} />);
+    const { container } = render(<HeroFieldEffect {...PROPS} />);
 
     expect(container).toBeEmptyDOMElement();
   });
 
   it("renders nothing on a coarse pointer", () => {
     setMedia({});
-    const { container } = render(<HeroPortraitEffect {...PROPS} />);
+    const { container } = render(<HeroFieldEffect {...PROPS} />);
 
     expect(container).toBeEmptyDOMElement();
   });
 
   it("keeps the canvas out of the accessibility tree and the tab order", () => {
     setMedia({ "(hover: hover) and (pointer: fine)": true });
-    const { container } = render(<HeroPortraitEffect {...PROPS} />);
+    const { container } = render(<HeroFieldEffect {...PROPS} />);
     const canvas = container.querySelector("canvas")!;
 
     expect(canvas).toHaveAttribute("aria-hidden", "true");
@@ -133,7 +133,7 @@ describe("HeroPortraitEffect", () => {
       "(hover: hover) and (pointer: fine)": true,
       "(prefers-reduced-motion: reduce)": false,
     });
-    const { container } = render(<HeroPortraitEffect {...PROPS} />);
+    const { container } = render(<HeroFieldEffect {...PROPS} />);
     expect(container.querySelector("canvas")).toBeInTheDocument();
 
     act(() => {
@@ -150,24 +150,23 @@ describe("HeroPortraitEffect", () => {
   it("bails out of the draw loop instead of hanging when the canvas measures zero", async () => {
     const context = mockCanvas({ width: 0, height: 0 });
     setMedia({ "(hover: hover) and (pointer: fine)": true });
-    render(<HeroPortraitEffect {...PROPS} />);
+    render(<HeroFieldEffect {...PROPS} />);
 
     await act(async () => {
       window.dispatchEvent(new MouseEvent("pointermove", { clientX: 10, clientY: 10 }));
     });
     await flushRaf();
 
-    // A 0x0 canvas makes cursorRow/cursorColumn Infinity; the old code fed
-    // that straight into a `for` loop that never terminates. Reaching this
-    // assertion at all (inside Jest's default timeout) is part of what this
-    // test is checking.
+    // A 0x0 canvas makes cursorRow/cursorColumn Infinity; unguarded, that
+    // feeds a `for` loop that never terminates. Reaching this assertion at
+    // all (inside Jest's default timeout) is part of what this test checks.
     expect(context.fillText).not.toHaveBeenCalled();
   });
 
   it("redraws when the pointer leaves the viewport (pointerout with a null relatedTarget)", async () => {
     const context = mockCanvas();
     setMedia({ "(hover: hover) and (pointer: fine)": true });
-    render(<HeroPortraitEffect {...PROPS} />);
+    render(<HeroFieldEffect {...PROPS} />);
 
     await act(async () => {
       window.dispatchEvent(new MouseEvent("pointermove", { clientX: 5, clientY: 5 }));
@@ -175,10 +174,9 @@ describe("HeroPortraitEffect", () => {
     await flushRaf();
     context.clearRect.mockClear();
 
-    // pointerleave does not bubble, so a listener on window (as used here)
-    // never fires for it. pointerout does bubble, and the browser sets
-    // relatedTarget to null on the one that fires as the pointer leaves the
-    // document entirely — that's what the fix listens for.
+    // pointerleave does not bubble, so a listener on window never fires for
+    // it. pointerout does bubble, and the browser sets relatedTarget to null
+    // on the one that fires as the pointer leaves the document entirely.
     await act(async () => {
       window.dispatchEvent(new MouseEvent("pointerout", { relatedTarget: null }));
     });
@@ -191,7 +189,7 @@ describe("HeroPortraitEffect", () => {
     const context = mockCanvas();
     const insideElement = document.createElement("div");
     setMedia({ "(hover: hover) and (pointer: fine)": true });
-    render(<HeroPortraitEffect {...PROPS} />);
+    render(<HeroFieldEffect {...PROPS} />);
 
     context.clearRect.mockClear();
     await act(async () => {
@@ -207,7 +205,7 @@ describe("HeroPortraitEffect", () => {
     const originalRatio = window.devicePixelRatio;
     Object.defineProperty(window, "devicePixelRatio", { value: 2, configurable: true });
     setMedia({ "(hover: hover) and (pointer: fine)": true });
-    const { container } = render(<HeroPortraitEffect {...PROPS} />);
+    const { container } = render(<HeroFieldEffect {...PROPS} />);
     const canvas = container.querySelector("canvas")!;
 
     expect(canvas.width).toBe(200);
@@ -216,14 +214,13 @@ describe("HeroPortraitEffect", () => {
     Object.defineProperty(window, "devicePixelRatio", { value: originalRatio, configurable: true });
   });
 
-  it("paints the densest glyph at the cursor's own cell, not the lightest one", async () => {
+  it("re-inks the field's own glyph at the cursor instead of substituting a denser one", async () => {
     const context = mockCanvas({ width: 40, height: 20 });
     setMedia({ "(hover: hover) and (pointer: fine)": true });
-    render(<HeroPortraitEffect {...PROPS} />);
+    render(<HeroFieldEffect {...PROPS} />);
 
     // cellWidth = 40/4 = 10, cellHeight = 20/2 = 10. This lands squarely in
-    // the cell at column 2, row 0 — a '#' in "..##\n..##" — at distance 0
-    // from itself.
+    // the cell at column 2, row 0 — a '#' in "..##\n..##" — at distance 0.
     await act(async () => {
       window.dispatchEvent(new MouseEvent("pointermove", { clientX: 25, clientY: 5 }));
     });
@@ -232,46 +229,29 @@ describe("HeroPortraitEffect", () => {
     const centreCall = context.fillText.mock.calls.find(
       ([, x, y]) => x === 20 && y === 0,
     );
-    expect(centreCall?.[0]).toBe("@");
+    // The previous effect substituted '@' here, which smudged the picture
+    // under the cursor and was rejected. A spotlight repeats the glyph.
+    expect(centreCall?.[0]).toBe("#");
   });
 
-  it("draws against the light-theme grid by default and switches to the dark-theme grid when <html> gains the `dark` class", async () => {
+  it("never brightens a cell to full opacity, so the spotlight stays a light rather than a repaint", async () => {
+    const alphas: number[] = [];
     const context = mockCanvas({ width: 40, height: 20 });
+    context.fillText.mockImplementation(() => {
+      alphas.push(context.globalAlpha);
+    });
     setMedia({ "(hover: hover) and (pointer: fine)": true });
-    render(
-      <HeroPortraitEffect textDark={"..##\n..##"} textLight={"    \n    "} columns={4} />,
-    );
+    render(<HeroFieldEffect {...PROPS} />);
 
-    // cellWidth = 40/4 = 10, cellHeight = 20/2 = 10 -> column 2, row 0.
     await act(async () => {
       window.dispatchEvent(new MouseEvent("pointermove", { clientX: 25, clientY: 5 }));
     });
     await flushRaf();
 
-    // No `dark` class yet: the light grid is blank everywhere, nothing to draw.
-    expect(context.fillText).not.toHaveBeenCalled();
-
-    // The MutationObserver callback fires asynchronously, after the
-    // synchronous classList mutation returns, so give it (and the setState,
-    // re-render and effect re-subscription it triggers) a few turns before
-    // moving the pointer again.
-    await act(async () => {
-      document.documentElement.classList.add("dark");
-    });
-    await flushRaf();
-    await flushRaf();
-
-    // The grid swap resets the tracked pointer, so it takes a fresh move to
-    // draw again — this also exercises that the effect picked up the change
-    // without a reload.
-    await act(async () => {
-      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 25, clientY: 5 }));
-    });
-    await flushRaf();
-
-    const centreCall = context.fillText.mock.calls.find(
-      ([, x, y]) => x === 20 && y === 0,
-    );
-    expect(centreCall?.[0]).toBe("@");
+    expect(alphas.length).toBeGreaterThan(0);
+    for (const alpha of alphas) {
+      expect(alpha).toBeGreaterThan(0);
+      expect(alpha).toBeLessThan(1);
+    }
   });
 });

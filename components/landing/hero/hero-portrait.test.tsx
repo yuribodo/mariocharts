@@ -8,7 +8,6 @@ jest.mock("./hero-ascii", () => ({
   HERO_ASCII_LIGHT: "##::..  \n##::..  ",
 }));
 
-jest.mock("./hero-portrait-effect", () => ({ HeroPortraitEffect: () => null }));
 
 describe("HeroPortrait", () => {
   it("exposes one short name instead of the whole field", () => {

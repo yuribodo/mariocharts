@@ -2,51 +2,38 @@
 
 import { useEffect, useRef, useState } from "react";
 
-interface HeroPortraitEffectProps {
-  textDark: string;
-  textLight: string;
+interface HeroFieldEffectProps {
+  text: string;
   columns: number;
 }
 
 const HOVER_QUERY = "(hover: hover) and (pointer: fine)";
 const MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
-/** Glyphs the cursor swaps in, densest first: index 0 sits at the centre of its radius. */
-const DENSE = "@%#*";
-
 /** Radius of the cursor's influence, in grid cells. */
-const RADIUS = 6;
+const RADIUS = 12;
 
-export function HeroPortraitEffect({ textDark, textLight, columns }: HeroPortraitEffectProps) {
+/** Peak brightness at the spotlight's centre, as canvas alpha. */
+const PEAK = 0.85;
+
+/**
+ * A spotlight over the backdrop field: the cells near the cursor are redrawn
+ * in the same glyphs, brighter. The previous effect swapped glyphs for denser
+ * ones over the portrait, which distorted the picture into a dark smudge under
+ * the cursor and was rejected on sight. Re-inking the field's own characters
+ * reads as light passing across the grid instead of the grid deforming.
+ *
+ * The canvas is decoration: aria-hidden, unfocusable, pointer-transparent.
+ * When it does not mount — no fine pointer, or reduced motion — the tree is
+ * the field alone, unchanged.
+ */
+export function HeroFieldEffect({ text, columns }: HeroFieldEffectProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [enabled, setEnabled] = useState(false);
-  // hero-portrait.tsx renders both variants and lets CSS pick one via the
-  // `dark` class on <html> (see the note there on why it's a class, not
-  // prefers-color-scheme). This has to track the same class, or it lights up
-  // cells against the variant nobody can see. matchMedia can't do that here —
-  // next-themes is class-only in this project (enableSystem={false}), so a
-  // visitor's OS scheme and their actual theme can disagree. A
-  // MutationObserver on the class attribute is the one thing that tracks the
-  // real switch, including a live toggle click, with no reload.
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
-
-  useEffect(() => {
-    const root = document.documentElement;
-
-    const update = () => {
-      setIsDarkTheme(root.classList.contains("dark"));
-    };
-
-    update();
-    const observer = new MutationObserver(update);
-    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
-
-    return () => observer.disconnect();
-  }, []);
 
   // Read the queries after mount, never during render: the server has no
   // matchMedia, and deciding here keeps the server tree and the reduced-motion
-  // tree identical — the portrait alone. Both queries stay subscribed for the
+  // tree identical — the field alone. Both queries stay subscribed for the
   // life of the effect so a live switch (e.g. turning on reduced motion) is
   // picked up without a reload.
   useEffect(() => {
@@ -67,8 +54,6 @@ export function HeroPortraitEffect({ textDark, textLight, columns }: HeroPortrai
     };
   }, []);
 
-  const text = isDarkTheme ? textDark : textLight;
-
   useEffect(() => {
     if (!enabled) return;
 
@@ -87,9 +72,9 @@ export function HeroPortraitEffect({ textDark, textLight, columns }: HeroPortrai
     let height = 0;
 
     const draw = () => {
-      // A hidden ancestor (e.g. `hidden xl:block`) collapses the canvas to
-      // 0x0. Bail here instead of dividing by zero — an unbounded cursorRow
-      // of Infinity would otherwise spin this rAF callback forever.
+      // A hidden ancestor collapses the canvas to 0x0. Bail here instead of
+      // dividing by zero — an unbounded cursorRow of Infinity would otherwise
+      // spin this rAF callback forever.
       if (width === 0 || height === 0) return;
 
       const cellWidth = width / columns;
@@ -108,17 +93,18 @@ export function HeroPortraitEffect({ textDark, textLight, columns }: HeroPortrai
         const line = rows[y];
         if (!line) continue;
         for (let x = cursorColumn - RADIUS; x <= cursorColumn + RADIUS; x += 1) {
-          if (line[x] === undefined || line[x] === " ") continue;
+          const glyph = line[x];
+          if (glyph === undefined || glyph === " ") continue;
           const distance = Math.hypot(x - cursorColumn, y - cursorRow);
           if (distance > RADIUS) continue;
-          // distance 0 (centre) -> index 0, the densest glyph; distance
-          // RADIUS (rim) -> the last, lightest glyph.
-          const step = Math.floor((distance / RADIUS) * (DENSE.length - 1));
-          const glyph = DENSE[step];
-          if (!glyph) continue;
+          // The field's own glyph, re-inked brighter toward the centre: a
+          // light over the grid, not a distortion of it.
+          const falloff = 1 - distance / RADIUS;
+          context.globalAlpha = PEAK * falloff * falloff;
           context.fillText(glyph, x * cellWidth, y * cellHeight);
         }
       }
+      context.globalAlpha = 1;
     };
 
     const onMove = (event: PointerEvent) => {
