@@ -34,7 +34,7 @@
       "path": "_shared/hooks.ts",
       "type": "registry:lib",
       "target": "@components/charts/_shared/hooks.ts",
-      "content": "\"use client\";\n\nimport { useRef, useState } from \"react\";\nimport { useIsomorphicLayoutEffect } from \"@/lib/hooks\";\n\nexport function useContainerDimensions() {\n  const ref = useRef<HTMLDivElement>(null);\n  const [width, setWidth] = useState(0);\n\n  useIsomorphicLayoutEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    let rafId = 0;\n    const update = () => {\n      cancelAnimationFrame(rafId);\n      rafId = requestAnimationFrame(() => setWidth(el.getBoundingClientRect().width));\n    };\n    update();\n    const ro = new ResizeObserver(update);\n    ro.observe(el);\n    return () => {\n      cancelAnimationFrame(rafId);\n      ro.disconnect();\n    };\n  }, []);\n\n  return [ref, width] as const;\n}\n"
+      "content": "\"use client\";\n\nimport { useRef, useState } from \"react\";\nimport { useIsomorphicLayoutEffect } from \"@/lib/hooks\";\n\nexport function useContainerDimensions() {\n  const ref = useRef<HTMLDivElement>(null);\n  const [width, setWidth] = useState(0);\n\n  useIsomorphicLayoutEffect(() => {\n    const el = ref.current;\n    if (!el) return;\n    const update = () => setWidth(el.getBoundingClientRect().width);\n    update();\n    const ro = new ResizeObserver(update);\n    ro.observe(el);\n    return () => ro.disconnect();\n  }, []);\n\n  return [ref, width] as const;\n}\n"
     },
     {
       "path": "_shared/tooltip-types.ts",
