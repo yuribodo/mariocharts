@@ -2,130 +2,251 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
-
+import { useEffect, useLayoutEffect, useState } from "react";
+import {
+  LayoutGroup,
+  motion,
+  useReducedMotion,
+  type Variants,
+} from "framer-motion";
 import { cn } from "../../lib/utils";
 import { ThemeToggle } from "./theme-toggle";
 import { LogoAnimated } from "./logo-animated";
 import { MobileDocsDrawer } from "./mobile-docs-drawer";
 import { MobileMenu } from "./mobile-menu";
-import { ProgressDots } from "./progress-dots";
 import { GitHubStars } from "./github-stars";
+import { MarioStar } from "./mario-star";
 
 const navigation = [
-  { name: "Docs", href: "/docs" },
-  { name: "Components", href: "/docs/components" },
+  { name: "Charts", href: "/docs/components" },
   { name: "Examples", href: "/examples" },
+  { name: "Docs", href: "/docs" },
 ] as const;
+
+const ENTER_EASE = [0.16, 1, 0.3, 1] as const;
+
+const headerVariants: Variants = {
+  hidden: {},
+  shown: {
+    transition: { staggerChildren: 0.06, delayChildren: 0.02 },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: -10 },
+  shown: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.48, ease: ENTER_EASE },
+  },
+};
+
+function isNavActive(pathname: string | null, href: string): boolean {
+  if (!pathname) return false;
+  if (href === "/docs") return pathname === "/docs" || pathname === "/docs/";
+  return pathname.startsWith(href);
+}
+
+/**
+ * Wait for the world entrance to release the document (or conclude it will
+ * never claim it) before the header plays its enter motion. The header lives
+ * in the root layout — above the landing provider — so it watches the html
+ * attribute instead of reading entrance context.
+ */
+function useHeaderEntrance(pathname: string | null, reduceMotion: boolean) {
+  const [shown, setShown] = useState(reduceMotion);
+
+  useLayoutEffect(() => {
+    if (reduceMotion) {
+      setShown(true);
+      return;
+    }
+
+    const root = document.documentElement;
+    let observer: MutationObserver | null = null;
+    let frame = 0;
+    let cancelled = false;
+
+    const reveal = () => {
+      if (!cancelled) setShown(true);
+    };
+
+    const watchUntilReleased = () => {
+      if (!root.hasAttribute("data-world-entering")) {
+        reveal();
+        return;
+      }
+      setShown(false);
+      observer = new MutationObserver(() => {
+        if (!root.hasAttribute("data-world-entering")) {
+          reveal();
+          observer?.disconnect();
+        }
+      });
+      observer.observe(root, {
+        attributes: true,
+        attributeFilter: ["data-world-entering"],
+      });
+    };
+
+    if (pathname === "/") {
+      // Landing may set data-world-entering in a later layout effect this frame.
+      frame = requestAnimationFrame(watchUntilReleased);
+    } else {
+      watchUntilReleased();
+    }
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+      observer?.disconnect();
+    };
+  }, [pathname, reduceMotion]);
+
+  return shown;
+}
 
 export function SiteHeader() {
   const pathname = usePathname();
   const isDocsPage = pathname?.startsWith("/docs");
-  const isHomePage = pathname === "/";
+  const shouldReduceMotion = useReducedMotion();
+  const [scrolled, setScrolled] = useState(false);
+  const shown = useHeaderEntrance(pathname, Boolean(shouldReduceMotion));
+
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 8);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
 
   return (
-    <header
+    <motion.header
+      data-site-header
+      {...(scrolled ? { "data-scrolled": "" } : {})}
+      {...(shown ? { "data-revealed": "" } : {})}
+      {...(shouldReduceMotion ? {} : { variants: headerVariants })}
+      initial={shouldReduceMotion ? false : "hidden"}
+      animate={shown ? "shown" : "hidden"}
       className={cn(
         "sticky top-0 z-50 w-full",
-        "bg-background/80 backdrop-blur-xl",
-        "border-b border-border/40"
+        "border-b border-transparent bg-background/70 backdrop-blur-xl",
+        "transition-[background-color,border-color,box-shadow] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+        scrolled &&
+          "border-border/80 bg-background/85 shadow-[0_1px_0_0_oklch(0_0_0/0.04)]",
       )}
     >
-      <div className="container mx-auto max-w-7xl flex h-14 items-center px-4">
-        {/* Left section: Logo + Nav (desktop) */}
-        <div className="mr-4 hidden md:flex items-center">
-          <Link href="/" className="mr-8 flex items-center gap-2.5">
-            <LogoAnimated size={28} />
-            <span className="font-semibold text-foreground">Mario Charts</span>
+      <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6">
+        <motion.div
+          {...(shouldReduceMotion ? {} : { variants: itemVariants })}
+          className="hidden items-center md:flex"
+        >
+          <Link
+            href="/"
+            className="mr-8 flex items-center gap-2.5 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <LogoAnimated size={26} />
+            <span className="text-sm font-semibold tracking-tight text-foreground">
+              Mario Charts
+            </span>
           </Link>
 
-          <nav className="flex items-center gap-1">
-            {navigation.map((item) => {
-              const isActive =
-                item.href === "/docs"
-                  ? pathname === "/docs" || pathname === "/docs/"
-                  : pathname?.startsWith(item.href);
+          <LayoutGroup id="site-nav">
+            <nav
+              aria-label="Primary navigation"
+              className="flex items-center gap-0.5"
+            >
+              {navigation.map((item) => {
+                const active = isNavActive(pathname, item.href);
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "relative px-3 py-1.5 text-sm font-medium rounded-md",
-                    "transition-colors duration-150",
-                    isActive
-                      ? "text-foreground bg-foreground/5"
-                      : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
-                  )}
-                >
-                  {item.name}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "site-nav-link relative px-3 py-2 text-sm font-medium",
+                      "transition-colors duration-200 ease-out",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                      active
+                        ? "text-foreground"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {item.name}
+                    {active ? (
+                      shouldReduceMotion ? (
+                        <span
+                          aria-hidden="true"
+                          className="absolute inset-x-3 -bottom-px h-[1.5px] rounded-full bg-foreground"
+                        />
+                      ) : (
+                        <motion.span
+                          layoutId="site-nav-indicator"
+                          aria-hidden="true"
+                          className="absolute inset-x-3 -bottom-px h-[1.5px] rounded-full bg-foreground"
+                          transition={{
+                            type: "spring",
+                            stiffness: 420,
+                            damping: 34,
+                            mass: 0.7,
+                          }}
+                        />
+                      )
+                    ) : null}
+                  </Link>
+                );
+              })}
+            </nav>
+          </LayoutGroup>
+        </motion.div>
 
-        {/* Mobile: Menu trigger + Logo */}
-        <div className="flex md:hidden items-center gap-2">
+        <motion.div
+          {...(shouldReduceMotion ? {} : { variants: itemVariants })}
+          className="flex min-w-0 items-center gap-2 md:hidden"
+        >
           {isDocsPage ? (
             <MobileDocsDrawer />
           ) : (
             <MobileMenu navigation={navigation} />
           )}
 
-          <Link href="/" className="flex items-center gap-2">
-            <LogoAnimated size={24} />
-            <span className="font-semibold">Mario Charts</span>
+          <Link
+            href="/"
+            className="flex min-w-0 items-center gap-2 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <LogoAnimated size={22} />
+            <span className="truncate text-sm font-semibold tracking-tight">
+              Mario Charts
+            </span>
           </Link>
-        </div>
+        </motion.div>
 
-        {/* Right section: Progress dots, Theme, GitHub */}
-        <div className="flex flex-1 items-center justify-end gap-2">
-          {/* Progress dots - only on homepage, hidden on mobile */}
-          {isHomePage && (
-            <div className="hidden lg:flex items-center mr-2">
-              <ProgressDots
-                segments={4}
-                labels={["Hero", "Features", "Charts", "Footer"]}
-              />
-            </div>
-          )}
-
-          {/* Theme toggle */}
+        <motion.div
+          {...(shouldReduceMotion ? {} : { variants: itemVariants })}
+          className="ml-auto flex items-center gap-0.5 sm:gap-1"
+        >
           <ThemeToggle />
-
-          {/* GitHub stars - full on desktop, icon only on mobile */}
           <div className="hidden sm:block">
             <GitHubStars />
           </div>
-
-          {/* Mobile: just GitHub icon */}
-          <motion.a
+          <a
             href="https://github.com/yuribodo/mariocharts"
             target="_blank"
             rel="noreferrer"
             className={cn(
-              "sm:hidden inline-flex items-center justify-center",
-              "h-10 w-10 rounded-full",
-              "text-foreground/70 hover:text-foreground",
-              "hover:bg-foreground/5 active:bg-foreground/10",
-              "transition-colors duration-200"
+              "inline-flex size-9 items-center justify-center sm:hidden",
+              "rounded-full",
+              "transition-colors duration-200 hover:bg-foreground/5",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "touch-manipulation",
             )}
-            whileTap={{ scale: 0.92 }}
           >
-            <svg
-              width={20}
-              height={20}
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-            </svg>
-            <span className="sr-only">GitHub</span>
-          </motion.a>
-        </div>
+            <MarioStar size={20} />
+            <span className="sr-only">Star Mario Charts on GitHub</span>
+          </a>
+        </motion.div>
       </div>
-    </header>
+    </motion.header>
   );
 }

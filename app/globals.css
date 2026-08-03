@@ -19,23 +19,6 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Shiki code highlighting styles */
-  .shiki-light {
-    background-color: #ffffff !important;
-    color: #24292f !important;
-  }
-
-  /* Ensure good contrast for code elements */
-  pre[class*="shiki"] {
-    background-color: #ffffff !important;
-    color: #24292f !important;
-  }
-
-  code[class*="shiki"] {
-    background-color: #ffffff !important;
-    color: #24292f !important;
-  }
-
   /* Ultra-fast transitions - excludes transform/opacity/scale to not conflict with GSAP/Framer Motion */
   * {
     transition-property: color, background-color, border-color, text-decoration-color, box-shadow;
@@ -49,9 +32,13 @@
     transition: none !important;
   }
 
-  /* Enhanced smooth scrolling */
+  /*
+   * Native CSS smooth scroll fights Lenis (see SmoothScroll). Lenis owns the
+   * wheel path; keep auto here so the two never lerp against each other.
+   * Reduced-motion visitors never mount Lenis and get instant native scroll.
+   */
   html {
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
     scroll-padding-top: 2rem;
   }
 
@@ -102,56 +89,46 @@
 
 /* Documentation UX improvements */
 
-/* Ultra-fast page transitions */
+/*
+ * Theme switch: circular wipe from the toggle (--theme-x / --theme-y).
+ * The old GIF mask read as broken/janky; clip-path is interruptible and local.
+ */
 @media (prefers-reduced-motion: no-preference) {
-  /* View Transitions API support when available */
-  html:has(view-transition) {
-    view-transition-name: main;
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.48s;
+    animation-timing-function: var(--ease-out-expo);
+    mix-blend-mode: normal;
   }
 
-  ::view-transition-old(main),
-  ::view-transition-new(main) {
-    animation-duration: 0.05s;
-    animation-timing-function: linear;
-  }
-
-  /* Keep view transitions snappy without breaking sticky positioning */
-  html:has(view-transition) main {
-    will-change: opacity;
-  }
-}
-
-/* Theme Toggle Animation - Shigure UI Dance Style */
-@media (prefers-reduced-motion: no-preference) {
-  ::view-transition-group(root) {
-    animation-timing-function: var(--expo-in);
+  ::view-transition-old(root) {
+    animation-name: theme-fade-out;
   }
 
   ::view-transition-new(root) {
-    mask: url('https://media.tenor.com/cyORI7kwShQAAAAi/shigure-ui-dance.gif') center / 0 no-repeat;
-    animation: scale 3s;
-    animation-fill-mode: both;
+    animation-name: theme-circle-in;
   }
 
+  @keyframes theme-fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes theme-circle-in {
+    from {
+      clip-path: circle(0% at var(--theme-x, 50%) var(--theme-y, 50%));
+    }
+    to {
+      clip-path: circle(150% at var(--theme-x, 50%) var(--theme-y, 50%));
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
   ::view-transition-old(root),
-  .dark::view-transition-old(root) {
-    animation: scale 3s;
-    animation-fill-mode: both;
-  }
-
-  @keyframes scale {
-    0% {
-      mask-size: 0;
-    }
-    10% {
-      mask-size: 50vmax;
-    }
-    90% {
-      mask-size: 50vmax;
-    }
-    100% {
-      mask-size: 2000vmax;
-    }
+  ::view-transition-new(root) {
+    animation: none !important;
   }
 }
 
@@ -293,37 +270,6 @@ code {
 
 .docs-scrollable::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--color-muted-foreground) / 0.5);
-}
-
-/* Glass card base styles */
-.glass-card {
-  background: hsl(var(--color-card) / 0.8);
-  backdrop-filter: blur(8px);
-  border: 1px solid hsl(var(--color-border) / 0.5);
-  transition: all 0.2s ease;
-}
-
-.glass-card:hover {
-  background: hsl(var(--color-card) / 0.9);
-  border-color: hsl(var(--color-border) / 0.8);
-}
-
-/* Button gradient styling */
-.btn-gradient {
-  background: linear-gradient(135deg, var(--color-primary), hsl(var(--color-primary) / 0.8));
-  color: var(--color-primary-foreground);
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.2s ease;
-  border: none;
-  cursor: pointer;
-}
-
-.btn-gradient:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 25px hsl(var(--color-primary) / 0.3);
 }
 
 /* Ensure proper spacing for docs content */
@@ -484,42 +430,52 @@ code {
 }
 
 :root {
-  --radius: 0.625rem;
-  /* Easing function for theme toggle animation */
-  --expo-in: cubic-bezier(0.95, 0.05, 0.795, 0.035);
-  /* Mario Charts Off-White Theme */
-  --background: #FEFEFE;
-  --foreground: #1A1D23;
+  --radius: 0.5rem;
+  /* Slightly deeper paper so ASCII ink can sit at readable opacity. */
+  --background: oklch(0.97 0.004 95);
+  --foreground: oklch(0.17 0.01 95);
   --pattern-fg: 26 29 35;
-  --card: #FFFFFF;
-  --card-foreground: #1A1D23;
-  --popover: #FFFFFF;
-  --popover-foreground: #1A1D23;
-  --primary: hsl(0 0% 9%);
-  --primary-foreground: hsl(0 0% 98%);
-  --secondary: #FAFAFB;
-  --secondary-foreground: #4A5568;
-  --muted: #F5F6F7;
-  --muted-foreground: #718096;
-  --accent: #F5F6F7;
-  --accent-foreground: #1A1D23;
-  --destructive: #EF4444;
-  --border: #E5E7EB;
-  --input: #E5E7EB;
-  --ring: hsl(0 0% 3.9%);
-  --chart-1: hsl(210 100% 50%);
-  --chart-2: hsl(340 100% 50%);
-  --chart-3: hsl(120 100% 40%);
-  --chart-4: hsl(45 100% 50%);
-  --chart-5: hsl(270 100% 50%);
-  --sidebar: #FAFAFB;
-  --sidebar-foreground: #1A1D23;
-  --sidebar-primary: hsl(0 0% 9%);
-  --sidebar-primary-foreground: hsl(0 0% 98%);
-  --sidebar-accent: #F5F6F7;
-  --sidebar-accent-foreground: #1A1D23;
-  --sidebar-border: #E5E7EB;
-  --sidebar-ring: hsl(0 0% 3.9%);
+  /* Hero field ink — light needs more alpha; dark stays atmospheric. */
+  --hero-field-alpha: 0.34;
+  --hero-chart-alpha: 0.58;
+  --card: oklch(0.995 0.002 95);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.995 0.002 95);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.24 0.01 95);
+  --primary-foreground: oklch(0.985 0.003 95);
+  --secondary: oklch(0.955 0.004 95);
+  --secondary-foreground: oklch(0.34 0.008 95);
+  --muted: oklch(0.955 0.004 95);
+  --muted-foreground: oklch(0.49 0.012 95);
+  --accent: oklch(0.94 0.006 95);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.58 0.2 25);
+  --border: oklch(0.885 0.006 95);
+  --input: oklch(0.86 0.007 95);
+  --ring: oklch(0.55 0.17 255);
+  --chart-blue: oklch(0.59 0.18 255);
+  --chart-green: oklch(0.63 0.14 155);
+  --chart-amber: oklch(0.72 0.15 78);
+  --chart-coral: oklch(0.64 0.19 30);
+  --chart-violet: oklch(0.59 0.17 300);
+  --chart-cyan: oklch(0.67 0.12 205);
+  --chart-1: var(--chart-blue);
+  --chart-2: var(--chart-green);
+  --chart-3: var(--chart-amber);
+  --chart-4: var(--chart-coral);
+  --chart-5: var(--chart-violet);
+  --sidebar: oklch(0.965 0.004 95);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.935 0.006 95);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Syntax highlighting colors for code demo */
   --syntax-keyword: 340 82% 52%;
@@ -531,39 +487,46 @@ code {
 }
 
 .dark {
-  /* Mario Charts Dark Theme */
-  --background: #0A0A0A;
-  --foreground: #FAFAFA;
+  --background: oklch(0.17 0.006 95);
+  --foreground: oklch(0.94 0.004 95);
   --pattern-fg: 250 250 250;
-  --card: #1A1A1A;
-  --card-foreground: #FAFAFA;
-  --popover: #1A1A1A;
-  --popover-foreground: #FAFAFA;
-  --primary: hsl(0 0% 98%);
-  --primary-foreground: hsl(0 0% 9%);
-  --secondary: #2A2A2A;
-  --secondary-foreground: #E5E5E5;
-  --muted: #2A2A2A;
-  --muted-foreground: #A1A1AA;
-  --accent: #2A2A2A;
-  --accent-foreground: #FAFAFA;
-  --destructive: #EF4444;
-  --border: #3A3A3A;
-  --input: #3A3A3A;
-  --ring: hsl(0 0% 98%);
-  --chart-1: hsl(210 100% 50%);
-  --chart-2: hsl(340 100% 50%);
-  --chart-3: hsl(120 100% 40%);
-  --chart-4: hsl(45 100% 50%);
-  --chart-5: hsl(270 100% 50%);
-  --sidebar: #1A1A1A;
-  --sidebar-foreground: #FAFAFA;
-  --sidebar-primary: hsl(0 0% 98%);
-  --sidebar-primary-foreground: hsl(0 0% 9%);
-  --sidebar-accent: #2A2A2A;
-  --sidebar-accent-foreground: #FAFAFA;
-  --sidebar-border: #3A3A3A;
-  --sidebar-ring: hsl(0 0% 98%);
+  --hero-field-alpha: 0.2;
+  --hero-chart-alpha: 0.45;
+  --card: oklch(0.195 0.006 95);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.22 0.007 95);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.94 0.004 95);
+  --primary-foreground: oklch(0.19 0.006 95);
+  --secondary: oklch(0.25 0.007 95);
+  --secondary-foreground: oklch(0.86 0.005 95);
+  --muted: oklch(0.25 0.007 95);
+  --muted-foreground: oklch(0.69 0.008 95);
+  --accent: oklch(0.28 0.008 95);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.67 0.19 25);
+  --border: oklch(0.31 0.007 95);
+  --input: oklch(0.36 0.008 95);
+  --ring: oklch(0.72 0.14 255);
+  --chart-blue: oklch(0.7 0.16 255);
+  --chart-green: oklch(0.72 0.13 155);
+  --chart-amber: oklch(0.79 0.14 78);
+  --chart-coral: oklch(0.72 0.17 30);
+  --chart-violet: oklch(0.7 0.15 300);
+  --chart-cyan: oklch(0.76 0.11 205);
+  --chart-1: var(--chart-blue);
+  --chart-2: var(--chart-green);
+  --chart-3: var(--chart-amber);
+  --chart-4: var(--chart-coral);
+  --chart-5: var(--chart-violet);
+  --sidebar: oklch(0.19 0.006 95);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.27 0.007 95);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 
   /* Syntax highlighting colors for code demo (dark mode) */
   --syntax-keyword: 340 90% 65%;
@@ -687,5 +650,211 @@ code {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/*
+ * Hero grid entrance.
+ *
+ * The hero is one monospaced field, and it resolves as a wave: each row and
+ * each piece of copy carries its own delay, so the grid reads as writing
+ * itself rather than fading in as a block. Rows move a couple of pixels and
+ * settle — nothing overshoots, nothing scales, and it runs exactly once.
+ *
+ * `both` fill mode matters: without it a row would paint at full opacity for
+ * the length of its delay before jumping back to the start of the animation,
+ * which is a visible flash on every reload.
+ */
+@keyframes hero-resolve {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* A single element: the heading, the command. Its delay is set inline. */
+.hero-resolve {
+  animation: hero-resolve 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/*
+ * A field: the rows resolve, the field itself does not. Animating both would
+ * compound the two and fade the field in twice over.
+ */
+.hero-resolve-rows [data-row] {
+  animation: hero-resolve 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/*
+ * The ASCII world (noise field + chart strip) must ease in with the copy and
+ * portrait — a hard cut after those resolve reads as unfinished entrance.
+ */
+@keyframes hero-field-reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.hero-field-reveal {
+  animation: hero-field-reveal 720ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/*
+ * Site-level world entrance — fixed above header + page so welcome/portal
+ * are the first thing you see, not a beat inside the hero section.
+ */
+.world-entrance {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--background);
+  transition:
+    opacity 480ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Mid-flight: drop the plate so the portal morphs onto the live hero. */
+.world-entrance--clear {
+  background: transparent;
+}
+
+/* Final lift — no blur; the warp has already become the field. */
+.world-entrance--out {
+  opacity: 0;
+}
+
+/*
+ * Welcome typewriter — full-bleed prelude before the portal. VT323 via
+ * --font-welcome. Soft dissolve hands the screen to the warp tunnel.
+ */
+.hero-welcome {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  background: var(--background);
+  transition:
+    opacity 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hero-welcome--out {
+  opacity: 0;
+  transform: scale(1.04);
+  filter: blur(2px);
+}
+
+/*
+ * Hold the header invisible while welcome/portal own the screen. Reveal is
+ * driven by SiteHeader motion once this attribute drops (settle beat).
+ */
+html[data-world-entering] [data-site-header] {
+  opacity: 0 !important;
+  transform: translate3d(0, -10px, 0) !important;
+  pointer-events: none;
+}
+
+/*
+ * Anti-FOUC plate only until React mounts the real entrance shell
+ * (`data-world-entrance-ready`). If it stayed for the whole warp, it would
+ * sit under the clearing shell and kill the portal → field morph.
+ */
+html[data-world-entering]:not([data-world-entrance-ready])::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: var(--background);
+  pointer-events: none;
+}
+
+html[data-world-entering] {
+  overflow: hidden;
+}
+
+.hero-welcome__line {
+  margin: 0;
+  font-family: var(--font-welcome), ui-monospace, monospace;
+  font-size: clamp(1.75rem, 4.5vw, 3.25rem);
+  line-height: 1;
+  letter-spacing: 0.06em;
+  color: var(--foreground);
+  text-transform: lowercase;
+}
+
+.hero-welcome__caret {
+  display: inline-block;
+  width: 0.55ch;
+  height: 1em;
+  margin-left: 0.12em;
+  vertical-align: -0.08em;
+  background: var(--foreground);
+  animation: hero-welcome-caret 900ms steps(1, end) infinite;
+}
+
+.hero-welcome__caret--idle {
+  animation-duration: 1100ms;
+}
+
+@keyframes hero-welcome-caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Footer terminal links — caret blinks once the retype has landed. */
+@keyframes terminal-link-caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.terminal-link-caret {
+  animation: terminal-link-caret 1s steps(1, end) infinite;
+}
+
+/*
+ * Under reduced motion the grid is simply already there. Same tree, same
+ * rows, same characters — only the resolving is gone.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .hero-resolve,
+  .hero-resolve-rows [data-row],
+  .hero-field-reveal {
+    animation: none;
+  }
+
+  .world-entrance,
+  .world-entrance--clear,
+  .world-entrance--out,
+  .hero-welcome,
+  .hero-welcome--out {
+    transition: none;
+  }
+
+  .hero-welcome__caret,
+  .terminal-link-caret {
+    animation: none;
   }
 }

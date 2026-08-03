@@ -1,5 +1,3 @@
-"use client";
-
 import { cn } from "@/lib/utils";
 
 interface APIProp {
@@ -24,22 +22,22 @@ export function APIReference({
   className 
 }: APIReferenceProps) {
   return (
-    <div className={cn("space-y-4", className)}>
+    <section className={cn("space-y-5", className)} aria-labelledby="api-reference-title">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+        <h2 id="api-reference-title" className="text-2xl font-semibold">{title}</h2>
         {description && (
           <p className="text-muted-foreground mt-2">{description}</p>
         )}
       </div>
 
-      <div className="border rounded-lg overflow-hidden">
-        <table className="w-full">
+      <div className="overflow-x-auto rounded-md border bg-card">
+        <table className="w-full min-w-[720px]" aria-label="Component props">
           <thead>
-            <tr className="border-b bg-muted/25">
-              <th className="text-left p-3 font-semibold text-sm">Prop</th>
-              <th className="text-left p-3 font-semibold text-sm">Type</th>
-              <th className="text-left p-3 font-semibold text-sm">Default</th>
-              <th className="text-left p-3 font-semibold text-sm">Description</th>
+            <tr className="border-b bg-muted/35">
+              <th scope="col" className="p-3 text-left font-mono text-xs font-medium uppercase text-muted-foreground">Prop</th>
+              <th scope="col" className="p-3 text-left font-mono text-xs font-medium uppercase text-muted-foreground">Type</th>
+              <th scope="col" className="p-3 text-left font-mono text-xs font-medium uppercase text-muted-foreground">Default</th>
+              <th scope="col" className="p-3 text-left font-mono text-xs font-medium uppercase text-muted-foreground">Description</th>
             </tr>
           </thead>
           <tbody>
@@ -48,15 +46,15 @@ export function APIReference({
                 key={prop.name} 
                 className={cn(
                   "border-b last:border-b-0",
-                  index % 2 === 0 ? "bg-muted/10" : "bg-background"
+                  index % 2 === 0 ? "bg-muted/10" : "bg-card"
                 )}
               >
                 <td className="p-3 font-mono text-sm">
                   <div className="flex items-center gap-2">
-                    <code className="text-blue-600 dark:text-blue-400">{prop.name}</code>
+                    <code className="text-foreground">{prop.name}</code>
                     {prop.required && (
-                      <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded">
-                        required
+                      <span className="rounded-sm border px-1.5 py-0.5 font-sans text-[10px] font-medium uppercase text-muted-foreground">
+                        Required
                       </span>
                     )}
                   </div>
@@ -67,7 +65,7 @@ export function APIReference({
                 <td className="p-3 font-mono text-sm text-muted-foreground">
                   {prop.default || '—'}
                 </td>
-                <td className="p-3 text-sm">
+                <td className="p-3 text-sm leading-6">
                   {prop.description}
                 </td>
               </tr>
@@ -75,6 +73,6 @@ export function APIReference({
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   );
 }

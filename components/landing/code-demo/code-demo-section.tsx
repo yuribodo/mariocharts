@@ -1,99 +1,68 @@
 "use client";
 
 import { useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+
 import { cn } from "@/lib/utils";
-import { fadeInUp, staggerContainer, staggerItem } from "@/lib/animations";
-import { InteractiveCode } from "./interactive-code";
-import { LivePreview } from "./live-preview";
-import { getDefaultConfig, type DemoConfig, type DemoConfigKey } from "./types";
+import { WorkbenchCode } from "./workbench-code";
+import { WorkbenchPreview } from "./workbench-preview";
+import type { Orientation, Variant } from "./workbench-data";
 
 interface CodeDemoSectionProps {
   className?: string;
 }
 
 /**
- * Code Demo Section
+ * Landing code workbench.
  *
- * "Copy. Paste. Ship."
- *
- * Features:
- * - Interactive code editor with line numbers
- * - Live chart preview with smooth transitions
- * - Toggle pills for quick prop changes
- * - Copy with confetti celebration
+ * Owns the workbench state so the generated source and the rendered chart can
+ * never disagree: both read the same values.
  */
 export function CodeDemoSection({ className }: CodeDemoSectionProps) {
-  const shouldReduceMotion = useReducedMotion();
-  const [config, setConfig] = useState<DemoConfig>(getDefaultConfig);
-
-  const handleConfigChange = (key: DemoConfigKey, value: boolean) => {
-    setConfig((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const variants = shouldReduceMotion ? {} : staggerContainer;
-  const itemVariants = shouldReduceMotion ? {} : staggerItem;
+  const [orientation, setOrientation] = useState<Orientation>("vertical");
+  const [variant, setVariant] = useState<Variant>("filled");
+  const [animation, setAnimation] = useState(true);
+  const [chartKey, setChartKey] = useState(0);
 
   return (
     <section
-      className={cn(
-        "relative overflow-hidden py-24 lg:py-32",
-        className
-      )}
+      aria-labelledby="workbench-title"
+      className={cn("border-b py-16 lg:py-24", className)}
     >
-      <div className="relative z-10 mx-auto max-w-7xl px-6">
-        <motion.div
-          className="mb-16 text-center"
-          variants={variants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
+      <div className="mx-auto max-w-7xl px-6">
+        <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">
+          Live example
+        </p>
+        <h2
+          id="workbench-title"
+          className="mt-3 max-w-2xl text-2xl font-semibold tracking-normal text-foreground sm:text-3xl"
         >
-          <motion.h2
-            variants={shouldReduceMotion ? {} : fadeInUp}
-            className="text-3xl font-bold text-foreground sm:text-4xl lg:text-5xl"
-          >
-            Copy. Paste.{" "}
-            <span className="text-primary">
-              Ship.
-            </span>
-          </motion.h2>
-          <motion.p
-            variants={shouldReduceMotion ? {} : fadeInUp}
-            className="mt-4 text-lg text-muted-foreground"
-          >
-            Get beautiful charts in seconds. No configuration needed.
-          </motion.p>
-        </motion.div>
+          Adjust the props. The code updates with the chart.
+        </h2>
+        <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
+          This is the component you install — same props, same output.
+        </p>
 
-        <motion.div
-          className="grid items-stretch gap-8 lg:grid-cols-2 lg:gap-12"
-          variants={variants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-50px" }}
-        >
-          <motion.div variants={itemVariants} className="h-full">
-            <InteractiveCode
-              config={config}
-              onConfigChange={handleConfigChange}
+        <div className="mt-8 grid overflow-hidden rounded-md border bg-card lg:grid-cols-2">
+          <div className="order-2 border-t lg:order-1 lg:border-r lg:border-t-0">
+            <WorkbenchCode
+              orientation={orientation}
+              variant={variant}
+              animation={animation}
+              onOrientationChange={setOrientation}
+              onVariantChange={setVariant}
+              onAnimationChange={setAnimation}
+              onReplay={() => setChartKey((key) => key + 1)}
             />
-          </motion.div>
-
-          <motion.div variants={itemVariants} className="h-full">
-            <LivePreview config={config} />
-          </motion.div>
-        </motion.div>
-
-        <motion.p
-          className="mt-12 text-center text-sm text-muted-foreground"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.5 }}
-        >
-          Toggle options to customize in real-time. Copy the code when ready.
-        </motion.p>
+          </div>
+          <div className="order-1 min-w-0 lg:order-2">
+            <WorkbenchPreview
+              orientation={orientation}
+              variant={variant}
+              animation={animation}
+              chartKey={chartKey}
+            />
+          </div>
+        </div>
       </div>
     </section>
   );

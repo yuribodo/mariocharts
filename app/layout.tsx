@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, VT323 } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "../components/site/theme-provider";
+import { SmoothScroll } from "../components/site/smooth-scroll";
 import { SiteHeader } from "../components/site/site-header";
 import {
   OrganizationSchema,
   SoftwareSourceCodeSchema,
   WebSiteSchema,
 } from "../components/seo/json-ld";
+import { WorldEntranceBootScript } from "../components/landing/world-entrance-boot";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,6 +19,13 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+/** Terminal voice for the hero world-entrance typewriter. */
+const welcomeMono = VT323({
+  weight: "400",
+  variable: "--font-welcome",
   subsets: ["latin"],
 });
 
@@ -101,6 +110,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/mario-charts-logo-peak.svg" type="image/svg+xml" />
+        <WorldEntranceBootScript />
         <OrganizationSchema />
         <SoftwareSourceCodeSchema />
         <WebSiteSchema />
@@ -109,19 +119,22 @@ export default function RootLayout({
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
           geistSans.variable,
-          geistMono.variable
+          geistMono.variable,
+          welcomeMono.variable,
         )}
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
+          defaultTheme="dark"
           enableSystem={false}
           disableTransitionOnChange
         >
-          <div className="relative flex min-h-screen flex-col">
-            <SiteHeader />
-            <main className="flex-1">{children}</main>
-          </div>
+          <SmoothScroll>
+            <div className="relative flex min-h-screen flex-col">
+              <SiteHeader />
+              <main className="flex-1">{children}</main>
+            </div>
+          </SmoothScroll>
         </ThemeProvider>
       </body>
     </html>

@@ -1,25 +1,14 @@
 // Hero Section
-export { HeroSection, MorphingChart } from "./hero";
+export { HeroSection } from "./hero";
 
-// Showcase Section
-export {
-  ShowcaseSection,
-  ShowcaseContent,
-  ProgressDots,
-  ShowcaseChart,
-  CHART_SEQUENCE,
-  SHOWCASE_CONTENT,
-  type ChartType,
-} from "./showcase";
+// Chart Index Section
+export { ChartIndexSection } from "./chart-index";
 
-// Code Demo Section
-export { CodeDemoSection, InteractiveCode, LivePreview } from "./code-demo";
+// Agent-Ready Section
+export { AgentReadySection } from "./agent-ready";
 
 // CTA Section
-export { CTASection, BadgeDisplay, BadgeToast } from "./cta";
-
-// Easter Eggs
-export { EasterEggsProvider, useEasterEggs, PartyMode } from "./easter-eggs";
+export { CTASection } from "./cta";
 
 // Footer
 export { LandingFooter, TerminalLink } from "./footer";

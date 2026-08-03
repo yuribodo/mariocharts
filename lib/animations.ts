@@ -142,16 +142,6 @@ export const drawPath: Variants = {
   },
 };
 
-// Button hover animation
-export const buttonHover = {
-  scale: 1.02,
-  transition: { duration: 0.2 },
-};
-
-export const buttonTap = {
-  scale: 0.98,
-};
-
 // Gradient text animation (for CSS animation)
 export const gradientShiftKeyframes = `
 @keyframes gradientShift {
@@ -170,28 +160,6 @@ export const partyMode: Variants = {
       repeat: Infinity,
       ease: "linear",
     },
-  },
-};
-
-// Confetti burst config
-export const confettiConfig = {
-  default: {
-    particleCount: 100,
-    spread: 70,
-    origin: { y: 0.6 },
-    colors: ["#a855f7", "#ec4899", "#22d3ee", "#f472b6", "#818cf8"],
-  },
-  party: {
-    particleCount: 150,
-    spread: 180,
-    origin: { y: 0.5, x: 0.5 },
-    colors: ["#a855f7", "#ec4899", "#22d3ee", "#f472b6", "#facc15"],
-  },
-  copy: {
-    particleCount: 30,
-    spread: 50,
-    origin: { y: 0.8, x: 0.5 },
-    colors: ["#22c55e", "#4ade80", "#86efac"],
   },
 };
 
