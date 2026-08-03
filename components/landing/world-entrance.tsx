@@ -3,7 +3,7 @@
 import {
   createContext,
   useContext,
-  useEffect,
+  useLayoutEffect,
   type ReactNode,
 } from "react";
 
@@ -31,15 +31,16 @@ const SETTLED: HeroEntranceState = {
  * Site-level Mario-World entrance. Owns the welcome + portal as a fixed
  * fullscreen shell above the header and page. The hero (and anything else)
  * reads the same timeline via {@link useWorldEntrance}.
+ *
+ * `data-world-entering` stays on only through welcome/warp so the header can
+ * reveal during settle, in sync with the hero — not after a hard cut.
  */
 export function WorldEntranceProvider({ children }: { children: ReactNode }) {
   const entrance = useHeroEntrance();
   const covering =
-    entrance.status === "welcome" ||
-    entrance.status === "warping" ||
-    entrance.status === "settling";
+    entrance.status === "welcome" || entrance.status === "warping";
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = document.documentElement;
     if (covering) {
       root.setAttribute("data-world-entering", "");
@@ -52,6 +53,16 @@ export function WorldEntranceProvider({ children }: { children: ReactNode }) {
     }
     root.removeAttribute("data-world-entering");
   }, [covering]);
+
+  // Keep overflow locked through settle so the shell fade doesn't scroll-jump.
+  useLayoutEffect(() => {
+    if (entrance.status !== "settling") return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [entrance.status]);
 
   const shellUp =
     entrance.welcomeActive ||

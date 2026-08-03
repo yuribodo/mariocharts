@@ -3,12 +3,17 @@
 import * as React from "react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+
+function prefersReducedMotion(): boolean {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
+  const shouldReduceMotion = useReducedMotion();
 
   React.useEffect(() => {
     setMounted(true);
@@ -17,70 +22,90 @@ export function ThemeToggle({ className }: { className?: string }) {
   if (!mounted) {
     return (
       <div
-        className={cn(
-          "h-10 w-10 rounded-full",
-          className
-        )}
+        className={cn("size-9 shrink-0 rounded-full", className)}
+        aria-hidden="true"
       />
     );
   }
 
-  const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
+  const isDark = resolvedTheme === "dark";
 
-    if (!document.startViewTransition) {
-      setTheme(newTheme);
+  const toggleTheme = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const next = isDark ? "light" : "dark";
+    const root = document.documentElement;
+
+    const apply = () => {
+      root.classList.toggle("dark", next === "dark");
+      setTheme(next);
+    };
+
+    if (prefersReducedMotion() || !document.startViewTransition) {
+      apply();
       return;
     }
 
-    document.startViewTransition(() => {
-      document.documentElement.classList.toggle("dark", newTheme === "dark");
-      setTheme(newTheme);
-    });
+    const rect = event.currentTarget.getBoundingClientRect();
+    root.style.setProperty(
+      "--theme-x",
+      `${rect.left + rect.width / 2}px`,
+    );
+    root.style.setProperty(
+      "--theme-y",
+      `${rect.top + rect.height / 2}px`,
+    );
+
+    document.startViewTransition(apply);
   };
 
-  const isDark = theme === "dark";
-
   return (
-    <motion.button
+    <button
       onClick={toggleTheme}
       className={cn(
-        "relative inline-flex h-10 w-10 items-center justify-center",
-        "rounded-full cursor-pointer",
-        "text-foreground/70 hover:text-foreground",
-        "hover:bg-foreground/5 active:bg-foreground/10",
-        "transition-colors duration-200",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        className
+        "relative inline-flex size-9 items-center justify-center",
+        "rounded-full text-muted-foreground",
+        "transition-colors duration-200 ease-out",
+        "hover:bg-foreground/5 hover:text-foreground",
+        "active:bg-foreground/10",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        className,
       )}
       type="button"
       aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
-      whileTap={{ scale: 0.92 }}
     >
-      <AnimatePresence mode="wait" initial={false}>
-        {isDark ? (
-          <motion.div
-            key="moon"
-            initial={{ opacity: 0, rotate: -90, scale: 0.5 }}
-            animate={{ opacity: 1, rotate: 0, scale: 1 }}
-            exit={{ opacity: 0, rotate: 90, scale: 0.5 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-          >
-            <Moon className="h-5 w-5" strokeWidth={1.5} />
-          </motion.div>
+      {shouldReduceMotion ? (
+        isDark ? (
+          <Moon className="size-4" strokeWidth={1.5} aria-hidden="true" />
         ) : (
-          <motion.div
-            key="sun"
-            initial={{ opacity: 0, rotate: 90, scale: 0.5 }}
-            animate={{ opacity: 1, rotate: 0, scale: 1 }}
-            exit={{ opacity: 0, rotate: -90, scale: 0.5 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-          >
-            <Sun className="h-5 w-5" strokeWidth={1.5} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+          <Sun className="size-4" strokeWidth={1.5} aria-hidden="true" />
+        )
+      ) : (
+        <AnimatePresence mode="wait" initial={false}>
+          {isDark ? (
+            <motion.span
+              key="moon"
+              initial={{ opacity: 0, rotate: -50, scale: 0.75 }}
+              animate={{ opacity: 1, rotate: 0, scale: 1 }}
+              exit={{ opacity: 0, rotate: 50, scale: 0.75 }}
+              transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+              className="inline-flex"
+            >
+              <Moon className="size-4" strokeWidth={1.5} aria-hidden="true" />
+            </motion.span>
+          ) : (
+            <motion.span
+              key="sun"
+              initial={{ opacity: 0, rotate: 50, scale: 0.75 }}
+              animate={{ opacity: 1, rotate: 0, scale: 1 }}
+              exit={{ opacity: 0, rotate: -50, scale: 0.75 }}
+              transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+              className="inline-flex"
+            >
+              <Sun className="size-4" strokeWidth={1.5} aria-hidden="true" />
+            </motion.span>
+          )}
+        </AnimatePresence>
+      )}
       <span className="sr-only">Toggle theme</span>
-    </motion.button>
+    </button>
   );
 }

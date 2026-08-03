@@ -56,16 +56,17 @@ export function HeroLiveField({
   // While the entrance warp is running, hide the SSR field entirely so only
   // the tunnel is visible. Once active, show frame 0 until the live canvas
   // paints, then hand off (text-transparent).
+  // Opacity tracks --hero-*-alpha (light needs denser ink than dark).
   const fieldClass = !active
     ? "text-transparent"
     : fieldLive
       ? "text-transparent"
-      : "text-foreground/[0.16]";
+      : "text-foreground/35 [.dark_&]:text-foreground/20";
   const chartClass = !active
     ? "text-transparent"
     : chartLive
       ? "text-transparent"
-      : "text-foreground/[0.4]";
+      : "text-foreground/60 [.dark_&]:text-foreground/45";
 
   return (
     <div

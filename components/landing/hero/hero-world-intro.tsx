@@ -11,16 +11,46 @@ import {
 const MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 /**
- * Once per document load. A module flag survives Next soft-navigations back
- * to Home (no replay), but a full reload / Ctrl+Shift+R re-evaluates the
- * module and the intro can play again — unlike sessionStorage, which sticks
- * across hard refresh.
+ * Soft-nav Home skip. Marked only when the intro *finishes* — marking at
+ * start breaks React Strict Mode (dev remounts see the flag and skip forever,
+ * which is why hard refresh looked dead). Reloads clear the key so
+ * Ctrl+Shift+R plays again.
  */
-let playedThisDocument = false;
+const SEEN_KEY = "mario-world-entrance-seen";
 
-/** Test-only: clear the once-per-document gate between cases. */
+function isReloadNavigation(): boolean {
+  const entries = performance.getEntriesByType("navigation");
+  const nav = entries[0] as PerformanceNavigationTiming | undefined;
+  return nav?.type === "reload";
+}
+
+function hasCompletedEntrance(): boolean {
+  try {
+    return window.sessionStorage.getItem(SEEN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markEntranceCompleted(): void {
+  try {
+    window.sessionStorage.setItem(SEEN_KEY, "1");
+  } catch {
+    // Privacy mode — soft-nav may replay; fine.
+  }
+}
+
+function clearEntranceCompleted(): void {
+  try {
+    window.sessionStorage.removeItem(SEEN_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+/** Test-only: reset the soft-nav gate between cases. */
 export function resetHeroEntranceForTests(): void {
-  playedThisDocument = false;
+  clearEntranceCompleted();
 }
 
 const WELCOME_TEXT = "welcome to my world";
@@ -54,9 +84,7 @@ const SETTLE_AT_MS = WARP_AT_MS + WARP_MS;
 const DONE_AT_MS = SETTLE_AT_MS + 480;
 
 /** Peak ink during the dive — denser than the settled field. */
-const WARP_ALPHA_PEAK = 0.42;
-/** Settled ink — matches live field `FIELD_ALPHA` (0.16). */
-const WARP_ALPHA_LAND = 0.16;
+const WARP_ALPHA_PEAK_BOOST = 1.35;
 
 export type HeroEntranceStatus =
   | "welcome"
@@ -119,8 +147,8 @@ const SETTLED: HeroEntranceState = {
  * Drives the Mario-World entrance beats:
  * typewriter welcome → portal warp → field/copy/Mario settle as one world.
  *
- * Plays at most once per full page load. Soft-nav back to Home is skipped;
- * hard refresh plays again. SSR / no-JS and reduced-motion stay settled.
+ * Soft-nav back to Home is skipped after a completed play. Hard reload clears
+ * the gate. SSR / no-JS and reduced-motion stay settled.
  */
 export function useHeroEntrance(): HeroEntranceState {
   const [state, setState] = useState<HeroEntranceState>(SETTLED);
@@ -128,10 +156,10 @@ export function useHeroEntrance(): HeroEntranceState {
   useLayoutEffect(() => {
     const motionQuery = window.matchMedia(MOTION_QUERY);
     if (motionQuery.matches) return;
-    if (playedThisDocument) return;
 
-    // Mark at start so soft-nav Home mid-intro does not replay.
-    playedThisDocument = true;
+    // Ctrl+Shift+R / F5 → always replay. Soft-nav Home → skip if already done.
+    if (isReloadNavigation()) clearEntranceCompleted();
+    else if (hasCompletedEntrance()) return;
 
     setState({
       status: "welcome",
@@ -205,6 +233,9 @@ export function useHeroEntrance(): HeroEntranceState {
       }, SETTLE_AT_MS),
 
       window.setTimeout(() => {
+        // Mark only when finished — Strict Mode remount must be allowed to
+        // restart timers; marking at start is what killed hard-refresh replay.
+        markEntranceCompleted();
         setState({
           status: "done",
           welcomeActive: false,
@@ -356,7 +387,13 @@ export function HeroWorldIntro({
       const text = warpBackdropFrame(progress, t);
       const rows = text.split("\n");
       const cellHeight = height / BACKDROP_ROWS;
-      const ink = WARP_ALPHA_PEAK + (WARP_ALPHA_LAND - WARP_ALPHA_PEAK) * ease;
+      const landRaw = getComputedStyle(canvas)
+        .getPropertyValue("--hero-field-alpha")
+        .trim();
+      const land = Number.parseFloat(landRaw);
+      const landAlpha = Number.isFinite(land) ? land : 0.34;
+      const peakAlpha = Math.min(0.55, landAlpha * WARP_ALPHA_PEAK_BOOST);
+      const ink = peakAlpha + (landAlpha - peakAlpha) * ease;
 
       context.clearRect(0, 0, width, height);
       context.font = `${fontSize}px ui-monospace, monospace`;

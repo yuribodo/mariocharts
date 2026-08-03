@@ -1,4 +1,4 @@
-import { render, renderHook } from "@testing-library/react";
+import { act, render, renderHook } from "@testing-library/react";
 
 import {
   HeroWorldIntro,
@@ -18,10 +18,19 @@ function setMedia(matches: Record<string, boolean>) {
   })) as unknown as typeof window.matchMedia;
 }
 
+function mockNavigationType(type: PerformanceNavigationTiming["type"]) {
+  Object.defineProperty(performance, "getEntriesByType", {
+    configurable: true,
+    writable: true,
+    value: jest.fn().mockReturnValue([{ type } as PerformanceNavigationTiming]),
+  });
+}
+
 describe("useHeroEntrance", () => {
   beforeEach(() => {
     jest.useFakeTimers();
     resetHeroEntranceForTests();
+    mockNavigationType("navigate");
   });
 
   afterEach(() => {
@@ -57,15 +66,29 @@ describe("useHeroEntrance", () => {
     expect(result.current.fieldActive).toBe(false);
   });
 
-  it("skips a second mount in the same document (soft-nav Home)", () => {
+  it("skips soft-nav Home after the entrance has completed", () => {
     setMedia({});
     const first = renderHook(() => useHeroEntrance());
-    expect(first.result.current.status).toBe("welcome");
+
+    act(() => {
+      jest.runAllTimers();
+    });
+    expect(first.result.current.status).toBe("done");
     first.unmount();
 
     const second = renderHook(() => useHeroEntrance());
     expect(second.result.current.status).toBe("skipped");
     expect(second.result.current.fieldActive).toBe(true);
+  });
+
+  it("plays again on reload even after a prior completion", () => {
+    setMedia({});
+    window.sessionStorage.setItem("mario-world-entrance-seen", "1");
+    mockNavigationType("reload");
+
+    const { result } = renderHook(() => useHeroEntrance());
+    expect(result.current.status).toBe("welcome");
+    expect(result.current.welcomeActive).toBe(true);
   });
 });
 

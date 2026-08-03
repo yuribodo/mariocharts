@@ -28,11 +28,19 @@ const CHASE = 0.16;
 /** Cells below this much energy are dropped from the live set. */
 const FLOOR = 0.02;
 
-/** Field texture opacity — matches `text-foreground/[0.16]` on the SSR TextField. */
-const FIELD_ALPHA = 0.16;
+/** Fallbacks if `--hero-*-alpha` is missing (light-theme readable defaults). */
+const FIELD_ALPHA_FALLBACK = 0.34;
+const CHART_ALPHA_FALLBACK = 0.58;
 
-/** Chart strip opacity — matches `text-foreground/[0.4]` on the SSR TextField. */
-const CHART_ALPHA = 0.4;
+function readCssAlpha(
+  element: Element,
+  property: string,
+  fallback: number,
+): number {
+  const raw = getComputedStyle(element).getPropertyValue(property).trim();
+  const value = Number.parseFloat(raw);
+  return Number.isFinite(value) ? value : fallback;
+}
 
 /**
  * Old interval was 140ms per tick. Continuous time is measured in those units
@@ -170,11 +178,17 @@ export function HeroFieldEffect({
       const cellHeight = height / BACKDROP_ROWS;
       const spotlightOn = spotlightRef.current;
 
+      const fieldAlpha = readCssAlpha(
+        canvas,
+        "--hero-field-alpha",
+        FIELD_ALPHA_FALLBACK,
+      );
+
       context.clearRect(0, 0, width, height);
       context.font = `${fontSize}px ui-monospace, monospace`;
       context.fillStyle = getComputedStyle(canvas).color;
       context.textBaseline = "top";
-      context.globalAlpha = FIELD_ALPHA;
+      context.globalAlpha = fieldAlpha;
 
       for (let y = 0; y < BACKDROP_ROWS; y += 1) {
         const row = rows[y] ?? "";
@@ -342,11 +356,17 @@ export function HeroChartEffect({
       const rows = chartFrame(t).split("\n");
       const cellHeight = height / CHART_ROWS;
 
+      const chartAlpha = readCssAlpha(
+        canvas,
+        "--hero-chart-alpha",
+        CHART_ALPHA_FALLBACK,
+      );
+
       context.clearRect(0, 0, width, height);
       context.font = `${fontSize}px ui-monospace, monospace`;
       context.fillStyle = getComputedStyle(canvas).color;
       context.textBaseline = "top";
-      context.globalAlpha = CHART_ALPHA;
+      context.globalAlpha = chartAlpha;
 
       for (let y = 0; y < CHART_ROWS; y += 1) {
         const row = rows[y] ?? "";

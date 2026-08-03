@@ -38,9 +38,8 @@ const PORTRAIT_STYLE = {
  * Whichever term is smallest wins, so this can only ever shrink the field,
  * never add a lower bound that could force it wider than the viewport.
  *
- * Ink is deliberately quieter than the copy (`/50`–`/55`): the field behind
- * is at ~0.16, and a full-foreground portrait read as a sticker. Half ink
- * lets him read as the field condensing into a figure.
+ * Ink sits between copy and field: light needs denser glyphs to read on
+ * paper; dark stays quieter so he dissolves into the field.
  */
 export function HeroPortrait({ className }: HeroPortraitProps) {
   return (
@@ -80,13 +79,13 @@ export function HeroPortrait({ className }: HeroPortraitProps) {
         label="Mario, rendered in ASCII"
         style={PORTRAIT_STYLE}
         rowDelayMs={ROW_DELAY_MS}
-        className="text-transparent [.dark_&]:text-foreground/50"
+        className="text-transparent [.dark_&]:text-foreground/55"
       />
       <TextField
         text={HERO_ASCII_LIGHT}
         style={PORTRAIT_STYLE}
         rowDelayMs={ROW_DELAY_MS}
-        className="absolute inset-0 text-foreground/55 [.dark_&]:text-transparent"
+        className="absolute inset-0 text-foreground [.dark_&]:text-transparent"
       />
     </div>
   );

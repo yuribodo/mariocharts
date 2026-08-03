@@ -73,6 +73,20 @@ const VIGNETTE = { cx: 0.5, cy: 0.4, rx: 0.7, ry: 0.68, inner: 0.48, outer: 0.98
 const INK_GAIN = 0.78;
 
 /**
+ * Light-theme ink. Higher than dark: paper needs denser glyphs to read, and a
+ * pure luminance invert hollows the bright face into empty cells while the
+ * mid-tone photo backdrop becomes a plate of `====`. The light curve keeps a
+ * highlight floor, lifts shadow contrast, and falls off the vignette harder.
+ */
+const LIGHT_INK_GAIN = 0.95;
+/** Minimum ink in the brightest cells so skin does not disappear on paper. */
+const LIGHT_HIGHLIGHT_FLOOR = 0.2;
+/** Power on the vignette for light only — kills the inverted backdrop plate. */
+const LIGHT_VIGNETTE_POWER = 1.45;
+/** Power on inverted luminance — <1 expands shadows/mustache/eyes. */
+const LIGHT_SHADOW_POWER = 0.72;
+
+/**
  * Builds an alpha mask that dissolves the image radially around the face.
  *
  * An edge feather is not enough here: it fades the crop's four borders but
@@ -213,9 +227,15 @@ export async function asciifyVariants(
     const darkInk = row.map(
       (value, x) => value * vignetteAt(x, y, columns, rows) * INK_GAIN,
     );
-    const lightInk = row.map(
-      (value, x) => (1 - value) * vignetteAt(x, y, columns, rows) * INK_GAIN,
-    );
+    const lightInk = row.map((value, x) => {
+      const vignette = vignetteAt(x, y, columns, rows);
+      // Shadows carry most of the ink, but bright face cells keep a floor so
+      // the figure does not read as a hollow silhouette on paper.
+      const shadow = (1 - value) ** LIGHT_SHADOW_POWER;
+      const ink =
+        LIGHT_HIGHLIGHT_FLOOR + shadow * (1 - LIGHT_HIGHLIGHT_FLOOR);
+      return ink * vignette ** LIGHT_VIGNETTE_POWER * LIGHT_INK_GAIN;
+    });
 
     const darkLine = mapRow(darkInk, RAMP);
     const lightLine = mapRow(lightInk, RAMP);
