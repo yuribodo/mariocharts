@@ -15,13 +15,22 @@ const TIMEOUT_MS = 10000;
 // Pulls real, checkable URLs out of llms.txt's markdown. Two kinds of noise
 // need stripping: a trailing sentence-ending period ("...registry.json."),
 // and placeholder templates (`<chart-name>`, `{name}`) whose angle
-// bracket/brace got excluded from the match, leaving a truncated URL that
-// dangles on a bare trailing slash — no real published URL ends that way.
+// bracket/brace got excluded from the match, leaving a truncated prefix.
+//
+// A placeholder is identified by the character that stopped the match, not by
+// a trailing slash. Discarding every trailing-slash URL would also silently
+// skip legitimately checkable ones like https://mariocharts.com/docs/ — the
+// link checker would report success on a URL it never requested.
+const PLACEHOLDER_NEXT_CHAR = /[<{]/;
+
 function extractUrls(content) {
-  const raw = content.match(URL_PATTERN) ?? [];
-  const normalized = raw
-    .map((url) => url.replace(/\.+$/, ''))
-    .filter((url) => !url.endsWith('/'));
+  const matches = [...content.matchAll(URL_PATTERN)];
+  const normalized = matches
+    .filter((match) => {
+      const next = content[match.index + match[0].length];
+      return !(next && PLACEHOLDER_NEXT_CHAR.test(next));
+    })
+    .map((match) => match[0].replace(/\.+$/, ''));
   return [...new Set(normalized)].sort();
 }
 

@@ -32,4 +32,23 @@ describe('extractUrls', () => {
   it('returns an empty list when no mariocharts.com URLs are present', () => {
     expect(extractUrls('nothing to see here')).toEqual([]);
   });
+
+  // Dropping every trailing-slash URL made the checker skip these silently,
+  // reporting "all links OK" for links it never requested.
+  it('keeps checkable URLs that legitimately end in a slash', () => {
+    const sample = [
+      'Website: https://mariocharts.com/',
+      'Docs: https://mariocharts.com/docs/',
+    ].join('\n');
+
+    expect(extractUrls(sample)).toEqual([
+      'https://mariocharts.com/',
+      'https://mariocharts.com/docs/',
+    ]);
+  });
+
+  it('still drops a placeholder prefix that ends in a slash', () => {
+    expect(extractUrls('https://mariocharts.com/r/<chart-name>.json')).toEqual([]);
+    expect(extractUrls('https://mariocharts.com/r/{name}.json')).toEqual([]);
+  });
 });

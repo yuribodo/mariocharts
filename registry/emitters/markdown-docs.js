@@ -45,7 +45,7 @@ function renderChart(chart) {
     '',
     `npm packages added: ${npm}`,
     '',
-    'Peer dependencies: react, react-dom',
+    `Peer dependencies: ${chart.peerDependencies.join(', ')}`,
     '',
     '## Links',
     '',
