@@ -142,7 +142,7 @@ export function HeroFieldEffect({
     let width = 0;
     let height = 0;
     let fontSize = 12;
-    let started = performance.now();
+    const started = performance.now();
     let readyFired = false;
     let target: { x: number; y: number } | null = null;
     let light: { x: number; y: number } | null = null;
@@ -327,7 +327,7 @@ export function HeroChartEffect({
     let width = 0;
     let height = 0;
     let fontSize = 12;
-    let started = performance.now();
+    const started = performance.now();
     let readyFired = false;
 
     const resize = () => {

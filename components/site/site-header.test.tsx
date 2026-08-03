@@ -9,10 +9,11 @@ jest.mock("next/navigation", () => ({
 }));
 
 jest.mock("framer-motion", () => {
-  const React = require("react");
-  const passthrough =
-    (Tag: "span" | "div" | "header" | "svg") =>
-    ({
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Jest mock factory
+  const React = require("react") as typeof import("react");
+
+  function passthrough(Tag: "span" | "div" | "header" | "svg") {
+    function MotionPassthrough({
       children,
       ...props
     }: React.HTMLAttributes<HTMLElement> & {
@@ -22,18 +23,21 @@ jest.mock("framer-motion", () => {
       transition?: unknown;
       layoutId?: unknown;
       whileHover?: unknown;
-    }) => {
+    }) {
       const {
-        variants: _v,
-        initial: _i,
-        animate: _a,
-        transition: _t,
-        layoutId: _l,
-        whileHover: _h,
+        variants: _variants,
+        initial: _initial,
+        animate: _animate,
+        transition: _transition,
+        layoutId: _layoutId,
+        whileHover: _whileHover,
         ...rest
       } = props;
       return React.createElement(Tag, rest, children);
-    };
+    }
+    MotionPassthrough.displayName = `MotionPassthrough(${Tag})`;
+    return MotionPassthrough;
+  }
 
   return {
     motion: {
