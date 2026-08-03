@@ -2,6 +2,14 @@ import { cn } from "@/lib/utils";
 
 import { HERO_ASCII_COLUMNS, HERO_ASCII_DARK, HERO_ASCII_LIGHT } from "./hero-ascii";
 import { HeroPortraitEffect } from "./hero-portrait-effect";
+import { TextField } from "./text-field";
+
+/**
+ * The portrait resolves last, so its rows carry the slowest stagger of the
+ * three regions. Both variants use the same value: they are the same grid, and
+ * a visitor switching theme mid-entrance must not see the wave restart.
+ */
+const ROW_DELAY_MS = 9;
 
 interface HeroPortraitProps {
   className?: string;
@@ -64,21 +72,19 @@ export function HeroPortrait({ className }: HeroPortraitProps) {
         entirely, and whichever of the two is currently labelled would then
         have no visible copy to attach that label to.
       */}
-      <pre
-        role="img"
-        aria-label="Mario, rendered in ASCII"
+      <TextField
+        text={HERO_ASCII_DARK}
+        label="Mario, rendered in ASCII"
         style={PORTRAIT_STYLE}
-        className="select-none whitespace-pre font-mono leading-[1.05] text-transparent [.dark_&]:text-foreground"
-      >
-        {HERO_ASCII_DARK}
-      </pre>
-      <pre
-        aria-hidden="true"
+        rowDelayMs={ROW_DELAY_MS}
+        className="text-transparent [.dark_&]:text-foreground"
+      />
+      <TextField
+        text={HERO_ASCII_LIGHT}
         style={PORTRAIT_STYLE}
-        className="absolute inset-0 select-none whitespace-pre font-mono leading-[1.05] text-foreground [.dark_&]:text-transparent"
-      >
-        {HERO_ASCII_LIGHT}
-      </pre>
+        rowDelayMs={ROW_DELAY_MS}
+        className="absolute inset-0 text-foreground [.dark_&]:text-transparent"
+      />
       <HeroPortraitEffect
         textDark={HERO_ASCII_DARK}
         textLight={HERO_ASCII_LIGHT}
