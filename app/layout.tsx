@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, VT323 } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "../components/site/theme-provider";
+import { SmoothScroll } from "../components/site/smooth-scroll";
 import { SiteHeader } from "../components/site/site-header";
 import {
   OrganizationSchema,
@@ -17,6 +18,13 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+/** Terminal voice for the hero world-entrance typewriter. */
+const welcomeMono = VT323({
+  weight: "400",
+  variable: "--font-welcome",
   subsets: ["latin"],
 });
 
@@ -109,7 +117,8 @@ export default function RootLayout({
         className={cn(
           "min-h-screen bg-background font-sans antialiased",
           geistSans.variable,
-          geistMono.variable
+          geistMono.variable,
+          welcomeMono.variable,
         )}
       >
         <ThemeProvider
@@ -118,10 +127,12 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <div className="relative flex min-h-screen flex-col">
-            <SiteHeader />
-            <main className="flex-1">{children}</main>
-          </div>
+          <SmoothScroll>
+            <div className="relative flex min-h-screen flex-col">
+              <SiteHeader />
+              <main className="flex-1">{children}</main>
+            </div>
+          </SmoothScroll>
         </ThemeProvider>
       </body>
     </html>

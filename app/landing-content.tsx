@@ -7,27 +7,26 @@ import {
   CTASection,
   LandingFooter,
 } from "@/components/landing";
+import { WorldEntranceProvider } from "@/components/landing/world-entrance";
 
 /**
  * Mario Charts Landing Page Content
  *
- * A 5-section immersive experience:
- * 1. Hero - Morphing chart animation
- * 2. Chart Index - Preview-first index of the shipped components
- * 3. Code Demo - Interactive code with live preview
- * 4. CTA - Final call-to-action
- * 5. Footer - Interactive chart and terminal-style links
+ * Opens with a site-level world entrance (welcome → portal), then the
+ * immersive page: hero field, chart index, code demo, CTA, footer.
  */
 export function LandingContent() {
   return (
-    <main className="landing-page relative min-h-screen w-full bg-background">
-      <div className="relative z-10">
-        <HeroSection />
-        <ChartIndexSection />
-        <CodeDemoSection />
-        <CTASection />
-        <LandingFooter />
+    <WorldEntranceProvider>
+      <div className="landing-page relative min-h-screen w-full bg-background">
+        <div className="relative z-10">
+          <HeroSection />
+          <ChartIndexSection />
+          <CodeDemoSection />
+          <CTASection />
+          <LandingFooter />
+        </div>
       </div>
-    </main>
+    </WorldEntranceProvider>
   );
 }

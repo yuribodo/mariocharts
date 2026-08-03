@@ -6,13 +6,33 @@ jest.mock("./hero-portrait", () => ({
   HeroPortrait: () => <pre role="img" aria-label="Mario, rendered in ASCII" />,
 }));
 
+jest.mock("./hero-live-field", () => ({
+  HeroLiveField: () => null,
+}));
+
+jest.mock("../world-entrance", () => ({
+  useWorldEntrance: () => ({
+    status: "skipped",
+    welcomeActive: false,
+    welcomeFading: false,
+    warpActive: false,
+    shellOpaque: false,
+    fieldActive: true,
+    fieldReveal: true,
+    copyReveal: true,
+    portraitReveal: true,
+  }),
+}));
+
 describe("HeroSection", () => {
   it("states the offer without adjective claims", () => {
     render(<HeroSection />);
 
     const heading = screen.getByRole("heading", { level: 1 });
-    expect(heading.textContent).toMatch(/every chart here/i);
-    expect(heading.textContent).toMatch(/is yours/i);
+    // The break after "chart" is layout, not copy — textContent concatenates
+    // the two lines, so assert the claim in pieces rather than as one run.
+    expect(heading.textContent).toMatch(/every chart/i);
+    expect(heading.textContent).toMatch(/here is yours/i);
     expect(heading.textContent).not.toMatch(/beautiful|modern|customizable/i);
   });
 

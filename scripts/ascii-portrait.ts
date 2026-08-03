@@ -38,10 +38,10 @@ const CELL_ASPECT = 0.5;
  * was making the render unreadable.
  */
 export const CROP = {
-  left: 64,
+  left: 48,
   top: 0,
-  width: 384,
-  height: 460,
+  width: 410,
+  height: 520,
 };
 
 /**
@@ -62,7 +62,15 @@ const SATURATION_BOOST = 1.9;
  * which sits a little above the crop's middle; full opacity inside INNER,
  * fully dissolved past OUTER.
  */
-const VIGNETTE = { cx: 0.5, cy: 0.44, rx: 0.62, ry: 0.6, inner: 0.62, outer: 1.0 };
+/**
+ * Face stays solid; the mid-density photo backdrop (the bright ==== halo)
+ * must die before the crop edge. A wide ellipse + eased power keeps the
+ * figure and kills the rectangular plate without a hard circular crop.
+ */
+const VIGNETTE = { cx: 0.5, cy: 0.4, rx: 0.7, ry: 0.68, inner: 0.48, outer: 0.98 };
+
+/** Pulls peak ink down so the portrait densifies the field instead of blowing out. */
+const INK_GAIN = 0.78;
 
 /**
  * Builds an alpha mask that dissolves the image radially around the face.
@@ -83,8 +91,10 @@ function vignetteAt(x: number, y: number, width: number, height: number): number
     1,
     Math.max(0, (VIGNETTE.outer - radius) / (VIGNETTE.outer - VIGNETTE.inner)),
   );
-  // Smoothstep, so the falloff has no visible banding.
-  return t * t * (3 - 2 * t);
+  // Smoothstep, then a gentle power so the halo falls off faster than a
+  // linear feather without punching a hard hole in the face.
+  const smooth = t * t * (3 - 2 * t);
+  return smooth * smooth;
 }
 
 /**
@@ -201,10 +211,10 @@ export async function asciifyVariants(
     const columns = row.length;
 
     const darkInk = row.map(
-      (value, x) => value * vignetteAt(x, y, columns, rows),
+      (value, x) => value * vignetteAt(x, y, columns, rows) * INK_GAIN,
     );
     const lightInk = row.map(
-      (value, x) => (1 - value) * vignetteAt(x, y, columns, rows),
+      (value, x) => (1 - value) * vignetteAt(x, y, columns, rows) * INK_GAIN,
     );
 
     const darkLine = mapRow(darkInk, RAMP);

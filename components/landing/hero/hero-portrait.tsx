@@ -15,7 +15,7 @@ interface HeroPortraitProps {
 }
 
 const PORTRAIT_STYLE = {
-  fontSize: `min(0.9vh, calc(var(--portrait-w) / ${HERO_ASCII_COLUMNS} / 0.6), calc(540px / ${HERO_ASCII_COLUMNS} / 0.6))`,
+  fontSize: `min(0.88vh, calc(var(--portrait-w) / ${HERO_ASCII_COLUMNS} / 0.6), calc(500px / ${HERO_ASCII_COLUMNS} / 0.6))`,
 };
 
 /**
@@ -37,6 +37,10 @@ const PORTRAIT_STYLE = {
  *
  * Whichever term is smallest wins, so this can only ever shrink the field,
  * never add a lower bound that could force it wider than the viewport.
+ *
+ * Ink is deliberately quieter than the copy (`/50`–`/55`): the field behind
+ * is at ~0.16, and a full-foreground portrait read as a sticker. Half ink
+ * lets him read as the field condensing into a figure.
  */
 export function HeroPortrait({ className }: HeroPortraitProps) {
   return (
@@ -50,7 +54,7 @@ export function HeroPortrait({ className }: HeroPortraitProps) {
     // they don't fight w-fit the way a width utility would.
     <div
       className={cn(
-        "relative w-fit [--portrait-w:78vw] sm:[--portrait-w:38vw]",
+        "relative w-fit [--portrait-w:70vw] sm:[--portrait-w:34vw] lg:[--portrait-w:30vw]",
         className,
       )}
     >
@@ -76,13 +80,13 @@ export function HeroPortrait({ className }: HeroPortraitProps) {
         label="Mario, rendered in ASCII"
         style={PORTRAIT_STYLE}
         rowDelayMs={ROW_DELAY_MS}
-        className="text-transparent [.dark_&]:text-foreground"
+        className="text-transparent [.dark_&]:text-foreground/50"
       />
       <TextField
         text={HERO_ASCII_LIGHT}
         style={PORTRAIT_STYLE}
         rowDelayMs={ROW_DELAY_MS}
-        className="absolute inset-0 text-foreground [.dark_&]:text-transparent"
+        className="absolute inset-0 text-foreground/55 [.dark_&]:text-transparent"
       />
     </div>
   );

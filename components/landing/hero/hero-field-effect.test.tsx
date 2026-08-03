@@ -1,6 +1,6 @@
 import { act, render } from "@testing-library/react";
 
-import { HeroFieldEffect } from "./hero-field-effect";
+import { HeroChartEffect, HeroFieldEffect } from "./hero-field-effect";
 
 function setMedia(matches: Record<string, boolean>) {
   window.matchMedia = jest.fn().mockImplementation((query: string) => ({
@@ -55,15 +55,17 @@ function setLiveMedia(initial: Record<string, boolean>) {
  * the drawing branch of the effect (everything past the `!context` guard)
  * can run and be asserted on instead of silently no-oping.
  */
-function mockCanvas({ width = 40, height = 20 }: { width?: number; height?: number } = {}) {
+function mockCanvas({ width = 220, height = 90 }: { width?: number; height?: number } = {}) {
   const context = {
     clearRect: jest.fn(),
     fillText: jest.fn(),
+    measureText: jest.fn((text: string) => ({ width: String(text).length })),
     setTransform: jest.fn(),
     font: "",
     fillStyle: "",
     textBaseline: "",
     globalAlpha: 1,
+    canvas: document.createElement("canvas"),
   };
   jest
     .spyOn(HTMLCanvasElement.prototype, "getContext")
@@ -84,22 +86,35 @@ function mockCanvas({ width = 40, height = 20 }: { width?: number; height?: numb
 
 async function flushRaf() {
   await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined))),
+    );
   });
 }
 
-const PROPS = { text: "..##\n..##", columns: 4 };
-
 describe("HeroFieldEffect", () => {
+  beforeEach(() => {
+    // jsdom has no canvas implementation; default to a quiet no-op so mount
+    // tests don't flood the console. Draw tests replace this via mockCanvas.
+    jest.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  it("mounts a canvas for a fine pointer without reduced motion", () => {
-    setMedia({ "(hover: hover) and (pointer: fine)": true });
-    const { container } = render(<HeroFieldEffect {...PROPS} />);
+  it("mounts a canvas when motion is allowed, even without a fine pointer", () => {
+    setMedia({});
+    const { container } = render(<HeroFieldEffect />);
 
     expect(container.querySelector("canvas")).toBeInTheDocument();
+  });
+
+  it("stays unmounted while active is false so the intro warp owns the field", () => {
+    setMedia({});
+    const { container } = render(<HeroFieldEffect active={false} />);
+
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("renders nothing at all under reduced motion", () => {
@@ -107,21 +122,14 @@ describe("HeroFieldEffect", () => {
       "(hover: hover) and (pointer: fine)": true,
       "(prefers-reduced-motion: reduce)": true,
     });
-    const { container } = render(<HeroFieldEffect {...PROPS} />);
-
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it("renders nothing on a coarse pointer", () => {
-    setMedia({});
-    const { container } = render(<HeroFieldEffect {...PROPS} />);
+    const { container } = render(<HeroFieldEffect />);
 
     expect(container).toBeEmptyDOMElement();
   });
 
   it("keeps the canvas out of the accessibility tree and the tab order", () => {
-    setMedia({ "(hover: hover) and (pointer: fine)": true });
-    const { container } = render(<HeroFieldEffect {...PROPS} />);
+    setMedia({});
+    const { container } = render(<HeroFieldEffect />);
     const canvas = container.querySelector("canvas")!;
 
     expect(canvas).toHaveAttribute("aria-hidden", "true");
@@ -133,7 +141,7 @@ describe("HeroFieldEffect", () => {
       "(hover: hover) and (pointer: fine)": true,
       "(prefers-reduced-motion: reduce)": false,
     });
-    const { container } = render(<HeroFieldEffect {...PROPS} />);
+    const { container } = render(<HeroFieldEffect />);
     expect(container.querySelector("canvas")).toBeInTheDocument();
 
     act(() => {
@@ -147,65 +155,40 @@ describe("HeroFieldEffect", () => {
     expect(container.querySelector("canvas")).toBeInTheDocument();
   });
 
+  it("paints the field on its own and fires onReady after the first frame", async () => {
+    const context = mockCanvas();
+    const onReady = jest.fn();
+    setMedia({});
+    render(<HeroFieldEffect onReady={onReady} />);
+
+    await flushRaf();
+
+    expect(context.fillText).toHaveBeenCalled();
+    expect(onReady).toHaveBeenCalled();
+  });
+
   it("bails out of the draw loop instead of hanging when the canvas measures zero", async () => {
     const context = mockCanvas({ width: 0, height: 0 });
     setMedia({ "(hover: hover) and (pointer: fine)": true });
-    render(<HeroFieldEffect {...PROPS} />);
+    render(<HeroFieldEffect />);
 
     await act(async () => {
-      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 10, clientY: 10 }));
+      window.dispatchEvent(new MouseEvent("mousemove", { clientX: 10, clientY: 10 }));
     });
     await flushRaf();
 
-    // A 0x0 canvas makes cursorRow/cursorColumn Infinity; unguarded, that
-    // feeds a `for` loop that never terminates. Reaching this assertion at
-    // all (inside Jest's default timeout) is part of what this test checks.
+    // A 0x0 canvas makes cursor cell math Infinity; unguarded, that feeds a
+    // `for` loop that never terminates. Reaching this assertion at all
+    // (inside Jest's default timeout) is part of what this test checks.
     expect(context.fillText).not.toHaveBeenCalled();
-  });
-
-  it("redraws when the pointer leaves the viewport (pointerout with a null relatedTarget)", async () => {
-    const context = mockCanvas();
-    setMedia({ "(hover: hover) and (pointer: fine)": true });
-    render(<HeroFieldEffect {...PROPS} />);
-
-    await act(async () => {
-      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 5, clientY: 5 }));
-    });
-    await flushRaf();
-    context.clearRect.mockClear();
-
-    // pointerleave does not bubble, so a listener on window never fires for
-    // it. pointerout does bubble, and the browser sets relatedTarget to null
-    // on the one that fires as the pointer leaves the document entirely.
-    await act(async () => {
-      window.dispatchEvent(new MouseEvent("pointerout", { relatedTarget: null }));
-    });
-    await flushRaf();
-
-    expect(context.clearRect).toHaveBeenCalled();
-  });
-
-  it("ignores pointerout events that stay inside the document", async () => {
-    const context = mockCanvas();
-    const insideElement = document.createElement("div");
-    setMedia({ "(hover: hover) and (pointer: fine)": true });
-    render(<HeroFieldEffect {...PROPS} />);
-
-    context.clearRect.mockClear();
-    await act(async () => {
-      window.dispatchEvent(new MouseEvent("pointerout", { relatedTarget: insideElement }));
-    });
-    await flushRaf();
-
-    expect(context.clearRect).not.toHaveBeenCalled();
   });
 
   it("scales the backing store by devicePixelRatio so glyphs stay crisp on HiDPI screens", () => {
     mockCanvas({ width: 100, height: 50 });
     const originalRatio = window.devicePixelRatio;
     Object.defineProperty(window, "devicePixelRatio", { value: 2, configurable: true });
-    setMedia({ "(hover: hover) and (pointer: fine)": true });
-    const { container } = render(<HeroFieldEffect {...PROPS} />);
+    setMedia({});
+    const { container } = render(<HeroFieldEffect />);
     const canvas = container.querySelector("canvas")!;
 
     expect(canvas.width).toBe(200);
@@ -214,44 +197,61 @@ describe("HeroFieldEffect", () => {
     Object.defineProperty(window, "devicePixelRatio", { value: originalRatio, configurable: true });
   });
 
-  it("re-inks the field's own glyph at the cursor instead of substituting a denser one", async () => {
-    const context = mockCanvas({ width: 40, height: 20 });
+  it("enables the cursor spotlight for fine pointers", async () => {
+    mockCanvas({ width: 220, height: 90 });
     setMedia({ "(hover: hover) and (pointer: fine)": true });
-    render(<HeroFieldEffect {...PROPS} />);
-
-    // cellWidth = 40/4 = 10, cellHeight = 20/2 = 10. This lands squarely in
-    // the cell at column 2, row 0 — a '#' in "..##\n..##" — at distance 0.
-    await act(async () => {
-      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 25, clientY: 5 }));
-    });
+    const { container } = render(<HeroFieldEffect />);
     await flushRaf();
 
-    const centreCall = context.fillText.mock.calls.find(
-      ([, x, y]) => x === 20 && y === 0,
+    expect(container.querySelector("canvas")).toHaveAttribute(
+      "data-spotlight",
+      "on",
     );
-    // The previous effect substituted '@' here, which smudged the picture
-    // under the cursor and was rejected. A spotlight repeats the glyph.
-    expect(centreCall?.[0]).toBe("#");
   });
 
-  it("never brightens a cell to full opacity, so the spotlight stays a light rather than a repaint", async () => {
-    const alphas: number[] = [];
-    const context = mockCanvas({ width: 40, height: 20 });
-    context.fillText.mockImplementation(() => {
-      alphas.push(context.globalAlpha);
-    });
-    setMedia({ "(hover: hover) and (pointer: fine)": true });
-    render(<HeroFieldEffect {...PROPS} />);
-
-    await act(async () => {
-      window.dispatchEvent(new MouseEvent("pointermove", { clientX: 25, clientY: 5 }));
-    });
+  it("keeps the spotlight off when the pointer is coarse", async () => {
+    mockCanvas({ width: 220, height: 90 });
+    setMedia({});
+    const { container } = render(<HeroFieldEffect />);
     await flushRaf();
 
-    expect(alphas.length).toBeGreaterThan(0);
-    for (const alpha of alphas) {
-      expect(alpha).toBeGreaterThan(0);
-      expect(alpha).toBeLessThan(1);
-    }
+    expect(container.querySelector("canvas")).toHaveAttribute(
+      "data-spotlight",
+      "off",
+    );
+  });
+});
+
+describe("HeroChartEffect", () => {
+  beforeEach(() => {
+    jest.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("mounts a canvas when motion is allowed", () => {
+    setMedia({});
+    const { container } = render(<HeroChartEffect />);
+    expect(container.querySelector("canvas")).toBeInTheDocument();
+  });
+
+  it("renders nothing under reduced motion", () => {
+    setMedia({ "(prefers-reduced-motion: reduce)": true });
+    const { container } = render(<HeroChartEffect />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("paints and fires onReady after the first frame", async () => {
+    const context = mockCanvas({ width: 220, height: 24 });
+    const onReady = jest.fn();
+    setMedia({});
+    render(<HeroChartEffect onReady={onReady} />);
+
+    await flushRaf();
+
+    expect(context.fillText).toHaveBeenCalled();
+    expect(onReady).toHaveBeenCalled();
   });
 });
