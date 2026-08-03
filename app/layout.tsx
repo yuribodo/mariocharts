@@ -10,6 +10,7 @@ import {
   SoftwareSourceCodeSchema,
   WebSiteSchema,
 } from "../components/seo/json-ld";
+import { WorldEntranceBootScript } from "../components/landing/world-entrance-boot";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -109,6 +110,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/mario-charts-logo-peak.svg" type="image/svg+xml" />
+        <WorldEntranceBootScript />
         <OrganizationSchema />
         <SoftwareSourceCodeSchema />
         <WebSiteSchema />

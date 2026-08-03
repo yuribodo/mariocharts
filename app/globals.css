@@ -765,6 +765,24 @@ html[data-world-entering] [data-site-header] {
   pointer-events: none;
 }
 
+/*
+ * Anti-FOUC plate: the head boot script sets data-world-entering before paint
+ * so SSR content never flashes under the welcome. z-index sits under
+ * .world-entrance (100) so React's shell takes over seamlessly.
+ */
+html[data-world-entering]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: var(--background);
+  pointer-events: none;
+}
+
+html[data-world-entering] {
+  overflow: hidden;
+}
+
 .hero-welcome__line {
   margin: 0;
   font-family: var(--font-welcome), ui-monospace, monospace;

@@ -2,6 +2,8 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import { WORLD_ENTRANCE_SEEN_KEY } from "@/lib/world-entrance";
+
 import {
   BACKDROP_COLUMNS,
   BACKDROP_ROWS,
@@ -14,9 +16,8 @@ const MOTION_QUERY = "(prefers-reduced-motion: reduce)";
  * Soft-nav Home skip. Marked only when the intro *finishes* — marking at
  * start breaks React Strict Mode (dev remounts see the flag and skip forever,
  * which is why hard refresh looked dead). Reloads clear the key so
- * Ctrl+Shift+R plays again.
+ * Ctrl+Shift+R plays again. Key is shared with the head boot script.
  */
-const SEEN_KEY = "mario-world-entrance-seen";
 
 function isReloadNavigation(): boolean {
   const entries = performance.getEntriesByType("navigation");
@@ -26,7 +27,7 @@ function isReloadNavigation(): boolean {
 
 function hasCompletedEntrance(): boolean {
   try {
-    return window.sessionStorage.getItem(SEEN_KEY) === "1";
+    return window.sessionStorage.getItem(WORLD_ENTRANCE_SEEN_KEY) === "1";
   } catch {
     return false;
   }
@@ -34,7 +35,7 @@ function hasCompletedEntrance(): boolean {
 
 function markEntranceCompleted(): void {
   try {
-    window.sessionStorage.setItem(SEEN_KEY, "1");
+    window.sessionStorage.setItem(WORLD_ENTRANCE_SEEN_KEY, "1");
   } catch {
     // Privacy mode — soft-nav may replay; fine.
   }
@@ -42,7 +43,7 @@ function markEntranceCompleted(): void {
 
 function clearEntranceCompleted(): void {
   try {
-    window.sessionStorage.removeItem(SEEN_KEY);
+    window.sessionStorage.removeItem(WORLD_ENTRANCE_SEEN_KEY);
   } catch {
     // ignore
   }

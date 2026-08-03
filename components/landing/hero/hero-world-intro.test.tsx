@@ -1,5 +1,7 @@
 import { act, render, renderHook } from "@testing-library/react";
 
+import { WORLD_ENTRANCE_SEEN_KEY } from "@/lib/world-entrance";
+
 import {
   HeroWorldIntro,
   resetHeroEntranceForTests,
@@ -83,7 +85,7 @@ describe("useHeroEntrance", () => {
 
   it("plays again on reload even after a prior completion", () => {
     setMedia({});
-    window.sessionStorage.setItem("mario-world-entrance-seen", "1");
+    window.sessionStorage.setItem(WORLD_ENTRANCE_SEEN_KEY, "1");
     mockNavigationType("reload");
 
     const { result } = renderHook(() => useHeroEntrance());
