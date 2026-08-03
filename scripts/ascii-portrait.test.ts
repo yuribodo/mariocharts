@@ -69,7 +69,7 @@ describe("ascii-portrait", () => {
     expect(light).not.toBe(dark);
   });
 
-  it("makes the light-theme variant the exact tonal inverse of the dark one, cell for cell", async () => {
+  it("opposes the variants tonally in the core and dissolves both at the edges", async () => {
     const { dark, light } = await asciifyVariants(await readFile(SOURCE), { columns: 100 });
     const darkRows = dark.split("\n");
     const lightRows = light.split("\n");
@@ -77,23 +77,57 @@ describe("ascii-portrait", () => {
     // Guards against a vacuous pass: an empty grid would make every
     // assertion below trivially true, so require real content first.
     expect(darkRows.length).toBeGreaterThan(0);
-    expect(darkRows.join("").length).toBeGreaterThan(0);
+    expect(darkRows.join("").trim().length).toBeGreaterThan(0);
     expect(darkRows.length).toBe(lightRows.length);
 
-    for (let y = 0; y < darkRows.length; y += 1) {
+    // The variants are no longer a strict cell-for-cell inverse: the vignette
+    // multiplies *ink* toward zero in both, because zero ink is the page and
+    // the page is what the portrait dissolves into in either theme. So the
+    // relationship splits by region.
+
+    // At the far corners the vignette has fully won: both variants are blank.
+    const corner = (rows: string[]) => (rows[0] ?? "").charAt(0) || " ";
+    expect(corner(darkRows)).toBe(" ");
+    expect(corner(lightRows)).toBe(" ");
+
+    // In the vignette's core the two still pull against each other: sample the
+    // central band and require a strong negative correlation between the ink
+    // indexes, which fails if the light variant degrades into a copy of the
+    // dark one or into noise.
+    const midY = Math.floor(darkRows.length / 2);
+    let sumDark = 0;
+    let sumLight = 0;
+    let sumDarkLight = 0;
+    let sumDarkSq = 0;
+    let sumLightSq = 0;
+    let n = 0;
+
+    for (let y = midY - 3; y <= midY + 3; y += 1) {
       const darkRow = darkRows[y] ?? "";
       const lightRow = lightRows[y] ?? "";
-      expect(lightRow.length).toBe(darkRow.length);
+      const width = Math.min(darkRow.length, lightRow.length);
 
-      for (let x = 0; x < darkRow.length; x += 1) {
+      for (let x = Math.floor(width * 0.3); x < Math.floor(width * 0.7); x += 1) {
         const darkIndex = RAMP.indexOf(darkRow.charAt(x));
         const lightIndex = RAMP.indexOf(lightRow.charAt(x));
-
         expect(darkIndex).toBeGreaterThanOrEqual(0);
         expect(lightIndex).toBeGreaterThanOrEqual(0);
-        // Same cell, opposite end of the ramp.
-        expect(darkIndex + lightIndex).toBe(RAMP.length - 1);
+
+        sumDark += darkIndex;
+        sumLight += lightIndex;
+        sumDarkLight += darkIndex * lightIndex;
+        sumDarkSq += darkIndex * darkIndex;
+        sumLightSq += lightIndex * lightIndex;
+        n += 1;
       }
     }
+
+    expect(n).toBeGreaterThan(100);
+    const covariance = sumDarkLight / n - (sumDark / n) * (sumLight / n);
+    const darkVar = sumDarkSq / n - (sumDark / n) ** 2;
+    const lightVar = sumLightSq / n - (sumLight / n) ** 2;
+    const correlation = covariance / Math.sqrt(darkVar * lightVar);
+
+    expect(correlation).toBeLessThan(-0.8);
   });
 });

@@ -13,7 +13,6 @@ import sharp from "sharp";
  * ramp backwards instead of reusing it directly — see `asciifyVariants`.
  */
 const RAMP = " .:-=+*#%@";
-const REVERSED_RAMP = [...RAMP].reverse().join("");
 /** RAMP's darkest (blank) glyph — `.charAt` instead of `[0]` so this stays a plain `string` under noUncheckedIndexedAccess. */
 const BLANK = RAMP.charAt(0);
 
@@ -25,9 +24,6 @@ const DEFAULT_GAMMA = 1.15;
 
 /** Monospaced cells are about twice as tall as they are wide. */
 const CELL_ASPECT = 0.5;
-
-/** How far the feather reaches in from the pasted image's edge, in pixels. */
-const FEATHER = 32;
 
 /**
  * The source (474x568) is a tight head shot already, but its four corners
@@ -62,34 +58,40 @@ export const CROP = {
 const SATURATION_BOOST = 1.9;
 
 /**
- * Builds an alpha mask that fades the source image out at its own edges. The
- * source has a blurred backdrop that would otherwise meet the black canvas at a
- * hard rectangular seam, which converts into a visible box around the subject.
+ * The vignette's geometry, in fractions of the crop. Centred on the face,
+ * which sits a little above the crop's middle; full opacity inside INNER,
+ * fully dissolved past OUTER.
  */
-function feather(width: number, height: number): Buffer {
-  const mask = Buffer.alloc(width * height);
+const VIGNETTE = { cx: 0.5, cy: 0.44, rx: 0.62, ry: 0.6, inner: 0.62, outer: 1.0 };
 
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const edge = Math.min(x, y, width - 1 - x, height - 1 - y);
-      const t = Math.min(1, edge / FEATHER);
-      // Smoothstep, so the falloff has no visible banding.
-      mask[y * width + x] = Math.round(255 * t * t * (3 - 2 * t));
-    }
-  }
-
-  return mask;
+/**
+ * Builds an alpha mask that dissolves the image radially around the face.
+ *
+ * An edge feather is not enough here: it fades the crop's four borders but
+ * leaves the interior backdrop — a mid-brown blur that converts to mid-density
+ * glyphs — filling the whole rectangle, so the portrait rendered as a visible
+ * block sitting on the page. The hero's field runs underneath the portrait
+ * now, and the portrait has to read as the field condensing into a figure, not
+ * as a picture pasted over it. A radial falloff has no straight edges to
+ * betray the crop, so the glyphs thin out organically into the field.
+ */
+function vignetteAt(x: number, y: number, width: number, height: number): number {
+  const dx = (x / width - VIGNETTE.cx) / VIGNETTE.rx;
+  const dy = (y / height - VIGNETTE.cy) / VIGNETTE.ry;
+  const radius = Math.sqrt(dx * dx + dy * dy);
+  const t = Math.min(
+    1,
+    Math.max(0, (VIGNETTE.outer - radius) / (VIGNETTE.outer - VIGNETTE.inner)),
+  );
+  // Smoothstep, so the falloff has no visible banding.
+  return t * t * (3 - 2 * t);
 }
 
 /**
- * Crops the source down to the subject (see CROP), boosts saturation to pull
- * the cap's luminance away from the backdrop's, then places the result on a
- * matte-black canvas the size of the crop itself, so the entire output width
- * is spent on the subject. The feather still fades the crop's own edges out,
- * so any backdrop sliver left inside the crop dissolves into the matte
- * instead of meeting it at a hard rectangular seam. Layout — positioning the
- * subject within the hero and reserving room for the headline — is the
- * caller's job, not this function's.
+ * Crops the source down to the subject (see CROP) and boosts saturation to
+ * pull the cap's luminance away from the backdrop's. Layout — positioning the
+ * subject within the hero — is the caller's job, and the dissolve into the
+ * field happens per variant in ink space (see asciifyVariants), not here.
  */
 export async function compose(image: Buffer): Promise<Buffer> {
   const cropped = await sharp(image).extract(CROP).toBuffer();
@@ -97,32 +99,14 @@ export async function compose(image: Buffer): Promise<Buffer> {
     .modulate({ saturation: SATURATION_BOOST })
     .toBuffer();
 
-  const source = sharp(boosted);
-  const { width = 0, height = 0 } = await source.metadata();
-
-  const feathered = await source
-    .ensureAlpha()
-    .composite([
-      {
-        input: feather(width, height),
-        raw: { width, height, channels: 1 },
-        blend: "dest-in",
-      },
-    ])
-    .png()
-    .toBuffer();
-
-  return sharp({
-    create: {
-      width,
-      height,
-      channels: 3,
-      background: { r: 0, g: 0, b: 0 },
-    },
-  })
-    .composite([{ input: feathered, left: 0, top: 0 }])
-    .png()
-    .toBuffer();
+  // No vignette here, deliberately. Fading the *pixels* toward black would
+  // read correctly only in the dark variant: the light variant inverts the
+  // ramp, so black maps to its densest glyph and the fade would render as a
+  // dark ring. The vignette is applied per variant in ink space instead — see
+  // asciifyVariants. (The previous edge feather composited a 1-channel mask
+  // with `dest-in`, which reads a raw single-channel buffer as greyscale with
+  // full alpha — it had silently never applied at all.)
+  return sharp(boosted).png().toBuffer();
 }
 
 export interface AsciifyOptions {
@@ -189,27 +173,46 @@ export async function asciify(image: Buffer, options: AsciifyOptions = {}): Prom
 }
 
 /**
- * Renders both theme variants from the same luminance grid: `dark` walks the
- * ramp light-to-dense (correct against a dark page, see the note on RAMP),
- * `light` walks it dense-to-light. Trailing space is trimmed once, from the
- * dark line, and the *same character count* is trimmed from the matching
- * light line — trimming each independently would let their line lengths
- * drift apart, which would break the position-for-position inverse
- * relationship between the two.
+ * Renders both theme variants from the same luminance grid.
+ *
+ * Each variant maps *ink density*, not luminance: on a dark page the bright
+ * face carries the ink (`v`), on a light page the shadows do (`1 - v`). The
+ * vignette then multiplies ink toward zero in both — and zero ink is a space,
+ * which is the page itself. That is what lets the portrait dissolve into the
+ * field in either theme instead of fading to a colour that only one theme
+ * treats as empty.
+ *
+ * Trailing space is trimmed by the *shorter* of the two runs, and the same
+ * count from both lines — trimming each independently would let their line
+ * lengths drift apart and break the position-for-position pairing.
  */
 export async function asciifyVariants(
   image: Buffer,
   options: AsciifyOptions = {},
 ): Promise<{ dark: string; light: string }> {
   const { grid } = await toLuminanceGrid(image, options);
+  const rows = grid.length;
 
   const darkLines: string[] = [];
   const lightLines: string[] = [];
 
-  for (const row of grid) {
-    const darkLine = mapRow(row, RAMP);
-    const lightLine = mapRow(row, REVERSED_RAMP);
-    const trim = trailingRun(darkLine, BLANK);
+  for (let y = 0; y < rows; y += 1) {
+    const row = grid[y] ?? [];
+    const columns = row.length;
+
+    const darkInk = row.map(
+      (value, x) => value * vignetteAt(x, y, columns, rows),
+    );
+    const lightInk = row.map(
+      (value, x) => (1 - value) * vignetteAt(x, y, columns, rows),
+    );
+
+    const darkLine = mapRow(darkInk, RAMP);
+    const lightLine = mapRow(lightInk, RAMP);
+    const trim = Math.min(
+      trailingRun(darkLine, BLANK),
+      trailingRun(lightLine, BLANK),
+    );
 
     darkLines.push(trim > 0 ? darkLine.slice(0, -trim) : darkLine);
     lightLines.push(trim > 0 ? lightLine.slice(0, -trim) : lightLine);
