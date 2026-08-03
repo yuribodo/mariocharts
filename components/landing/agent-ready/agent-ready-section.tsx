@@ -75,10 +75,14 @@ export function AgentReadySection({ className }: AgentReadySectionProps) {
       aria-labelledby="agent-ready-title"
       className={cn("border-b", className)}
     >
-      <div className="mx-auto max-w-6xl px-6 py-16 lg:py-0">
-        <div className="lg:grid lg:grid-cols-2 lg:gap-16 xl:gap-24">
+      <div className="mx-auto max-w-6xl px-6 py-16 lg:py-24">
+        <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-16 xl:gap-24">
+          {/*
+            self-start is required: grid items stretch by default, which makes
+            the sticky column as tall as the right column and kills sticky.
+          */}
           <motion.div
-            className="lg:sticky lg:top-14 lg:flex lg:min-h-[calc(100vh-3.5rem)] lg:flex-col lg:justify-center lg:py-24"
+            className="lg:sticky lg:top-24 lg:self-start"
             variants={shouldReduceMotion ? undefined : introVariants}
             initial={shouldReduceMotion ? false : "hidden"}
             whileInView="visible"
@@ -105,13 +109,13 @@ export function AgentReadySection({ className }: AgentReadySectionProps) {
             </motion.p>
           </motion.div>
 
-          <div className="mt-12 flex flex-col justify-center lg:mt-0 lg:min-h-[calc(100vh-3.5rem)] lg:py-32">
+          <div className="mt-12 lg:mt-0 lg:pb-40 lg:pt-2">
             <motion.ul
               className="space-y-0 divide-y border-y"
               variants={shouldReduceMotion ? undefined : listVariants}
               initial={shouldReduceMotion ? false : "hidden"}
               whileInView="visible"
-              viewport={{ once: true, amount: 0.25 }}
+              viewport={{ once: true, amount: 0.2 }}
             >
               {AGENT_READY_BULLETS.map((bullet, index) => {
                 const Icon = BULLET_ICONS[index] ?? FileCode2;
@@ -120,7 +124,7 @@ export function AgentReadySection({ className }: AgentReadySectionProps) {
                   <motion.li
                     key={bullet.title}
                     variants={shouldReduceMotion ? undefined : listItemVariants}
-                    className="flex gap-4 py-6 first:pt-6 last:pb-6"
+                    className="flex gap-4 py-8 first:pt-8 last:pb-8"
                   >
                     <span
                       className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-md border bg-card text-muted-foreground"
@@ -142,11 +146,11 @@ export function AgentReadySection({ className }: AgentReadySectionProps) {
             </motion.ul>
 
             <motion.div
-              className="mt-10"
+              className="mt-12"
               variants={shouldReduceMotion ? undefined : promptVariants}
               initial={shouldReduceMotion ? false : "hidden"}
               whileInView="visible"
-              viewport={{ once: true, amount: 0.35 }}
+              viewport={{ once: true, amount: 0.3 }}
             >
               <AgentReadyPrompt />
             </motion.div>

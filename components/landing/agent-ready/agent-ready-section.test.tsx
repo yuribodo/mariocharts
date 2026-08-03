@@ -98,7 +98,8 @@ describe("AgentReadySection", () => {
     const markup = container.innerHTML;
 
     expect(markup).toContain("lg:sticky");
-    expect(markup).toContain("lg:top-14");
+    expect(markup).toContain("lg:self-start");
+    expect(markup).toContain("lg:top-24");
   });
 
   it("stays flat — no floating card chrome", () => {
