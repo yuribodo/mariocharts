@@ -4,8 +4,8 @@ export { HeroSection } from "./hero";
 // Chart Index Section
 export { ChartIndexSection } from "./chart-index";
 
-// Manifesto Morph Section
-export { ManifestoMorphSection } from "./manifesto-morph";
+// Agent-Ready Section
+export { AgentReadySection } from "./agent-ready";
 
 // CTA Section
 export { CTASection } from "./cta";
