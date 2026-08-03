@@ -25,6 +25,16 @@ const eslintConfig = [
     },
   },
   {
+    // The registry build pipeline is deliberately plain CommonJS: build.js runs
+    // under bare `node` with no transform step, and Jest only transforms
+    // .ts/.tsx. `require` is the correct form here, not a lapse.
+    files: ["registry/**/*.js"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+      "no-console": "off",
+    },
+  },
+  {
     ignores: [
       "node_modules/**",
       ".next/**",
