@@ -80,22 +80,35 @@ Props:
 
 ```ts
 interface BarChartProps<T extends ChartDataItem> {
+  /** Rows with finite numeric values. Missing/invalid values display an error, not zero. */
   readonly data: readonly T[];
+  /** Category key; categories retain input order. */
   readonly x: keyof T;
+  /** Numeric key. Defaults to "value". Unambiguous numeric strings are supported. */
   readonly y?: keyof T;
   readonly colors?: readonly string[];
   readonly className?: string;
+  /** Stable frame height in every state. Defaults to 300. */
   readonly height?: number;
+  /** Shows a skeleton in the chart's geometry; retain data during refresh to preserve bar positions. */
   readonly loading?: boolean;
   readonly error?: string | null;
   readonly animation?: boolean;
-  readonly variant?: 'filled' | 'outline';
-  readonly orientation?: 'vertical' | 'horizontal';
+  readonly variant?: "filled" | "outline";
+  readonly orientation?: "vertical" | "horizontal";
   readonly showValues?: boolean;
   readonly showGrid?: boolean;
-  readonly gridStyle?: 'solid' | 'dashed' | 'dotted';
+  readonly gridStyle?: "solid" | "dashed" | "dotted";
   readonly onBarClick?: (data: T, index: number) => void;
   readonly tooltipRenderer?: TooltipRenderer<BarChartTooltipData<T>>;
+  /** Formats tooltips, value labels and accessible values; also ticks unless overridden. */
+  readonly valueFormatter?: (value: number) => string;
+  /** Optional compact tick formatter, independent of detailed inspection values. */
+  readonly axisValueFormatter?: (value: number) => string;
+  /** Accessible chart name. */
+  readonly ariaLabel?: string;
+  /** Optional context, units, or explanation announced with the chart. */
+  readonly description?: string;
 }
 ```
 

@@ -28,7 +28,7 @@ const CHARTS = [
     description: 'A customizable bar chart component with animations, hover effects, responsive design, and support for both vertical and horizontal orientations with filled or outline variants',
     importName: 'BarChart',
     exportName: 'BarChart',
-    siblingFiles: [],
+    siblingFiles: ['utils.ts', 'tooltip.tsx'],
     categories: ['charts', 'dashboard'],
     propsSourceFile: 'index.tsx',
   },

@@ -16,6 +16,14 @@
         {
           "path": "bar-chart/index.tsx",
           "type": "registry:component"
+        },
+        {
+          "path": "bar-chart/utils.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "bar-chart/tooltip.tsx",
+          "type": "registry:component"
         }
       ]
     },

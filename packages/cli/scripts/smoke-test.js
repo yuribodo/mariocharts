@@ -117,6 +117,8 @@ try {
     'components/charts/_shared/chart-tooltip.tsx',
     'components/charts/_shared/tooltip-types.ts',
     'components/charts/bar-chart/index.tsx',
+    'components/charts/bar-chart/utils.ts',
+    'components/charts/bar-chart/tooltip.tsx',
     'components/charts/line-chart/index.tsx',
     'components/charts/scatter-plot/index.tsx',
     'components/charts/scatter-plot/regression.ts',
