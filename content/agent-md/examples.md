@@ -13,7 +13,6 @@
 ```bash
 npx shadcn@latest add https://mariocharts.com/r/bar-chart.json
 npx shadcn@latest add https://mariocharts.com/r/line-chart.json
-npx shadcn@latest add https://mariocharts.com/r/area-chart.json
 ```
 
 See the [component index](https://mariocharts.com/docs/components.md) for every chart.

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { AreaChart } from "@/src/components/charts/area-chart";
 import { BarChart } from "@/src/components/charts/bar-chart";
 import { LineChart } from "@/src/components/charts/line-chart";
 import { PieChart } from "@/src/components/charts/pie-chart";
@@ -68,14 +67,6 @@ const monthlyRevenue = [
   { month: "Jun", revenue: 7200 },
 ] as const;
 
-const weeklyTraffic = [
-  { day: "Mon", visitors: 3200 },
-  { day: "Tue", visitors: 4100 },
-  { day: "Wed", visitors: 3800 },
-  { day: "Thu", visitors: 5200 },
-  { day: "Fri", visitors: 4900 },
-  { day: "Sat", visitors: 2600 },
-] as const;
 
 const marketShare = [
   { company: "Apple", share: 28.5 },
@@ -122,7 +113,7 @@ const revenueTree = [
 
 /**
  * Previews are keyed by the index entry they illustrate. Animation is off on
- * every one: six charts animating at once is decoration, and the grid has to
+ * every one: multiple charts animating at once is decoration, and the grid has to
  * look the same with reduced motion as without it.
  */
 const PREVIEWS: Record<string, ReactNode> = {
@@ -143,16 +134,8 @@ const PREVIEWS: Record<string, ReactNode> = {
       y="revenue"
       colors={PREVIEW_COLORS}
       height={PREVIEW_HEIGHT}
-      animation={false}
-    />
-  ),
-  "Area Chart": (
-    <AreaChart
-      data={weeklyTraffic}
-      x="day"
-      y="visitors"
-      colors={PREVIEW_COLORS}
-      height={PREVIEW_HEIGHT}
+      showArea
+      showDots={false}
       animation={false}
     />
   ),

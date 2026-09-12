@@ -121,17 +121,6 @@ const CHARTS = [
     propsSourceFile: 'index.tsx',
   },
   {
-    name: 'area-chart',
-    docsSlug: 'area-chart',
-    title: 'Area Chart',
-    description: 'A layered area chart component with multiple curve interpolations, gradient fills, multi-series support, and responsive design',
-    importName: 'AreaChart',
-    exportName: 'AreaChart',
-    siblingFiles: [],
-    categories: ['charts', 'dashboard'],
-    propsSourceFile: 'index.tsx',
-  },
-  {
     name: 'treemap-chart',
     // The docs route on disk is app/docs/components/treemap, not
     // treemap-chart — see the comment above CHARTS.
@@ -161,10 +150,6 @@ const CHARTS = [
   },
 ];
 
-// Charts that import from `../_shared` (all except area-chart, which only
-// pulls `cn` and `useIsomorphicLayoutEffect` directly from lib/*).
-const CHARTS_WITHOUT_SHARED = new Set(['area-chart']);
-
 function readSource(absPath) {
   if (!fs.existsSync(absPath)) {
     throw new Error(`Source file not found at ${absPath}`);
@@ -183,9 +168,7 @@ function buildChartItem(chart) {
     })),
   ];
 
-  const registryDependencies = CHARTS_WITHOUT_SHARED.has(chart.name)
-    ? ['lib-utils', 'lib-hooks']
-    : ['lib-utils', 'chart-shared'];
+  const registryDependencies = ['lib-utils', 'chart-shared'];
 
   return {
     name: chart.name,
@@ -247,7 +230,7 @@ function buildSupportItems() {
   // disk as charttooltip.tsx and break the barrel's `./ChartTooltip` import
   // on case-sensitive filesystems. Rename it to kebab-case for the embedded
   // copy only, and rewrite the one barrel import line to match.
-  const sharedFileNames = ['index.ts', 'types.ts', 'utils.ts', 'hooks.ts', 'tooltip-types.ts'];
+  const sharedFileNames = ['index.ts', 'types.ts', 'utils.ts', 'hooks.ts', 'tooltip-types.ts', 'cartesian.ts', 'inspection-tooltip.tsx'];
 
   const chartShared = {
     name: 'chart-shared',
@@ -291,6 +274,5 @@ module.exports = {
   SITE_URL,
   AUTHOR,
   CHARTS,
-  CHARTS_WITHOUT_SHARED,
   buildAllItems,
 };

@@ -100,7 +100,7 @@ try {
 
   // Every chart's index.tsx, plus the sibling/shared/lib files #61
   // specifically broke (multi-file charts and the shared/lib modules every
-  // chart depends on). Listing all 12 charts explicitly so a future edit
+  // chart depends on). Listing all 11 charts explicitly so a future edit
   // that silently drops one from the generator's `charts` array fails here
   // instead of shipping unnoticed.
   const expectedFiles = [
@@ -119,6 +119,8 @@ try {
     'components/charts/bar-chart/index.tsx',
     'components/charts/bar-chart/utils.ts',
     'components/charts/bar-chart/tooltip.tsx',
+    'components/charts/_shared/cartesian.ts',
+    'components/charts/_shared/inspection-tooltip.tsx',
     'components/charts/line-chart/utils.ts',
     'components/charts/line-chart/tooltip.tsx',
     'components/charts/line-chart/index.tsx',
@@ -136,7 +138,6 @@ try {
     'components/charts/gauge-chart/utils.ts',
     'components/charts/heatmap/index.tsx',
     'components/charts/funnel-chart/index.tsx',
-    'components/charts/area-chart/index.tsx',
     'components/charts/treemap-chart/index.tsx',
     'components/charts/treemap-chart/layout.ts',
     'components/charts/waterfall-chart/index.tsx',

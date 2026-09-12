@@ -110,7 +110,6 @@ mariocharts/
 │   └── components/
 │       ├── charts/              # The published chart components
 │       │   ├── _shared/         # cn, formatValue, ChartTooltip, hooks
-│       │   ├── area-chart/
 │       │   ├── bar-chart/
 │       │   ├── funnel-chart/
 │       │   ├── gauge-chart/
@@ -124,7 +123,7 @@ mariocharts/
 │       │   └── waterfall-chart/
 │       └── ui/
 ├── registry/                    # Build pipeline for everything published
-│   ├── manifest.js              # SINGLE SOURCE OF TRUTH — the 12 charts
+│   ├── manifest.js              # SINGLE SOURCE OF TRUTH — the 11 charts
 │   ├── build.js                 # Runs every emitter, prunes orphans
 │   ├── extract-props.js
 │   ├── verify-links.js
@@ -151,7 +150,7 @@ regeneration would change anything.
 
 ### Core Components
 
-The 12 charts below are the source of truth in `registry/manifest.js`; every
+The 11 charts below are the source of truth in `registry/manifest.js`; every
 generated artifact (CLI fallback, `public/r/*.json`, `llms.txt`, the sitemap,
 the markdown docs) derives from that list.
 
@@ -164,10 +163,9 @@ the markdown docs) derives from that list.
 7. **GaugeChart** - Arc gauges for targets and goals
 8. **HeatmapChart** - Pattern and density heatmaps
 9. **FunnelChart** - Conversion funnels
-10. **AreaChart** - Layered area charts with gradient fills
-11. **TreeMapChart** - Hierarchical treemaps (note the capital M — the
+10. **TreeMapChart** - Hierarchical treemaps (note the capital M — the
     directory is `treemap-chart`, the export is `TreeMapChart`)
-12. **WaterfallChart** - Cumulative increases/decreases and running totals
+11. **WaterfallChart** - Cumulative increases/decreases and running totals
 
 ### Code Standards & Performance
 
@@ -795,10 +793,10 @@ from `registry/manifest.js`:
 
 ```
 public/r/
-├── registry.json          # Index — the 12 charts, without file contents
+├── registry.json          # Index — the 11 charts, without file contents
 ├── bar-chart.json         # One document per chart
 ├── line-chart.json
-├── ...                    # (12 charts total)
+├── ...                    # (11 charts total)
 ├── chart-shared.json      # Support items, pulled in via registryDependencies
 ├── lib-utils.json
 └── lib-hooks.json

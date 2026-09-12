@@ -8,7 +8,7 @@ const CHARTS_SRC_DIR = path.join(ROOT_DIR, 'src', 'components', 'charts');
 
 // Chart props interfaces are declared non-exported and re-exported at the
 // bottom of the file (`export type { BarChartProps }`), so matching on
-// `export interface` alone misses ten of the twelve charts. Brace-match from
+// `export interface` alone misses most chart components. Brace-match from
 // the opening brace instead of regexing the body — props types contain nested
 // object literals, and a lazy regex truncates them.
 //

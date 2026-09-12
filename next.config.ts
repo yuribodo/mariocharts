@@ -69,6 +69,20 @@ const nextConfig: NextConfig = {
       beforeFiles: markdownAcceptRewrites(),
     };
   },
+  async redirects() {
+    return [
+      {
+        source: "/docs/components/area-chart",
+        destination: "/docs/components/line-chart",
+        permanent: true,
+      },
+      {
+        source: "/docs/components/area-chart.md",
+        destination: "/docs/components/line-chart.md",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

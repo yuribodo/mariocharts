@@ -140,14 +140,6 @@ A funnel chart component with vertical trapezoid and horizontal diminishing bar 
 - Docs: https://mariocharts.com/docs/components/funnel-chart.md
 - Registry item: https://mariocharts.com/r/funnel-chart.json
 
-### Area Chart (`area-chart`)
-
-A layered area chart component with multiple curve interpolations, gradient fills, multi-series support, and responsive design
-
-- Install: `npx shadcn@latest add https://mariocharts.com/r/area-chart.json`
-- Docs: https://mariocharts.com/docs/components/area-chart.md
-- Registry item: https://mariocharts.com/r/area-chart.json
-
 ### Treemap Chart (`treemap-chart`)
 
 A squarified treemap chart component for hierarchical data with nested rectangles, animated layout, interactive tooltips, and responsive design

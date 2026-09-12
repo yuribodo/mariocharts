@@ -6,7 +6,6 @@ type ChartKind =
   | "stacked"
   | "radar"
   | "line"
-  | "area"
   | "pie"
   | "treemap"
   | "scatter"
@@ -42,8 +41,7 @@ const groups: readonly ChartGroup[] = [
     title: "Track change",
     description: "Follow a value across time or another continuous dimension.",
     charts: [
-      { name: "Line Chart", href: "/docs/components/line-chart", description: "Reveal trends, variation, and turning points over time.", meta: "Time series", kind: "line" },
-      { name: "Area Chart", href: "/docs/components/area-chart", description: "Emphasize magnitude and cumulative change over time.", meta: "Cumulative", kind: "area" },
+      { name: "Line Chart", href: "/docs/components/line-chart", description: "Reveal trends with lines or optional gradient area fills.", meta: "Time series", kind: "line" },
     ],
   },
   {
@@ -111,10 +109,9 @@ function ChartThumbnail({ kind }: { kind: ChartKind }) {
     return <div className="grid h-full place-items-center"><div className="size-28 bg-[color-mix(in_srgb,var(--chart-violet)_28%,transparent)] outline outline-1 outline-[var(--chart-violet)] [clip-path:polygon(50%_0,93%_25%,82%_78%,50%_100%,10%_72%,7%_25%)]" /></div>;
   }
 
-  const isArea = kind === "area";
   return (
     <svg aria-hidden="true" viewBox="0 0 320 160" className="h-full w-full p-5">
-      {isArea && <path d="M15 132 L56 98 L94 112 L132 64 L171 82 L215 36 L258 61 L305 22 L305 145 L15 145 Z" fill="color-mix(in srgb, var(--chart-blue) 22%, transparent)" />}
+      <path d="M15 132 L56 98 L94 112 L132 64 L171 82 L215 36 L258 61 L305 22 L305 145 L15 145 Z" fill="color-mix(in srgb, var(--chart-blue) 22%, transparent)" />
       <path d="M15 132 L56 98 L94 112 L132 64 L171 82 L215 36 L258 61 L305 22" fill="none" stroke="var(--chart-blue)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );

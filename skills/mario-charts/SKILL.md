@@ -20,7 +20,7 @@ Map the user's analytical question to an installed component:
 | --- | --- |
 | Compare monthly revenue or rank categories | `bar-chart` |
 | Track traffic, revenue, or another metric over time | `line-chart` |
-| Show volume over time with a filled trend | `area-chart` |
+| Show volume over time with a filled trend | `line-chart` with `showArea` |
 | Show a category's share of a total, including donuts | `pie-chart` |
 | Compare totals split into segments | `stacked-bar-chart` |
 | Compare several dimensions | `radar-chart` |

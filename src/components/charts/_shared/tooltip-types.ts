@@ -90,17 +90,6 @@ export interface HeatmapChartTooltipData<T extends ChartDataItem> {
   readonly color: string;
 }
 
-export interface AreaChartTooltipData<T extends ChartDataItem> {
-  readonly label: string;
-  readonly index: number;
-  readonly series: readonly {
-    readonly key: string;
-    readonly value: number;
-    readonly rawValue: unknown;
-    readonly color: string;
-  }[];
-}
-
 export interface GaugeChartTooltipData {
   readonly value: number;
   readonly min: number;

@@ -5,7 +5,6 @@ import { CHART_INDEX } from "./chart-index-data";
 
 jest.mock("@/src/components/charts/bar-chart", () => ({ BarChart: () => <div /> }));
 jest.mock("@/src/components/charts/line-chart", () => ({ LineChart: () => <div /> }));
-jest.mock("@/src/components/charts/area-chart", () => ({ AreaChart: () => <div /> }));
 jest.mock("@/src/components/charts/pie-chart", () => ({ PieChart: () => <div /> }));
 jest.mock("@/src/components/charts/radar-chart", () => ({ RadarChart: () => <div /> }));
 jest.mock("@/src/components/charts/treemap-chart", () => ({ TreeMapChart: () => <div /> }));
@@ -14,7 +13,7 @@ describe("ChartIndexSection", () => {
   it("presents every indexed chart as a link to its documentation", () => {
     render(<ChartIndexSection />);
 
-    expect(CHART_INDEX.length).toBe(6);
+    expect(CHART_INDEX.length).toBe(5);
     for (const entry of CHART_INDEX) {
       expect(screen.getByRole("link", { name: new RegExp(entry.name, "i") })).toHaveAttribute(
         "href",

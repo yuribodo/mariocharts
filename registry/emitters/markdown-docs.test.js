@@ -7,7 +7,7 @@ const outputs = emitMarkdownDocs(buildAllItems());
 
 describe('emitMarkdownDocs', () => {
   it('emits one markdown file per chart and none for internals', () => {
-    expect(outputs).toHaveLength(12);
+    expect(outputs).toHaveLength(11);
     const names = outputs.map((o) => path.basename(o.path));
     expect(names).toContain('bar-chart.md');
     expect(names).not.toContain('chart-shared.md');

@@ -8,7 +8,7 @@ const short = outputs.find((o) => o.path.endsWith('llms.txt')).content;
 const full = outputs.find((o) => o.path.endsWith('llms-full.txt')).content;
 
 const ALL_CHARTS = [
-  'area-chart', 'bar-chart', 'funnel-chart', 'gauge-chart', 'heatmap',
+  'bar-chart', 'funnel-chart', 'gauge-chart', 'heatmap',
   'line-chart', 'pie-chart', 'radar-chart', 'scatter-plot',
   'stacked-bar-chart', 'treemap-chart', 'waterfall-chart',
 ];

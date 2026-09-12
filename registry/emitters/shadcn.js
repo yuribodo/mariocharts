@@ -68,7 +68,7 @@ function toShadcnItem(item) {
 
 // The hosted index lists charts only. Support items stay fetchable by URL —
 // registryDependencies resolve directly — but an agent browsing the registry
-// should see twelve charts, not fifteen entries including internals.
+// should see eleven charts, not fourteen entries including internals.
 function toIndexEntry(item) {
   const doc = toShadcnItem(item);
   return {

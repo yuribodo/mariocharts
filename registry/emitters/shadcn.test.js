@@ -98,14 +98,14 @@ describe('emitShadcn', () => {
     }
   });
 
-  it('lists only the 12 charts in the index, not the internals', () => {
+  it('lists only the 11 charts in the index, not the internals', () => {
     const index = JSON.parse(
       outputs.find((o) => o.path.endsWith('/registry.json')).content
     );
     expect(index.$schema).toBe('https://ui.shadcn.com/schema/registry.json');
     expect(index.name).toBe('mario-charts');
     expect(index.homepage).toBe('https://mariocharts.com');
-    expect(index.items).toHaveLength(12);
+    expect(index.items).toHaveLength(11);
     expect(index.items.map((i) => i.name)).not.toContain('chart-shared');
   });
 

@@ -74,13 +74,6 @@ export const REGISTRY_CHARTS: readonly RegistryChartSummary[] = [
     registryUrl: "https://mariocharts.com/r/funnel-chart.json",
   },
   {
-    name: "area-chart",
-    title: "Area Chart",
-    description: "A layered area chart component with multiple curve interpolations, gradient fills, multi-series support, and responsive design",
-    docsPath: "/docs/components/area-chart",
-    registryUrl: "https://mariocharts.com/r/area-chart.json",
-  },
-  {
     name: "treemap-chart",
     title: "Treemap Chart",
     description: "A squarified treemap chart component for hierarchical data with nested rectangles, animated layout, interactive tooltips, and responsive design",

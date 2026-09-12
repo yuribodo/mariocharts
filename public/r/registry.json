@@ -192,22 +192,6 @@
       ]
     },
     {
-      "name": "area-chart",
-      "type": "registry:component",
-      "title": "Area Chart",
-      "description": "A layered area chart component with multiple curve interpolations, gradient fills, multi-series support, and responsive design",
-      "categories": [
-        "charts",
-        "dashboard"
-      ],
-      "files": [
-        {
-          "path": "area-chart/index.tsx",
-          "type": "registry:component"
-        }
-      ]
-    },
-    {
       "name": "treemap-chart",
       "type": "registry:component",
       "title": "Treemap Chart",

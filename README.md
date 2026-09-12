@@ -134,14 +134,13 @@ export function Dashboard() {
 
 ## 📚 Components
 
-All twelve charts below are shipped. The canonical list lives in
+All eleven charts below are shipped. The canonical list lives in
 [`registry/manifest.js`](registry/manifest.js) — every published artifact
 (`/r/*.json`, `llms.txt`, the docs pages, the sitemap) is generated from it, and
 CI fails if this file falls out of step with a regenerated build.
 
 - **BarChart** - Bar charts with filled/outline variants and vertical/horizontal orientations
 - **LineChart** - Time series line charts with multi-series support and curve interpolation
-- **AreaChart** - Layered area charts with gradient fills
 - **PieChart/DonutChart** - Pie and donut charts with center labels
 - **StackedBarChart** - Multi-series stacked bar charts
 - **GaugeChart** - 3/4 arc gauges with configurable color zones

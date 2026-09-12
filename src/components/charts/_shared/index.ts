@@ -18,7 +18,6 @@ export type {
   RadarChartTooltipData,
   ScatterPlotTooltipData,
   HeatmapChartTooltipData,
-  AreaChartTooltipData,
   GaugeChartTooltipData,
   WaterfallChartTooltipData,
   TooltipRenderer,

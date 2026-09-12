@@ -4,7 +4,7 @@
 
 ## What it demonstrates
 
-- Line and area charts for time-series traffic
+- Line charts with optional area fills for time-series traffic
 - Pie / radar views for category breakdowns
 - Heatmap-style density when applicable
 
@@ -12,7 +12,6 @@
 
 ```bash
 npx shadcn@latest add https://mariocharts.com/r/line-chart.json
-npx shadcn@latest add https://mariocharts.com/r/area-chart.json
 npx shadcn@latest add https://mariocharts.com/r/pie-chart.json
 npx shadcn@latest add https://mariocharts.com/r/radar-chart.json
 npx shadcn@latest add https://mariocharts.com/r/heatmap.json
