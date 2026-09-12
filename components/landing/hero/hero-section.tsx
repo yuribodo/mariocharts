@@ -78,8 +78,8 @@ export function HeroSection({ className }: HeroSectionProps) {
               )}
               style={{ animationDelay: "110ms" }}
             >
-              React charts you paste into your repo and reshape line by line.
-              No runtime dependency on us.
+              A React chart library for dashboards, built with TypeScript and
+              Tailwind CSS. Paste the source into your repo and make it yours.
             </p>
 
             <div

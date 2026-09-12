@@ -1,12 +1,12 @@
 export const AGENT_READY_EYEBROW = "Built for agents";
 
-export const AGENT_READY_HEADLINE = "Your AI already knows how to edit this.";
+export const AGENT_READY_HEADLINE = "Give your agent a head start on charts.";
 
 export const AGENT_READY_SUPPORT =
-  "The component lives in your repo — Cursor, Claude, Copilot, and friends just open the file.";
+  "Install the Mario Charts skill to build dashboards, choose charts, and connect your data. Your agent works with React source it can read and edit.";
 
 export const AGENT_READY_PROMPT =
-  "Add a Mario Charts BarChart for monthly revenue. Vertical, filled, showGrid. Put it in components/charts.";
+  "Use https://mariocharts.com/docs/ai-agents.md to build a dashboard for my React website with revenue, traffic, and conversion charts using Mario Charts. Follow my project's styling and connect the available data.";
 
 export const AGENT_READY_BULLETS = [
   {

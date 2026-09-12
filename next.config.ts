@@ -18,6 +18,7 @@ function markdownHtmlPaths(): string[] {
     "",
     "docs",
     "docs/installation",
+    "docs/ai-agents",
     "docs/components",
     ...CHARTS.map((chart) => `docs/components/${chart.docsSlug}`),
     "examples",
