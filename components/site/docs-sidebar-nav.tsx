@@ -26,6 +26,10 @@ const sidebarNavItems: SidebarNavItem[] = [
       {
         title: "Installation", 
         href: "/docs/installation"
+      },
+      {
+        title: "AI Agents",
+        href: "/docs/ai-agents"
       }
     ]
   },
@@ -90,6 +94,10 @@ const sidebarNavItems: SidebarNavItem[] = [
       {
         title: "Sales & Revenue",
         href: "/examples/dashboards/sales"
+      },
+      {
+        title: "Website Analytics",
+        href: "/examples/dashboards/analytics"
       }
     ]
   }

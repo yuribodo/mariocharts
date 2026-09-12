@@ -3,9 +3,9 @@ import { markdownAlternate } from "@/lib/markdown-alternate";
 import { LandingContent } from "./landing-content";
 
 export const metadata: Metadata = {
-  title: "Mario Charts - Beautiful React Chart Components",
+  title: { absolute: "React Chart Library for Tailwind CSS | Mario Charts" },
   description:
-    "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box. Zero lock-in, copy-paste components built with TypeScript, Tailwind CSS, and Framer Motion.",
+    "Build dashboards with React chart components you own. Copy TypeScript and Tailwind CSS charts into your app with shadcn, or use the Mario Charts agent skill.",
   keywords: [
     "react charts",
     "react chart library",
@@ -18,9 +18,9 @@ export const metadata: Metadata = {
   ],
   alternates: markdownAlternate("/"),
   openGraph: {
-    title: "Mario Charts - Beautiful React Chart Components",
+    title: "React Chart Library for Tailwind CSS | Mario Charts",
     description:
-      "Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box.",
+      "React chart components you own. Install with shadcn or build with the Mario Charts agent skill. TypeScript, Tailwind CSS, and editable source.",
     url: "https://mariocharts.com",
     type: "website",
   },

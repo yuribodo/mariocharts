@@ -3,9 +3,9 @@ import Link from "next/link";
 import { markdownAlternate } from "@/lib/markdown-alternate";
 
 export const metadata: Metadata = {
-  title: "Examples",
+  title: "React Dashboard Examples",
   description:
-    "Pre-built dashboards showcasing Mario Charts components in real-world scenarios.",
+    "Explore React dashboard examples for sales, revenue, and website analytics. Build your own with Mario Charts, TypeScript, Tailwind CSS, and the AI agent skill.",
   alternates: markdownAlternate("/examples"),
 };
 
@@ -13,8 +13,15 @@ const dashboards = [
   {
     title: "Sales & Revenue",
     description:
-      "Métricas de vendas, receita mensal, funil de conversão e desempenho de vendedores.",
+      "Sales metrics, monthly revenue, targets, and sales team performance.",
     href: "/examples/dashboards/sales",
+    chartCount: 5,
+  },
+  {
+    title: "Website Analytics",
+    description:
+      "Website traffic, acquisition sources, engagement patterns, and conversion stages.",
+    href: "/examples/dashboards/analytics",
     chartCount: 5,
   },
 ];
@@ -27,7 +34,7 @@ export default function ExamplesPage() {
           Examples
         </span>
         <h1 className="mt-4 text-3xl font-bold tracking-tight md:text-4xl">
-          Dashboards
+          React Dashboard Examples
         </h1>
         <p className="mt-3 text-base text-muted-foreground">
           Pre-built dashboards showcasing Mario Charts components in real-world
@@ -58,6 +65,17 @@ export default function ExamplesPage() {
           </Link>
         ))}
       </div>
+
+      <p className="mx-auto mt-8 max-w-2xl text-sm leading-6 text-muted-foreground">
+        Build a dashboard for your own data with the{" "}
+        <Link
+          href="/docs/ai-agents#build-dashboard"
+          className="rounded-sm underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Mario Charts agent skill and dashboard guide
+        </Link>
+        .
+      </p>
     </div>
   );
 }

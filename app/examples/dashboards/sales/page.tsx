@@ -3,9 +3,9 @@ import { markdownAlternate } from "@/lib/markdown-alternate";
 import { SalesDashboardContent } from "./sales-dashboard-content";
 
 export const metadata: Metadata = {
-  title: "Sales & Revenue Dashboard — Mario Charts",
+  title: "React Sales & Revenue Dashboard Example",
   description:
-    "Interactive sales and revenue analytics dashboard built with Mario Charts components.",
+    "Explore a React sales dashboard built with Mario Charts. Use editable TypeScript and Tailwind CSS charts as a starting point for revenue reporting.",
   alternates: markdownAlternate("/examples/dashboards/sales"),
 };
 

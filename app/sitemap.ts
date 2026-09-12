@@ -25,6 +25,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/docs/ai-agents`,
+      lastModified: new Date("2026-09-12"),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
       url: `${baseUrl}/docs/components`,
       lastModified: LAST_CONTENT_UPDATE,
       changeFrequency: "weekly",
@@ -36,6 +42,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.7,
     },
+    ...["sales", "analytics"].map((dashboard) => ({
+      url: `${baseUrl}/examples/dashboards/${dashboard}`,
+      lastModified: LAST_CONTENT_UPDATE,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
   ];
 
   // Derived from registry/manifest.js so a new chart cannot ship without

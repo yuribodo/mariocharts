@@ -4,6 +4,7 @@ import { Braces, Code2, FileCode2 } from "lucide-react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 import {
   AGENT_READY_BULLETS,
   AGENT_READY_EYEBROW,
@@ -107,6 +108,12 @@ export function AgentReadySection({ className }: AgentReadySectionProps) {
             >
               {AGENT_READY_SUPPORT}
             </motion.p>
+            <Link
+              href="/docs/ai-agents"
+              className="mt-6 inline-flex rounded-sm text-sm font-medium underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Build React charts with your AI agent →
+            </Link>
           </motion.div>
 
           <div className="mt-12 lg:mt-0 lg:pb-40 lg:pt-2">

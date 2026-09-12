@@ -1,9 +1,10 @@
-# Examples
+# React Dashboard Examples
 
 > Production-style dashboards built with Mario Charts. Use them as reference compositions, not as installable packages.
 
 ## Dashboards
 
+- [Build a dashboard with an AI agent](https://mariocharts.com/docs/ai-agents.md) — installable skill and a complete revenue, traffic, and conversion example
 - [Sales dashboard](https://mariocharts.com/examples/dashboards/sales.md) — revenue, funnel, and product mix
 - [Analytics dashboard](https://mariocharts.com/examples/dashboards/analytics.md) — traffic and engagement overview
 

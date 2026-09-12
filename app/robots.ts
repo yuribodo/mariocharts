@@ -1,9 +1,8 @@
 import type { MetadataRoute } from "next";
 import { SITE_CONFIG } from "@/lib/constants";
 
-// Crawlers that feed AI answer engines and coding assistants. The wildcard rule
-// below already permits them, but naming them explicitly is a positive signal
-// and stops a future `disallow` on `*` from silently cutting off AI retrieval.
+// Preserve the site's existing crawler policy. Search/retrieval agents and
+// training crawlers govern different uses; listing either is not a ranking signal.
 const AI_CRAWLERS = [
   "GPTBot",
   "OAI-SearchBot",
@@ -28,7 +27,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/_next/", "/private/", "/md/"],
+        disallow: ["/api/", "/private/", "/md/"],
       },
       ...AI_CRAWLERS.map((userAgent) => ({
         userAgent,
@@ -44,7 +43,7 @@ export default function robots(): MetadataRoute.Robots {
           "/examples.md",
           "/examples/",
         ],
-        disallow: ["/api/", "/_next/", "/private/", "/md/"],
+        disallow: ["/api/", "/private/", "/md/"],
       })),
     ],
     sitemap: `${baseUrl}/sitemap.xml`,

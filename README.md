@@ -1,6 +1,6 @@
 # 📊 Mario Charts
 
-**Modern React component library focused on charts and dashboards with beautiful visuals out-of-the-box**
+**React chart components for dashboards, built with TypeScript and Tailwind CSS. Install with shadcn and own the source.**
 
 Mario Charts prioritizes ease of use, excellent developer experience, and zero lock-in through copy-and-paste components.
 
@@ -20,6 +20,20 @@ Mario Charts prioritizes ease of use, excellent developer experience, and zero l
 - ⚡ **Performance Optimized** - Virtualization, memoization, and tree-shaking
 
 ## 🚀 Quick Start
+
+### Build charts and dashboards with your AI agent
+
+Install the Mario Charts skill in your project:
+
+```bash
+npx skills add yuribodo/mariocharts --skill mario-charts
+```
+
+Select your coding agent in the installer, then ask it to build a sales dashboard,
+an analytics page, or an individual chart. The skill covers summary metrics,
+responsive layouts, chart selection, installation, and the actual component API. See the
+[agent integration guide](https://mariocharts.com/docs/ai-agents) or read the
+[skill source](skills/mario-charts/SKILL.md).
 
 ### Installation
 
