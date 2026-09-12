@@ -31,7 +31,7 @@
       "name": "line-chart",
       "type": "registry:component",
       "title": "Line Chart",
-      "description": "A sophisticated line chart component with triangular markers, textured area fills, multiple series support, gap handling, curve interpolation, and advanced animations",
+      "description": "A line chart with multiple series, faithful gap handling, four curve interpolations, accessible inspection, gradient areas, and geometry-matched loading states",
       "categories": [
         "charts",
         "dashboard"
@@ -39,6 +39,14 @@
       "files": [
         {
           "path": "line-chart/index.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "line-chart/utils.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "line-chart/tooltip.tsx",
           "type": "registry:component"
         }
       ]

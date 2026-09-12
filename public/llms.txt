@@ -78,7 +78,7 @@ A customizable bar chart component with animations, hover effects, responsive de
 
 ### Line Chart (`line-chart`)
 
-A sophisticated line chart component with triangular markers, textured area fills, multiple series support, gap handling, curve interpolation, and advanced animations
+A line chart with multiple series, faithful gap handling, four curve interpolations, accessible inspection, gradient areas, and geometry-matched loading states
 
 - Install: `npx shadcn@latest add https://mariocharts.com/r/line-chart.json`
 - Docs: https://mariocharts.com/docs/components/line-chart.md

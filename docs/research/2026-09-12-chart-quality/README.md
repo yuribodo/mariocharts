@@ -4,6 +4,8 @@ Research date: September 12, 2026. Repository baseline: `f5320be`.
 
 Implementation follow-up: [BarChart v1](bar-chart-v1.md) records the subsequent, user-approved first implementation, its compatibility notes, screenshots, and validation. Findings below describe the original research baseline.
 
+The subsequent [LineChart v1](line-chart-v1.md) records the line-chart implementation, migration notes, and completed validation. Work on the other ten chart families remains pending.
+
 **Recommendation: preserve the visual identity, repair data correctness and lifecycle failures first, then standardize the developer and interaction contracts. A wholesale rewrite is not justified by this audit.**
 
 This is a research and planning document. No chart, site, CLI, registry, or test implementation was changed. The screenshots show the current local application; the separate concept image illustrates proposed behavior and is not a production screenshot.

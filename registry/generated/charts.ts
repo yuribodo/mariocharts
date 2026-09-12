@@ -20,7 +20,7 @@ export const REGISTRY_CHARTS: readonly RegistryChartSummary[] = [
   {
     name: "line-chart",
     title: "Line Chart",
-    description: "A sophisticated line chart component with triangular markers, textured area fills, multiple series support, gap handling, curve interpolation, and advanced animations",
+    description: "A line chart with multiple series, faithful gap handling, four curve interpolations, accessible inspection, gradient areas, and geometry-matched loading states",
     docsPath: "/docs/components/line-chart",
     registryUrl: "https://mariocharts.com/r/line-chart.json",
   },
