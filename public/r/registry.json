@@ -92,6 +92,10 @@
         {
           "path": "pie-chart/index.tsx",
           "type": "registry:component"
+        },
+        {
+          "path": "pie-chart/utils.ts",
+          "type": "registry:component"
         }
       ]
     },

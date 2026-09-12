@@ -129,6 +129,7 @@ try {
     'components/charts/scatter-plot/scales.ts',
     'components/charts/scatter-plot/types.ts',
     'components/charts/pie-chart/index.tsx',
+    'components/charts/pie-chart/utils.ts',
     'components/charts/radar-chart/index.tsx',
     'components/charts/radar-chart/geometry.ts',
     'components/charts/radar-chart/scales.ts',

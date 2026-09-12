@@ -1,190 +1,147 @@
 "use client";
 
-import * as React from "react";
-import { memo, useMemo, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import {
+  memo,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useEffect,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
+import {
+  animate as animateValue,
+  motion,
+  useMotionValue,
+  useTransform,
+  useReducedMotion,
+} from "framer-motion";
 import { cn } from "../../../../lib/utils";
-import { formatValue, getNumericValue, useContainerDimensions, ChartTooltip } from "../_shared";
-import type { ChartDataItem, PieChartTooltipData, TooltipRenderer } from "../_shared";
+import { formatValue, useContainerDimensions } from "../_shared";
+import type {
+  ChartDataItem,
+  PieChartTooltipData,
+  TooltipRenderer,
+} from "../_shared";
+import { InspectionTooltip } from "../_shared/inspection-tooltip";
+import { buildPieModel, getPieLayout, getSlicePath, polarPoint } from "./utils";
 
 interface PieChartProps<T extends ChartDataItem> {
+  /** Finite, nonnegative observations. Zero shares have no slice. */
   readonly data: readonly T[];
   readonly value: keyof T;
   readonly label: keyof T;
   readonly colors?: readonly string[];
   readonly className?: string;
+  /** Total frame height, including an optional legend, in every variant and state. */
   readonly height?: number;
+  /** Retain data during refresh to preserve the exact slice geometry. */
   readonly loading?: boolean;
   readonly error?: string | null;
   readonly animation?: boolean;
-  readonly variant?: 'pie' | 'donut' | 'semi';
+  readonly variant?: "pie" | "donut" | "semi";
+  /** Fraction of the outer radius, from 0 inclusive to 1 exclusive. Ignored for pie. */
   readonly innerRadius?: number;
-  readonly centerContent?: React.ReactNode | ((data: { total: number; items: readonly T[] }) => React.ReactNode);
+  /** Slice corner radius in pixels. Zero gives flat edges; constrained to fit each slice. */
+  readonly cornerRadius?: number;
+  readonly centerContent?:
+    | ReactNode
+    | ((data: { total: number; items: readonly T[] }) => ReactNode);
+  readonly showLegend?: boolean;
   readonly onSliceClick?: (data: T, index: number) => void;
+  /** rawValue contains the source value field; value is its parsed numeric value. */
   readonly tooltipRenderer?: TooltipRenderer<PieChartTooltipData<T>>;
+  readonly valueFormatter?: (value: number) => string;
+  /** Receives a percentage from 0 to 100. */
+  readonly percentageFormatter?: (percentage: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
 }
 
-interface ProcessedSlice<T> {
-  readonly data: T;
-  readonly index: number;
-  readonly value: number;
-  readonly percentage: number;
-  readonly startAngle: number;
-  readonly endAngle: number;
-  readonly path: string;
-  readonly color: string;
-  readonly labelText: string;
-  readonly formattedValue: string;
-  readonly midAngle: number;
-}
-
-// Constants
 const DEFAULT_COLORS = [
-  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4',
-  '#ec4899', '#84cc16', '#f97316', '#6366f1',
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#06b6d4",
+  "#ec4899",
+  "#84cc16",
+  "#f97316",
+  "#6366f1",
 ] as const;
-
 const DEFAULT_HEIGHT = 300;
-const DEFAULT_INNER_RADIUS = 0.6;
-const PADDING = 20;
-const FULL_CIRCLE_THRESHOLD = 360 - 1e-6;
-const ARC_EPSILON = 1e-4;
+const PLACEHOLDER = [
+  { label: "", value: 40 },
+  { label: "", value: 30 },
+  { label: "", value: 20 },
+  { label: "", value: 10 },
+] as const;
+const defaultPercentage = (percentage: number) => {
+  if (percentage > 0 && percentage < 0.1) return `<${(0.1).toLocaleString()}%`;
+  if (percentage > 99.9 && percentage < 100)
+    return `>${(99.9).toLocaleString()}%`;
+  return `${percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`;
+};
 
-// Utilities
-function polarToCartesian(cx: number, cy: number, radius: number, angleInDegrees: number): { x: number; y: number } {
-  const angleInRadians = (angleInDegrees - 90) * Math.PI / 180;
-  return {
-    x: cx + radius * Math.cos(angleInRadians),
-    y: cy + radius * Math.sin(angleInRadians),
-  };
-}
-
-function describeArc(
-  cx: number,
-  cy: number,
-  outerRadius: number,
-  innerRadius: number,
-  startAngle: number,
-  endAngle: number
-): string {
-  // Handle full circle case (360 degrees) - use precise threshold for floating-point safety
-  const isFullCircle = Math.abs(endAngle - startAngle) >= FULL_CIRCLE_THRESHOLD;
-
-  if (isFullCircle) {
-    // For full circle, we draw two arcs
-    const midAngle = startAngle + 180;
-
-    if (innerRadius > 0) {
-      // Full donut
-      const outerStart = polarToCartesian(cx, cy, outerRadius, startAngle);
-      const outerMid = polarToCartesian(cx, cy, outerRadius, midAngle);
-      const outerEnd = polarToCartesian(cx, cy, outerRadius, endAngle - ARC_EPSILON);
-      const innerStart = polarToCartesian(cx, cy, innerRadius, startAngle);
-      const innerMid = polarToCartesian(cx, cy, innerRadius, midAngle);
-      const innerEnd = polarToCartesian(cx, cy, innerRadius, endAngle - ARC_EPSILON);
-
-      return [
-        `M ${outerStart.x} ${outerStart.y}`,
-        `A ${outerRadius} ${outerRadius} 0 0 1 ${outerMid.x} ${outerMid.y}`,
-        `A ${outerRadius} ${outerRadius} 0 0 1 ${outerEnd.x} ${outerEnd.y}`,
-        `L ${innerEnd.x} ${innerEnd.y}`,
-        `A ${innerRadius} ${innerRadius} 0 0 0 ${innerMid.x} ${innerMid.y}`,
-        `A ${innerRadius} ${innerRadius} 0 0 0 ${innerStart.x} ${innerStart.y}`,
-        'Z'
-      ].join(' ');
-    } else {
-      // Full pie
-      const start = polarToCartesian(cx, cy, outerRadius, startAngle);
-      const mid = polarToCartesian(cx, cy, outerRadius, midAngle);
-      const end = polarToCartesian(cx, cy, outerRadius, endAngle - ARC_EPSILON);
-
-      return [
-        `M ${cx} ${cy}`,
-        `L ${start.x} ${start.y}`,
-        `A ${outerRadius} ${outerRadius} 0 0 1 ${mid.x} ${mid.y}`,
-        `A ${outerRadius} ${outerRadius} 0 0 1 ${end.x} ${end.y}`,
-        'Z'
-      ].join(' ');
+/** Reveal the circumference with one animated mask, keeping all final geometry stable. */
+function SliceReveal({
+  id,
+  layout,
+  semi,
+  enabled,
+  children,
+}: {
+  id: string;
+  layout: ReturnType<typeof getPieLayout>;
+  semi: boolean;
+  enabled: boolean;
+  children: ReactNode;
+}) {
+  const progress = useMotionValue(enabled ? 0 : 1);
+  const path = useTransform(progress, (fraction) => {
+    const start = fraction >= 1 ? 0 : semi ? -90 : 0;
+    return getSlicePath(
+      layout.cx,
+      layout.cy,
+      layout.outer + 4,
+      0,
+      start,
+      fraction >= 1 ? 360 : start + (semi ? 180 : 360) * fraction,
+    );
+  });
+  useEffect(() => {
+    if (!enabled) {
+      progress.jump(1);
+      return;
     }
-  }
-
-  const outerStart = polarToCartesian(cx, cy, outerRadius, startAngle);
-  const outerEnd = polarToCartesian(cx, cy, outerRadius, endAngle);
-  const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
-
-  if (innerRadius > 0) {
-    // Donut slice
-    const innerStart = polarToCartesian(cx, cy, innerRadius, startAngle);
-    const innerEnd = polarToCartesian(cx, cy, innerRadius, endAngle);
-
-    return [
-      `M ${outerStart.x} ${outerStart.y}`,
-      `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${outerEnd.x} ${outerEnd.y}`,
-      `L ${innerEnd.x} ${innerEnd.y}`,
-      `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${innerStart.x} ${innerStart.y}`,
-      'Z'
-    ].join(' ');
-  } else {
-    // Pie slice
-    return [
-      `M ${cx} ${cy}`,
-      `L ${outerStart.x} ${outerStart.y}`,
-      `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${outerEnd.x} ${outerEnd.y}`,
-      'Z'
-    ].join(' ');
-  }
-}
-
-// Loading State - Circular skeleton
-function LoadingState({ height = DEFAULT_HEIGHT }: { height?: number }) {
-  const size = Math.min(height - PADDING * 2, 200);
-
+    progress.set(0);
+    const controls = animateValue(progress, 1, {
+      duration: 0.85,
+      ease: [0.33, 0, 0.2, 1],
+    });
+    return () => controls.stop();
+  }, [enabled, progress]);
   return (
-    <div className="relative w-full flex items-center justify-center" style={{ height }}>
-      <div
-        className="rounded-full border-8 border-muted animate-pulse"
-        style={{
-          width: size,
-          height: size,
-          borderTopColor: 'hsl(var(--muted-foreground) / 0.3)',
-        }}
-      />
-      <div
-        className="absolute rounded-full bg-background"
-        style={{
-          width: size * 0.6,
-          height: size * 0.6,
-        }}
-      />
-    </div>
+    <>
+      {enabled && (
+        <defs>
+          <clipPath id={id}>
+            <motion.path d={path} />
+          </clipPath>
+        </defs>
+      )}
+      <g
+        clipPath={enabled ? `url(#${id})` : undefined}
+        onFocusCapture={() => progress.jump(1)}
+      >
+        {children}
+      </g>
+    </>
   );
 }
 
-function ErrorState({ error }: { error: string }) {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center space-y-2">
-        <div className="text-destructive font-medium">Chart Error</div>
-        <div className="text-sm text-muted-foreground">{error}</div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center space-y-2">
-        <div className="text-muted-foreground">No Data</div>
-        <div className="text-sm text-muted-foreground">
-          There&apos;s no data to display
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Main Component
 function PieChartComponent<T extends ChartDataItem>({
   data,
   value,
@@ -195,250 +152,431 @@ function PieChartComponent<T extends ChartDataItem>({
   loading = false,
   error = null,
   animation = true,
-  variant = 'donut',
-  innerRadius = DEFAULT_INNER_RADIUS,
+  variant = "donut",
+  innerRadius = 0.6,
+  cornerRadius = 0,
   centerContent,
+  showLegend = false,
   onSliceClick,
   tooltipRenderer,
+  valueFormatter = formatValue,
+  percentageFormatter = defaultPercentage,
+  ariaLabel,
+  description,
 }: PieChartProps<T>) {
-  const [containerRef, containerWidth] = useContainerDimensions();
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [containerRef, width] = useContainerDimensions();
+  const id = useId();
   const reduceMotion = useReducedMotion();
-  const shouldAnimate = animation && !reduceMotion;
-
-  // Calculate chart dimensions
-  const isSemi = variant === 'semi';
-  const chartSize = Math.min(containerWidth - PADDING * 2, height - PADDING * 2);
-  const effectiveHeight = isSemi ? chartSize / 2 + PADDING * 2 : height;
-  const cx = containerWidth / 2;
-  const cy = isSemi ? chartSize / 2 + PADDING : height / 2;
-  const outerRadius = chartSize / 2;
-  const actualInnerRadius = variant === 'pie' ? 0 : outerRadius * innerRadius;
-
-  // Process data into slices
-  const { processedSlices, total } = useMemo(() => {
-    if (!data.length || chartSize <= 0) {
-      return { processedSlices: [] as ProcessedSlice<T>[], total: 0 };
-    }
-
-    // Extract and validate values
-    const values = data.map((d) => Math.max(0, getNumericValue(d, value as string)));
-    const totalValue = values.reduce((sum, v) => sum + v, 0);
-
-    if (totalValue <= 0) {
-      return { processedSlices: [] as ProcessedSlice<T>[], total: 0 };
-    }
-
-    // Calculate angles - for semi, we use 180 degrees, else 360
-    const totalAngle = isSemi ? 180 : 360;
-    const startOffset = isSemi ? -90 : -90; // Start from top
-
-    let currentAngle = startOffset;
-
-    const slices: ProcessedSlice<T>[] = data.map((item, index) => {
-      const itemValue = values[index] ?? 0;
-      const percentage = (itemValue / totalValue) * 100;
-      const sliceAngle = (itemValue / totalValue) * totalAngle;
-
-      const startAngle = currentAngle;
-      const endAngle = currentAngle + sliceAngle;
-      const midAngle = startAngle + sliceAngle / 2;
-
-      currentAngle = endAngle;
-
-      const path = describeArc(
-        cx,
-        cy,
-        outerRadius,
-        actualInnerRadius,
-        startAngle,
-        endAngle
-      );
-
-      return {
-        data: item,
-        index,
-        value: itemValue,
-        percentage,
-        startAngle,
-        endAngle,
-        path,
-        color: colors[index % colors.length] || DEFAULT_COLORS[0],
-        labelText: String(item[label]),
-        formattedValue: formatValue(itemValue),
-        midAngle,
-      };
-    });
-
-    return { processedSlices: slices, total: totalValue };
-  }, [data, value, label, colors, chartSize, cx, cy, outerRadius, actualInnerRadius, isSemi]);
-
-  // Check for negative values
-  const hasNegativeValues = useMemo(() => {
-    return data.some((d) => getNumericValue(d, value as string) < 0);
-  }, [data, value]);
-
-  if (loading) return <LoadingState height={height} />;
-  if (error) return <ErrorState error={error} />;
-  if (hasNegativeValues) {
-    return <ErrorState error="Pie charts cannot display negative values" />;
+  const animate = animation && !reduceMotion;
+  const refs = useRef<(SVGPathElement | null)[]>([]);
+  const [tabPosition, setTabPosition] = useState(0);
+  type Selection = {
+    data: readonly T[];
+    valueKey: keyof T;
+    labelKey: keyof T;
+    index: number;
+  };
+  const [inspection, setInspection] = useState<Selection | null>(null);
+  const [focus, setFocus] = useState<Selection | null>(null);
+  useEffect(() => {
+    setInspection(null);
+    setFocus(null);
+  }, [data, value, label, loading, error, variant]);
+  const model = useMemo(
+    () => buildPieModel(data, value, label, variant),
+    [data, value, label, variant],
+  );
+  const placeholder = useMemo(
+    () => buildPieModel(PLACEHOLDER, "value", "label", variant),
+    [variant],
+  );
+  const initialLoading = loading && (!!model.error || model.total <= 0);
+  const frameHeight =
+    Number.isFinite(height) && height > 0 ? height : DEFAULT_HEIGHT;
+  const legendHeight = showLegend ? Math.min(80, frameHeight / 4) : 0;
+  const svgHeight = frameHeight - legendHeight;
+  const validRadius =
+    variant === "pie" ||
+    (Number.isFinite(innerRadius) && innerRadius >= 0 && innerRadius < 1);
+  const layout = getPieLayout(
+    width,
+    svgHeight,
+    variant,
+    validRadius ? innerRadius : 0.6,
+  );
+  const chartError =
+    error ||
+    model.error ||
+    (!(Number.isFinite(height) && height > 0)
+      ? "Chart height must be a positive, finite number."
+      : null) ||
+    (!validRadius
+      ? "innerRadius must be a finite fraction from 0 (inclusive) to 1 (exclusive)."
+      : null) ||
+    (!(Number.isFinite(cornerRadius) && cornerRadius >= 0)
+      ? "cornerRadius must be a finite, nonnegative number of pixels."
+      : null);
+  const drawable = (initialLoading ? placeholder.slices : model.slices).map(
+    (slice) => ({
+      ...slice,
+      color: colors[slice.index % colors.length] ?? DEFAULT_COLORS[0],
+      path: getSlicePath(
+        layout.cx,
+        layout.cy,
+        layout.outer,
+        layout.inner,
+        slice.start,
+        slice.end,
+        Number.isFinite(cornerRadius) ? cornerRadius : 0,
+      ),
+    }),
+  );
+  const ready = !loading && !chartError && model.total > 0 && layout.outer > 0;
+  const matches = (selection: Selection | null) =>
+    selection?.data === data &&
+    selection.valueKey === value &&
+    selection.labelKey === label;
+  const active =
+    ready && matches(inspection)
+      ? drawable.find((slice) => slice.index === inspection!.index)
+      : undefined;
+  const focused = ready && matches(focus) ? focus!.index : null;
+  const selectedPosition = Math.min(
+    tabPosition,
+    Math.max(0, drawable.length - 1),
+  );
+  const tipPoint = active
+    ? polarPoint(
+        layout.cx,
+        layout.cy,
+        (layout.outer + layout.inner) / 2,
+        active.mid,
+      )
+    : null;
+  const tipData: PieChartTooltipData<T> | null = active
+    ? {
+        label: active.label,
+        value: active.value,
+        rawValue: data[active.index]![value],
+        percentage: active.percentage,
+        color: active.color,
+        index: active.index,
+      }
+    : null;
+  function inspect(index: number) {
+    setInspection({ data, valueKey: value, labelKey: label, index });
   }
-  if (!data.length) return <EmptyState />;
-
-  // Wait for container to have dimensions before checking total
-  if (!containerWidth) {
-    return (
-      <div ref={containerRef} className={cn('relative w-full', className)} style={{ height }}>
-        <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-          Loading...
-        </div>
-      </div>
-    );
+  function dismissHover() {
+    setInspection(matches(focus) ? focus : null);
   }
-
-  // Now we can safely check total since we have dimensions
-  if (total <= 0) return <EmptyState />;
-
-  const centerSize = actualInnerRadius * 2 * 0.8;
+  function navigate(event: KeyboardEvent<SVGPathElement>, position: number) {
+    let next = position;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown")
+      next = (position + 1) % drawable.length;
+    else if (event.key === "ArrowLeft" || event.key === "ArrowUp")
+      next = (position + drawable.length - 1) % drawable.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = drawable.length - 1;
+    else if (event.key === "Escape") {
+      event.preventDefault();
+      setInspection(null);
+      return;
+    } else if ((event.key === "Enter" || event.key === " ") && onSliceClick) {
+      event.preventDefault();
+      const slice = drawable[position]!;
+      onSliceClick(data[slice.index]!, slice.index);
+      return;
+    } else return;
+    event.preventDefault();
+    setTabPosition(next);
+    refs.current[next]?.focus();
+  }
+  // Rectangles fit inside the circular hole, including the semicircle's top half.
+  const centerWidth = layout.inner * 1.35;
+  const centerHeight = variant === "semi" ? layout.inner * 0.55 : centerWidth;
+  const centerTop =
+    variant === "semi"
+      ? layout.cy - layout.inner * 0.7
+      : layout.cy - centerHeight / 2;
+  const stateMessage =
+    !loading && chartError
+      ? chartError
+      : !loading && model.total <= 0
+        ? "No Data"
+        : !loading && !ready
+          ? "Waiting for chart space"
+          : null;
 
   return (
     <div
       ref={containerRef}
-      className={cn('relative w-full', className)}
-      style={{ height: effectiveHeight }}
+      className={cn("relative w-full", className)}
+      style={{ height: frameHeight }}
+      aria-busy={loading}
+      onMouseLeave={dismissHover}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setFocus(null);
+          setInspection(null);
+        }
+      }}
     >
-      <svg
-        width="100%"
-        height={effectiveHeight}
-        className="overflow-visible"
-        role="img"
-        aria-label={`${variant === 'pie' ? 'Pie' : variant === 'semi' ? 'Semi-circle' : 'Donut'} chart with ${data.length} segments`}
-      >
-        {/* Slices */}
-        {processedSlices.map((slice) => {
-          const isHovered = hoveredIndex === slice.index;
-
-          const motionProps = shouldAnimate ? {
-            initial: { scale: 0, opacity: 0 },
-            animate: {
-              scale: isHovered ? 1.03 : 1,
-              opacity: 1,
-            },
-            transition: {
-              scale: { duration: 0.2 },
-              opacity: { duration: 0.5, delay: slice.index * 0.05 },
-            },
-          } : {
-            style: { transform: isHovered ? 'scale(1.03)' : 'scale(1)' }
-          };
-
-          return (
-            <motion.path
-              key={slice.index}
-              d={slice.path}
-              fill={slice.color}
-              stroke="hsl(var(--background))"
-              strokeWidth={2}
-              className="cursor-pointer outline-none"
-              style={{ transformOrigin: `${cx}px ${cy}px` }}
-              onMouseEnter={() => setHoveredIndex(slice.index)}
-              onMouseLeave={() => setHoveredIndex(null)}
-              onClick={() => onSliceClick?.(slice.data, slice.index)}
-              role="graphics-symbol"
-              aria-label={`${slice.labelText}: ${slice.formattedValue} (${slice.percentage.toFixed(1)}%)`}
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onSliceClick?.(slice.data, slice.index);
-                }
-              }}
-              onFocus={() => setHoveredIndex(slice.index)}
-              onBlur={() => setHoveredIndex(null)}
-              {...motionProps}
-            />
-          );
-        })}
-
-        {/* Center content for donut and semi variants */}
-        {(variant === 'donut' || variant === 'semi') && centerContent && actualInnerRadius > 0 && (() => {
-          // For semi-circle, position center content in the visible arc area (above the flat edge)
-          // Move it up by ~40% of inner radius to center it in the curved portion
-          const centerY = isSemi
-            ? cy - centerSize / 2 - actualInnerRadius * 0.4
-            : cy - centerSize / 2;
-
-          return (
-            <foreignObject
-              x={cx - centerSize / 2}
-              y={centerY}
-              width={centerSize}
-              height={centerSize}
-              className="pointer-events-none"
+      {loading && (
+        <span role="status" className="sr-only">
+          Loading chart
+        </span>
+      )}
+      {stateMessage ? (
+        <div
+          role={chartError ? "alert" : "status"}
+          className="flex h-full items-center justify-center p-6 text-center"
+        >
+          <div className="space-y-2">
+            <p
+              className={cn(
+                "font-medium",
+                chartError ? "text-destructive" : "text-muted-foreground",
+              )}
             >
-              <div className="w-full h-full flex items-center justify-center">
-                {typeof centerContent === 'function'
-                  ? centerContent({ total, items: data })
-                  : centerContent}
-              </div>
-            </foreignObject>
-          );
-        })()}
-      </svg>
-
-      {/* Tooltip */}
-      {(() => {
-        const slice = hoveredIndex !== null ? processedSlices[hoveredIndex] : null;
-        const tooltipPoint = slice
-          ? polarToCartesian(cx, cy, outerRadius * 0.7, slice.midAngle)
-          : { x: 0, y: 0 };
-
-        const tipData: PieChartTooltipData<T> | null = slice
-          ? {
-              label: slice.labelText,
-              value: slice.value,
-              rawValue: slice.data[label],
-              percentage: slice.percentage,
-              color: slice.color,
-              index: slice.index,
+              {chartError ? "Chart Error" : stateMessage}
+            </p>
+            {chartError && (
+              <p className="text-sm text-muted-foreground">{chartError}</p>
+            )}
+            {!chartError && model.total <= 0 && (
+              <p className="text-sm text-muted-foreground">
+                {data.length
+                  ? "All values are zero. There are no proportions to display."
+                  : "There's no data to display"}
+              </p>
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
+          <svg
+            width="100%"
+            height={svgHeight}
+            role={loading ? "presentation" : "group"}
+            aria-hidden={loading || undefined}
+            aria-label={
+              ariaLabel ??
+              `${variant === "pie" ? "Pie" : variant === "semi" ? "Semi-circle" : "Donut"} chart with ${model.slices.length} segments`
             }
-          : null;
-
-        return (
-          <ChartTooltip
-            visible={slice !== null}
-            x={tooltipPoint.x}
-            y={tooltipPoint.y}
-            style={{ transform: 'translate(-50%, -50%)' }}
+            aria-describedby={`${id}-description`}
           >
-            {tipData && (
-              tooltipRenderer ? tooltipRenderer(tipData) : (
+            <desc id={`${id}-description`}>
+              {description ? `${description} ` : ""}Use arrow keys to inspect
+              slices, Home and End to jump, and Escape to dismiss the tooltip.{" "}
+              {onSliceClick ? "Press Enter or Space to select a slice. " : ""}
+              Zero values have no slice.
+            </desc>
+            <SliceReveal
+              key={`${variant}-${loading ? "loading" : "ready"}`}
+              id={`${id}-reveal`}
+              layout={layout}
+              semi={variant === "semi"}
+              enabled={animate && !loading}
+            >
+              <g
+                className={cn(
+                  loading && "text-muted",
+                  loading &&
+                    animate &&
+                    "animate-pulse motion-reduce:animate-none",
+                )}
+              >
+                {drawable.map((slice, position) => (
+                  <motion.path
+                    key={`${loading ? "loading" : "ready"}-${slice.index}`}
+                    data-pie-slice={loading ? undefined : slice.index}
+                    data-loading-slice={loading ? slice.index : undefined}
+                    ref={(element) => {
+                      refs.current[position] = element;
+                    }}
+                    d={slice.path}
+                    fill={loading ? "currentColor" : slice.color}
+                    stroke={
+                      focused === slice.index
+                        ? "var(--foreground)"
+                        : "var(--background)"
+                    }
+                    strokeWidth={focused === slice.index ? 3 : 2}
+                    strokeLinejoin="round"
+                    className={cn(
+                      "outline-none touch-manipulation",
+                      !loading &&
+                        (onSliceClick ? "cursor-pointer" : "cursor-default"),
+                    )}
+                    initial={false}
+                    animate={{
+                      opacity: active && active.index !== slice.index ? 0.5 : 1,
+                    }}
+                    transition={{ duration: animate ? 0.25 : 0 }}
+                    role={
+                      loading
+                        ? undefined
+                        : onSliceClick
+                          ? "button"
+                          : "graphics-symbol"
+                    }
+                    tabIndex={
+                      loading
+                        ? undefined
+                        : position === selectedPosition
+                          ? 0
+                          : -1
+                    }
+                    aria-label={
+                      loading
+                        ? undefined
+                        : `${slice.label}: ${valueFormatter(slice.value)} (${percentageFormatter(slice.percentage)})`
+                    }
+                    aria-describedby={
+                      active?.index === slice.index
+                        ? `${id}-tooltip`
+                        : undefined
+                    }
+                    onMouseEnter={
+                      loading ? undefined : () => inspect(slice.index)
+                    }
+                    onPointerDown={
+                      loading ? undefined : () => inspect(slice.index)
+                    }
+                    onFocus={
+                      loading
+                        ? undefined
+                        : () => {
+                            setTabPosition(position);
+                            setFocus({
+                              data,
+                              valueKey: value,
+                              labelKey: label,
+                              index: slice.index,
+                            });
+                            inspect(slice.index);
+                          }
+                    }
+                    onClick={
+                      loading
+                        ? undefined
+                        : () => {
+                            inspect(slice.index);
+                            onSliceClick?.(data[slice.index]!, slice.index);
+                          }
+                    }
+                    onKeyDown={
+                      loading ? undefined : (event) => navigate(event, position)
+                    }
+                  />
+                ))}
+              </g>
+            </SliceReveal>
+            {layout.inner > 0 &&
+              centerContent !== null &&
+              centerContent !== undefined && (
+                <foreignObject
+                  x={layout.cx - centerWidth / 2}
+                  y={centerTop}
+                  width={centerWidth}
+                  height={centerHeight}
+                  className="pointer-events-none overflow-hidden"
+                >
+                  <div className="flex h-full w-full items-center justify-center overflow-hidden break-words text-center">
+                    {loading ? (
+                      <span
+                        aria-hidden="true"
+                        className="h-4 w-12 max-w-full rounded bg-muted"
+                      />
+                    ) : typeof centerContent === "function" ? (
+                      centerContent({ total: model.total, items: data })
+                    ) : (
+                      centerContent
+                    )}
+                  </div>
+                </foreignObject>
+              )}
+          </svg>
+          {showLegend && (
+            <ul
+              aria-label={loading ? undefined : "Chart values"}
+              aria-hidden={loading || undefined}
+              className="flex flex-wrap content-start justify-center gap-x-5 gap-y-2 overflow-auto px-3 py-2 text-xs"
+              style={{ height: legendHeight }}
+            >
+              {(initialLoading ? placeholder.rows : model.rows).map((row) => (
+                <li
+                  key={row.index}
+                  className="flex min-w-0 max-w-full items-center gap-2"
+                >
+                  <span
+                    className={cn(
+                      "size-2.5 shrink-0 rounded-sm",
+                      loading && "bg-muted",
+                    )}
+                    style={
+                      loading
+                        ? undefined
+                        : {
+                            backgroundColor:
+                              colors[row.index % colors.length] ??
+                              DEFAULT_COLORS[0],
+                          }
+                    }
+                  />
+                  {loading ? (
+                    <span className="h-2 w-16 rounded bg-muted" />
+                  ) : (
+                    <>
+                      <span className="truncate" title={row.label}>
+                        {row.label}
+                      </span>
+                      <span className="shrink-0 tabular-nums text-muted-foreground">
+                        {valueFormatter(row.value)}
+                      </span>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {tipData && tipPoint && (
+            <InspectionTooltip
+              id={`${id}-tooltip`}
+              x={tipPoint.x}
+              y={tipPoint.y}
+              width={width}
+              height={svgHeight}
+            >
+              {tooltipRenderer ? (
+                tooltipRenderer(tipData)
+              ) : (
                 <>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-sm"
-                      style={{ backgroundColor: slice!.color }}
+                  <div className="mb-2 flex items-center gap-2 border-b border-border pb-2 text-xs font-medium text-muted-foreground">
+                    <span
+                      className="size-2.5 shrink-0 rounded-sm"
+                      style={{ backgroundColor: tipData.color }}
                     />
-                    <span className="text-xs font-medium whitespace-nowrap">
-                      {slice!.labelText}
+                    {tipData.label}
+                  </div>
+                  <div className="flex items-baseline justify-between gap-6">
+                    <span className="text-sm font-semibold tabular-nums">
+                      {valueFormatter(tipData.value)}
+                    </span>
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {percentageFormatter(tipData.percentage)}
                     </span>
                   </div>
-                  <div className="text-sm font-bold text-primary text-center mt-1">
-                    {slice!.formattedValue}
-                  </div>
-                  <div className="text-xs text-muted-foreground text-center">
-                    {slice!.percentage.toFixed(1)}%
-                  </div>
                 </>
-              )
-            )}
-          </ChartTooltip>
-        );
-      })()}
+              )}
+            </InspectionTooltip>
+          )}
+        </>
+      )}
     </div>
   );
 }
 
-export const PieChart = memo(PieChartComponent);
+export const PieChart = memo(PieChartComponent) as typeof PieChartComponent;
 export type { ChartDataItem, PieChartProps };
 export { DEFAULT_COLORS, formatValue };

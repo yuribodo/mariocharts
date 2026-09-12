@@ -61,7 +61,7 @@ const CHARTS = [
     description: 'A customizable pie and donut chart component with animated segments, interactive hover effects, center labels, and responsive design',
     importName: 'PieChart',
     exportName: 'PieChart',
-    siblingFiles: [],
+    siblingFiles: ['utils.ts'],
     categories: ['charts', 'dashboard'],
     propsSourceFile: 'index.tsx',
   },
