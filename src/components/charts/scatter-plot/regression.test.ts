@@ -1,80 +1,82 @@
-import { calculateLinearRegression } from './regression';
+import { calculateLinearRegression, getTrendSegment } from "./regression";
 
-describe('calculateLinearRegression', () => {
-  it('returns perfect fit (r2 ≈ 1) for a perfect positive line', () => {
-    const points = [
-      { x: 0, y: 0 },
-      { x: 1, y: 2 },
-      { x: 2, y: 4 },
-      { x: 3, y: 6 },
-      { x: 4, y: 8 },
-    ];
-    const result = calculateLinearRegression(points);
-    expect(result.slope).toBeCloseTo(2);
-    expect(result.intercept).toBeCloseTo(0);
-    expect(result.r2).toBeCloseTo(1);
-  });
-
-  it('returns slope=0, intercept=y, r2=0 for a single point', () => {
-    const result = calculateLinearRegression([{ x: 5, y: 42 }]);
-    expect(result.slope).toBe(0);
-    expect(result.intercept).toBe(42);
-    expect(result.r2).toBe(0);
-  });
-
-  it('returns slope=0, intercept=0, r2=0 for empty array', () => {
-    const result = calculateLinearRegression([]);
-    expect(result.slope).toBe(0);
-    expect(result.intercept).toBe(0);
-    expect(result.r2).toBe(0);
-  });
-
-  it('returns slope=0 for a horizontal line', () => {
-    const points = [
-      { x: 0, y: 5 },
-      { x: 1, y: 5 },
-      { x: 2, y: 5 },
-      { x: 3, y: 5 },
-    ];
-    const result = calculateLinearRegression(points);
-    expect(result.slope).toBeCloseTo(0);
-    expect(result.intercept).toBeCloseTo(5);
-    // All y-values identical: ssTotal=0 so r2=1 (perfect "fit" with constant)
-    expect(result.r2).toBe(1);
-  });
-
-  it('handles vertical x values (all x the same, denom=0)', () => {
-    const points = [
+it.each([
+  { points: [] },
+  { points: [{ x: 5, y: 42 }] },
+  {
+    points: [
       { x: 3, y: 1 },
-      { x: 3, y: 5 },
       { x: 3, y: 9 },
-    ];
-    const result = calculateLinearRegression(points);
-    expect(result.slope).toBe(0);
-    expect(result.intercept).toBeCloseTo(5); // average of y values
-    expect(result.r2).toBe(0);
-  });
-
-  it('computes exact values for two points', () => {
-    const points = [
+    ],
+  },
+])("omits an unidentified fit for %p", ({ points }) => {
+  expect(calculateLinearRegression(points)).toBeNull();
+});
+it.each([2, -2])(
+  "fits a slope of %p without changing the observations",
+  (slope) => {
+    const points = [0, 1, 2, 3, 4].map((x) => ({ x, y: 7 + slope * x }));
+    const fit = calculateLinearRegression(points)!;
+    expect(fit.slope).toBeCloseTo(slope);
+    expect(fit.intercept).toBeCloseTo(7);
+    expect(fit.r2).toBeCloseTo(1);
+    expect(fit.predict(2.5)).toBeCloseTo(7 + slope * 2.5);
+  },
+);
+it("draws a horizontal fit without claiming R² when Y has no variance", () => {
+  const fit = calculateLinearRegression([
+    { x: 0, y: 5 },
+    { x: 10, y: 5 },
+  ])!;
+  expect(fit.slope).toBe(0);
+  expect(fit.predict(4)).toBe(5);
+  expect(fit.r2).toBeNull();
+});
+it("centers large offsets before fitting small changes", () => {
+  const fit = calculateLinearRegression(
+    [0, 1, 2, 3].map((i) => ({ x: 1e12 + i, y: 3e12 + 2 * i })),
+  )!;
+  expect(fit.slope).toBeCloseTo(2, 10);
+  expect(fit.predict(1e12 + 1.5)).toBe(3e12 + 3);
+});
+it.each([1e-200, 1e200])("fits finite values at scale %p", (scale) => {
+  const fit = calculateLinearRegression(
+    [1, 2, 3].map((n) => ({ x: n * scale, y: 2 * n * scale })),
+  )!;
+  expect(fit.slope).toBeCloseTo(2);
+  expect(fit.r2).toBeCloseTo(1);
+  expect(Number.isFinite(fit.predict(2 * scale))).toBe(true);
+});
+it("omits malformed regression input", () => {
+  expect(
+    calculateLinearRegression([
       { x: 1, y: 3 },
-      { x: 4, y: 9 },
-    ];
-    const result = calculateLinearRegression(points);
-    expect(result.slope).toBeCloseTo(2);
-    expect(result.intercept).toBeCloseTo(1);
-    expect(result.r2).toBeCloseTo(1);
+      { x: NaN, y: 4 },
+    ]),
+  ).toBeNull();
+});
+it("clips the trend to both viewport axes", () => {
+  const fit = calculateLinearRegression([
+    { x: 0, y: -10 },
+    { x: 10, y: 30 },
+  ]);
+  const segment = getTrendSegment(fit, [0, 10], [0, 20])!;
+  expect(segment.x1).toBeCloseTo(0.25);
+  expect(segment.y1).toBe(1);
+  expect(segment.x2).toBeCloseTo(0.75);
+  expect(segment.y2).toBe(0);
+});
+it("does not extrapolate beyond observed X or draw a fit outside Y", () => {
+  const fit = calculateLinearRegression([
+    { x: 2, y: 5 },
+    { x: 8, y: 5 },
+  ]);
+  expect(getTrendSegment(fit, [0, 10], [0, 10])).toEqual({
+    x1: 0.2,
+    y1: 0.5,
+    x2: 0.8,
+    y2: 0.5,
   });
-
-  it('returns a negative slope for a descending line', () => {
-    const points = [
-      { x: 0, y: 10 },
-      { x: 2, y: 6 },
-      { x: 4, y: 2 },
-    ];
-    const result = calculateLinearRegression(points);
-    expect(result.slope).toBeCloseTo(-2);
-    expect(result.intercept).toBeCloseTo(10);
-    expect(result.r2).toBeCloseTo(1);
-  });
+  expect(getTrendSegment(fit, [0, 10], [10, 20])).toBeNull();
+  expect(getTrendSegment(fit, [20, 30], [0, 10])).toBeNull();
 });

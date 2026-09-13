@@ -86,7 +86,7 @@ A line chart with multiple series, faithful gap handling, four curve interpolati
 
 ### Scatter Plot (`scatter-plot`)
 
-A versatile scatter plot and bubble chart component with multi-series support, trend lines, dynamic bubble sizing, responsive design, and smooth animations
+A scatter and bubble chart with area-scaled bubbles, clipped viewports and trends, keyboard and touch inspection, and points that grow at fixed coordinates
 
 - Install: `npx shadcn@latest add https://mariocharts.com/r/scatter-plot.json`
 - Docs: https://mariocharts.com/docs/components/scatter-plot.md

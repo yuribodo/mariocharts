@@ -1,589 +1,891 @@
 "use client";
 
-import * as React from "react";
-import { memo, useMemo, useState, useCallback } from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import { cn } from "../../../../lib/utils";
-import { useContainerDimensions, ChartTooltip } from "../_shared";
-import type { ScatterPlotTooltipData, TooltipRenderer } from "../_shared";
-
-// Internal modules
-import type {
-  ChartDataItem,
-  ScatterPlotProps,
-  ProcessedPoint,
-  ProcessedSeries,
-  HoveredPoint,
-  TrendLine,
-} from "./types";
 import {
+  memo,
+  useMemo,
+  useRef,
+  useState,
+  useEffect,
+  useId,
+  type ReactNode,
+  type KeyboardEvent,
+} from "react";
+import { animate, useMotionValue, useReducedMotion } from "framer-motion";
+import { cn } from "../../../../lib/utils";
+import { useContainerDimensions } from "../_shared";
+import type { ScatterPlotTooltipData } from "../_shared";
+import { InspectionTooltip } from "../_shared/inspection-tooltip";
+import type { ChartDataItem, ScatterPlotProps } from "./types";
+import {
+  buildScatterModel,
+  bubbleRadius,
+  getScatterDomain,
   scaleValue,
   calculateNiceTicks,
-  getNumericValue,
   formatValue,
   getGridDasharray,
 } from "./scales";
-import { calculateLinearRegression } from "./regression";
+import { calculateLinearRegression, getTrendSegment } from "./regression";
 
-// Re-export types for consumers
 export type { ChartDataItem, ScatterPlotProps };
-
-// Constants
-const DEFAULT_COLORS = [
-  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4',
+export { formatValue };
+export const DEFAULT_COLORS = [
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#06b6d4",
 ] as const;
+const SIZE_RANGE = [4, 40] as const;
+const PLACEHOLDER = Array.from({ length: 8 }, (_, index) => ({
+  x: 10 + index * 10,
+  y: [25, 40, 30, 60, 45, 75, 65, 85][index]!,
+  size: 6,
+}));
+const validDomain = (domain: readonly [number, number] | undefined) =>
+  !domain ||
+  (domain.length === 2 &&
+    domain.every(Number.isFinite) &&
+    domain[0] < domain[1]);
+interface Dot {
+  index: number;
+  cx: number;
+  cy: number;
+  radius: number;
+  color: string;
+}
 
-const DEFAULT_HEIGHT = 300;
-const DEFAULT_POINT_SIZE = 6;
-const DEFAULT_SIZE_RANGE = [4, 40] as const;
-const MARGIN = { top: 20, right: 20, bottom: 40, left: 50 };
+/** Animate radii only: positions and the meaning of coordinates never change. */
+function PointCloud({
+  points,
+  enabled,
+  loading,
+  children,
+}: {
+  points: readonly Dot[];
+  enabled: boolean;
+  loading: boolean;
+  children: ReactNode;
+}) {
+  const refs = useRef<(SVGCircleElement | null)[]>([]);
+  const progress = useMotionValue(enabled ? 0 : 1);
+  useEffect(
+    () =>
+      progress.on("change", (value) => {
+        points.forEach((point, index) =>
+          refs.current[index]?.setAttribute("r", String(point.radius * value)),
+        );
+      }),
+    [points, progress],
+  );
+  useEffect(() => {
+    if (!enabled) {
+      progress.jump(1);
+      return;
+    }
+    progress.set(0);
+    const controls = animate(progress, 1, {
+      duration: 0.65,
+      ease: [0.33, 0, 0.2, 1],
+    });
+    return () => controls.stop();
+  }, [enabled, progress]);
+  return (
+    <g onFocusCapture={() => progress.jump(1)}>
+      {points.map((point, index) => (
+        <circle
+          key={point.index}
+          ref={(el) => {
+            refs.current[index] = el;
+          }}
+          data-scatter-dot={loading ? undefined : point.index}
+          data-loading-dot={loading ? point.index : undefined}
+          cx={point.cx}
+          cy={point.cy}
+          r={point.radius * progress.get()}
+          fill={loading ? "currentColor" : point.color}
+          fillOpacity={loading ? 0.6 : 0.8}
+          stroke="var(--background)"
+          strokeWidth={1.5}
+          aria-hidden="true"
+        />
+      ))}
+      {children}
+    </g>
+  );
+}
 
-// State components
-const states = {
-  Loading: ({ height = DEFAULT_HEIGHT, shouldAnimate = true }: { height?: number; shouldAnimate?: boolean }) => (
-    <div className="relative w-full flex items-center justify-center" style={{ height }}>
-      <div className="w-full max-w-full p-6">
-        <div className="animate-pulse bg-muted rounded h-4 w-32 mb-4" />
-        <div className="relative border-l border-b border-muted/30"
-             style={{ height: height - 100, margin: '0 50px 40px 50px' }}>
-          <svg width="100%" height="100%" className="absolute inset-0">
-            {Array.from({ length: 12 }).map((_, i) => (
-              shouldAnimate ? (
-                <motion.circle
-                  key={i}
-                  cx={`${15 + (i % 4) * 25}%`}
-                  cy={`${20 + Math.floor(i / 4) * 30}%`}
-                  r={6 + (i % 3) * 4}
-                  className="fill-muted"
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 0.5 }}
-                  transition={{
-                    duration: 0.5,
-                    delay: i * 0.08,
-                    repeat: Infinity,
-                    repeatType: "reverse",
-                    repeatDelay: 1
-                  }}
-                />
-              ) : (
-                <circle
-                  key={i}
-                  cx={`${15 + (i % 4) * 25}%`}
-                  cy={`${20 + Math.floor(i / 4) * 30}%`}
-                  r={6 + (i % 3) * 4}
-                  className="fill-muted opacity-50"
-                />
-              )
-            ))}
-          </svg>
-        </div>
-      </div>
-    </div>
-  ),
-
-  Error: ({ error }: { error: string }) => (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center space-y-2">
-        <div className="text-destructive font-medium">Chart Error</div>
-        <div className="text-sm text-muted-foreground">{error}</div>
-      </div>
-    </div>
-  ),
-
-  Empty: () => (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center space-y-2">
-        <div className="text-muted-foreground">No Data</div>
-        <div className="text-sm text-muted-foreground">There&apos;s no data to display</div>
-      </div>
-    </div>
-  ),
-};
-
-// Main Component
 function ScatterPlotComponent<T extends ChartDataItem>({
   data,
   x,
   y,
+  label,
   colors = DEFAULT_COLORS,
   className,
-  height = DEFAULT_HEIGHT,
+  height = 300,
   loading = false,
   error = null,
   animation = true,
   series,
   size,
-  sizeRange = DEFAULT_SIZE_RANGE,
+  sizeRange = SIZE_RANGE,
+  sizeScale = "area",
   showTrendLine = false,
   trendLineColor,
   showLegend = false,
   showGrid = false,
-  gridStyle = 'dashed',
+  gridStyle = "dashed",
   xDomain,
   yDomain,
+  xLabel = "X",
+  yLabel = "Y",
+  sizeLabel = "Size",
+  xFormatter = formatValue,
+  yFormatter = formatValue,
+  sizeFormatter = formatValue,
+  ariaLabel,
+  description,
   onPointClick,
   tooltipRenderer,
 }: ScatterPlotProps<T>) {
-  const [containerRef, containerWidth] = useContainerDimensions();
-  const [hoveredPoint, setHoveredPoint] = useState<HoveredPoint | null>(null);
-
-  // Respect user's motion preferences (WCAG)
+  const [containerRef, width] = useContainerDimensions();
+  const id = useId();
   const reduceMotion = useReducedMotion();
   const shouldAnimate = animation && !reduceMotion;
-
-  const chartWidth = Math.max(0, containerWidth - MARGIN.left - MARGIN.right);
-  const chartHeight = height - MARGIN.top - MARGIN.bottom;
-
-  // Memoized: Extract raw points from data
-  const rawPoints = useMemo(() => {
-    if (!data.length) return [];
-
-    return data.map((item, index) => {
-      const xVal = getNumericValue(item, x as string);
-      const yVal = getNumericValue(item, y as string);
-      const sizeVal = typeof size === 'number'
+  const refs = useRef<(SVGCircleElement | null)[]>([]);
+  const [tabIndex, setTabIndex] = useState(0);
+  type Selection = {
+    data: typeof data;
+    x: keyof T;
+    y: keyof T;
+    series: typeof series;
+    size: typeof size;
+    index: number;
+  };
+  const [inspection, setInspection] = useState<Selection | null>(null);
+  const [focus, setFocus] = useState<Selection | null>(null);
+  const xMin = xDomain?.[0];
+  const xMax = xDomain?.[1];
+  const yMin = yDomain?.[0];
+  const yMax = yDomain?.[1];
+  useEffect(() => {
+    setInspection(null);
+    setFocus(null);
+  }, [data, x, y, label, series, size, loading, error, xMin, xMax, yMin, yMax]);
+  const model = useMemo(
+    () =>
+      buildScatterModel(data, {
+        x,
+        y,
+        ...(label !== undefined ? { label } : {}),
+        ...(series !== undefined ? { series } : {}),
+        ...(size !== undefined ? { size } : {}),
+      }),
+    [data, x, y, label, series, size],
+  );
+  const placeholder = useMemo(
+    () => buildScatterModel(PLACEHOLDER, { x: "x", y: "y" }),
+    [],
+  );
+  const initialLoading = loading && (!!model.error || !data.length);
+  const source = initialLoading ? placeholder : model;
+  const bubble = size !== undefined && typeof size !== "number";
+  const validSize =
+    typeof size !== "number" || (Number.isFinite(size) && size >= 0);
+  const validSizeRange =
+    sizeRange.length === 2 &&
+    sizeRange.every(Number.isFinite) &&
+    sizeRange[0] >= 0 &&
+    sizeRange[1] > 0 &&
+    sizeRange[0] <= sizeRange[1];
+  const chartError =
+    error ||
+    model.error ||
+    (!(Number.isFinite(height) && height > 0)
+      ? "Chart height must be a positive, finite number."
+      : null) ||
+    (!validDomain(xDomain)
+      ? "xDomain must contain two finite bounds with min < max."
+      : null) ||
+    (!validDomain(yDomain)
+      ? "yDomain must contain two finite bounds with min < max."
+      : null) ||
+    (!validSize
+      ? "Point radius must be a finite, nonnegative number."
+      : null) ||
+    (!validSizeRange
+      ? "sizeRange must contain finite radii with 0 ≤ min ≤ max and max > 0."
+      : null);
+  const outsideCount = model.points.filter(
+    (p) =>
+      (xDomain && (p.x < xDomain[0] || p.x > xDomain[1])) ||
+      (yDomain && (p.y < yDomain[0] || p.y > yDomain[1])),
+  ).length;
+  const frameHeight = Number.isFinite(height) && height > 0 ? height : 300;
+  const legendHeight = showLegend ? Math.min(48, frameHeight / 5) : 0;
+  const noticeHeight = outsideCount > 0 && !initialLoading ? 22 : 0;
+  const svgHeight = frameHeight - legendHeight - noticeHeight;
+  const plot = {
+    left: Math.min(68, width / 4),
+    top: 18,
+    width: Math.max(0, width - Math.min(68, width / 4) - 18),
+    height: Math.max(0, svgHeight - 70),
+  };
+  const range = validSizeRange ? sizeRange : SIZE_RANGE;
+  const radius = initialLoading
+    ? 6
+    : bubble
+      ? range[1]
+      : typeof size === "number" && validSize
         ? size
-        : size
-          ? getNumericValue(item, size as string) ?? DEFAULT_POINT_SIZE
-          : DEFAULT_POINT_SIZE;
-      const seriesKey = series ? String(item[series]) : 'default';
-
-      return {
-        data: item,
-        index,
-        xValue: xVal,
-        yValue: yVal,
-        sizeValue: sizeVal,
-        seriesKey,
-        label: series ? String(item[series]) : `Point ${index + 1}`,
-      };
-    }).filter(p => p.xValue !== null && p.yValue !== null) as Array<{
-      data: T;
-      index: number;
-      xValue: number;
-      yValue: number;
-      sizeValue: number;
-      seriesKey: string;
-      label: string;
-    }>;
-  }, [data, x, y, series, size]);
-
-  // Memoized: Calculate domains from raw points
-  const domains = useMemo(() => {
-    if (!rawPoints.length) {
-      return {
-        xMin: 0, xMax: 1,
-        yMin: 0, yMax: 1,
-        sizeMin: DEFAULT_POINT_SIZE,
-        sizeMax: DEFAULT_POINT_SIZE,
-        effectiveXDomain: [0, 1] as readonly [number, number],
-        effectiveYDomain: [0, 1] as readonly [number, number],
-      };
+        : 6;
+  const domains = useMemo(
+    () => ({
+      x: getScatterDomain(
+        source.points.map((p) => p.x),
+        validDomain(xDomain) ? xDomain : undefined,
+        radius,
+        plot.width,
+      ),
+      y: getScatterDomain(
+        source.points.map((p) => p.y),
+        validDomain(yDomain) ? yDomain : undefined,
+        radius,
+        plot.height,
+      ),
+    }),
+    [source.points, xDomain, yDomain, radius, plot.width, plot.height],
+  );
+  const points = useMemo(
+    () =>
+      source.points
+        .filter(
+          (p) =>
+            p.x >= domains.x[0] &&
+            p.x <= domains.x[1] &&
+            p.y >= domains.y[0] &&
+            p.y <= domains.y[1],
+        )
+        .map((p) => ({
+          ...p,
+          cx: plot.left + scaleValue(p.x, domains.x, [0, plot.width]),
+          cy: plot.top + scaleValue(p.y, domains.y, [plot.height, 0]),
+          radius:
+            !initialLoading && bubble
+              ? bubbleRadius(
+                  p.size,
+                  source.minSize,
+                  source.maxSize,
+                  range,
+                  sizeScale,
+                )
+              : radius,
+          color:
+            colors[source.groups.indexOf(p.seriesKey) % colors.length] ??
+            DEFAULT_COLORS[0],
+        })),
+    [
+      source,
+      domains,
+      plot.left,
+      plot.top,
+      plot.width,
+      plot.height,
+      initialLoading,
+      bubble,
+      range,
+      sizeScale,
+      radius,
+      colors,
+    ],
+  );
+  const drawingOrder = useMemo(
+    () => [...points].sort((a, b) => b.radius - a.radius || a.index - b.index),
+    [points],
+  );
+  const navigation = useMemo(
+    () =>
+      [...points].sort((a, b) => a.x - b.x || a.y - b.y || a.index - b.index),
+    [points],
+  );
+  const selectedIndex = navigation.some((p) => p.index === tabIndex)
+    ? tabIndex
+    : navigation[0]?.index;
+  const fits = useMemo(() => {
+    if (!showTrendLine || model.error) return [];
+    const groups = new Map<string, { x: number; y: number }[]>();
+    for (const point of model.points) {
+      const group = groups.get(point.seriesKey) ?? [];
+      group.push(point);
+      groups.set(point.seriesKey, group);
     }
-
-    const xValues = rawPoints.map(p => p.xValue);
-    const yValues = rawPoints.map(p => p.yValue);
-    const sizeValues = rawPoints.map(p => p.sizeValue);
-
-    const xMin = Math.min(...xValues);
-    const xMax = Math.max(...xValues);
-    const yMin = Math.min(...yValues);
-    const yMax = Math.max(...yValues);
-    const sizeMin = Math.min(...sizeValues);
-    const sizeMax = Math.max(...sizeValues);
-
-    // Add 5% padding to domains
-    const xPadding = (xMax - xMin) * 0.05 || 1;
-    const yPadding = (yMax - yMin) * 0.05 || 1;
-
-    const effectiveXDomain: readonly [number, number] = xDomain ?? [xMin - xPadding, xMax + xPadding];
-    const effectiveYDomain: readonly [number, number] = yDomain ?? [yMin - yPadding, yMax + yPadding];
-
-    return {
-      xMin, xMax, yMin, yMax, sizeMin, sizeMax,
-      effectiveXDomain,
-      effectiveYDomain,
-    };
-  }, [rawPoints, xDomain, yDomain]);
-
-  // Memoized: Calculate axis ticks
-  const { xTicks, yTicks } = useMemo(() => ({
-    xTicks: calculateNiceTicks(domains.effectiveXDomain[0], domains.effectiveXDomain[1], 6),
-    yTicks: calculateNiceTicks(domains.effectiveYDomain[0], domains.effectiveYDomain[1], 5),
-  }), [domains.effectiveXDomain, domains.effectiveYDomain]);
-
-  // Memoized: Process series with screen coordinates
-  const processedSeries = useMemo(() => {
-    if (!rawPoints.length || chartWidth <= 0 || chartHeight <= 0) {
-      return [] as ProcessedSeries<T>[];
-    }
-
-    const { effectiveXDomain, effectiveYDomain, sizeMin, sizeMax } = domains;
-
-    // Group by series
-    const seriesGroups = new Map<string, typeof rawPoints>();
-    rawPoints.forEach(point => {
-      const existing = seriesGroups.get(point.seriesKey) || [];
-      existing.push(point);
-      seriesGroups.set(point.seriesKey, existing);
-    });
-
-    // Process each series
-    return Array.from(seriesGroups.entries()).map(
-      ([seriesKey, points], seriesIndex): ProcessedSeries<T> => {
-        const seriesColor = colors[seriesIndex % colors.length] || DEFAULT_COLORS[0];
-
-        const processedPoints: ProcessedPoint<T>[] = points.map(point => ({
-          ...point,
-          screenX: scaleValue(point.xValue, effectiveXDomain, [0, chartWidth]),
-          screenY: scaleValue(point.yValue, effectiveYDomain, [chartHeight, 0]),
-          radius: typeof size === 'number' || !size
-            ? (typeof size === 'number' ? size : DEFAULT_POINT_SIZE)
-            : scaleValue(point.sizeValue, [sizeMin, sizeMax], sizeRange),
-          color: seriesColor,
-          formattedX: formatValue(point.xValue),
-          formattedY: formatValue(point.yValue),
-          formattedSize: size && typeof size !== 'number' ? formatValue(point.sizeValue) : null,
-        }));
-
-        // Calculate trend line if enabled
-        let trendLine: TrendLine | null = null;
-        if (showTrendLine && processedPoints.length >= 2) {
-          const regression = calculateLinearRegression(
-            processedPoints.map(p => ({ x: p.xValue, y: p.yValue }))
-          );
-
-          // Calculate line endpoints within domain
-          const lineX1 = effectiveXDomain[0];
-          const lineX2 = effectiveXDomain[1];
-          const lineY1 = regression.slope * lineX1 + regression.intercept;
-          const lineY2 = regression.slope * lineX2 + regression.intercept;
-
-          trendLine = {
-            ...regression,
-            screenX1: scaleValue(lineX1, effectiveXDomain, [0, chartWidth]),
-            screenY1: scaleValue(lineY1, effectiveYDomain, [chartHeight, 0]),
-            screenX2: scaleValue(lineX2, effectiveXDomain, [0, chartWidth]),
-            screenY2: scaleValue(lineY2, effectiveYDomain, [chartHeight, 0]),
-          };
-        }
-
-        return {
-          key: seriesKey,
-          color: seriesColor,
-          points: processedPoints,
-          trendLine,
-        };
+    return [...groups].map(([key, values]) => ({
+      key,
+      fit: calculateLinearRegression(values),
+    }));
+  }, [showTrendLine, model]);
+  const trends = fits.flatMap(({ key, fit }) => {
+    const segment = getTrendSegment(fit, domains.x, domains.y);
+    return segment ? [{ ...segment, key }] : [];
+  });
+  const ready =
+    !loading &&
+    !chartError &&
+    data.length > 0 &&
+    plot.width > 0 &&
+    plot.height > 0;
+  const matches = (selection: Selection | null) =>
+    selection?.data === data &&
+    selection.x === x &&
+    selection.y === y &&
+    selection.series === series &&
+    selection.size === size;
+  const active =
+    ready && matches(inspection)
+      ? points.find((p) => p.index === inspection!.index)
+      : undefined;
+  const focused = ready && matches(focus) ? focus!.index : null;
+  const tipData: ScatterPlotTooltipData<T> | null = active
+    ? {
+        data: data[active.index]!,
+        index: active.index,
+        label: active.label,
+        xValue: active.x,
+        yValue: active.y,
+        formattedX: xFormatter(active.x),
+        formattedY: yFormatter(active.y),
+        seriesKey: active.seriesKey,
+        sizeValue: active.size,
+        color: active.color,
       }
-    );
-  }, [rawPoints, domains, colors, chartWidth, chartHeight, size, sizeRange, showTrendLine]);
-
-  // Memoized callback: Get hovered point data for tooltip
-  const hoveredData = useMemo(() => {
-    if (!hoveredPoint) return null;
-    const seriesData = processedSeries.find(s => s.key === hoveredPoint.series);
-    if (!seriesData) return null;
-    const point = seriesData.points.find(p => p.index === hoveredPoint.index);
-    return point ? { point, seriesKey: seriesData.key, color: seriesData.color } : null;
-  }, [hoveredPoint, processedSeries]);
-
-  // Memoized: Grid dasharray
-  const gridDasharray = useMemo(() => getGridDasharray(gridStyle), [gridStyle]);
-
-  // Callbacks for event handlers
-  const handleMouseEnter = useCallback((index: number, seriesKey: string) => {
-    setHoveredPoint({ index, series: seriesKey });
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    setHoveredPoint(null);
-  }, []);
-
-  const handlePointClick = useCallback((point: ProcessedPoint<T>, seriesKey: string) => {
-    onPointClick?.(point.data, point.index, seriesKey);
-  }, [onPointClick]);
-
-  // Keyboard handler for point interaction (WCAG)
-  const handleKeyDown = useCallback((
-    e: React.KeyboardEvent,
-    point: ProcessedPoint<T>,
-    seriesKey: string
-  ) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onPointClick?.(point.data, point.index, seriesKey);
-    }
-  }, [onPointClick]);
-
-  // Early returns for different states
-  if (loading) return <states.Loading height={height} shouldAnimate={shouldAnimate} />;
-  if (error) return <states.Error error={error} />;
-  // If no data provided or no plottable points (non-numeric x/y), show empty state
-  // Note: Use rawPoints.length instead of processedSeries.length because processedSeries depends on containerWidth
-  if (!data.length || rawPoints.length === 0) return <states.Empty />;
-
-  if (!containerWidth) {
-    return (
-      <div ref={containerRef} className={cn('relative w-full', className)} style={{ height }}>
-        <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-          Loading...
-        </div>
-      </div>
-    );
+    : null;
+  function inspect(index: number) {
+    setInspection({ data, x, y, series, size, index });
   }
+  function navigate(event: KeyboardEvent<SVGCircleElement>, index: number) {
+    const position = navigation.findIndex((p) => p.index === index);
+    let next = position;
+    if (event.key === "ArrowRight") next = (position + 1) % navigation.length;
+    else if (event.key === "ArrowLeft")
+      next = (position + navigation.length - 1) % navigation.length;
+    else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+      const keys = source.groups.filter((key) =>
+        navigation.some((p) => p.seriesKey === key),
+      );
+      const current = navigation[position]!;
+      const offset = event.key === "ArrowDown" ? 1 : -1;
+      if (keys.length <= 1)
+        next = (position + navigation.length + offset) % navigation.length;
+      else {
+        const key =
+          keys[
+            (keys.indexOf(current.seriesKey) + keys.length + offset) %
+              keys.length
+          ];
+        const candidates = navigation.filter((p) => p.seriesKey === key);
+        const nearest = candidates.reduce((best, p) =>
+          Math.abs(p.cx - current.cx) < Math.abs(best.cx - current.cx)
+            ? p
+            : best,
+        );
+        next = navigation.findIndex((p) => p.index === nearest.index);
+      }
+    } else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = navigation.length - 1;
+    else if (event.key === "Escape") {
+      event.preventDefault();
+      setInspection(null);
+      return;
+    } else if ((event.key === "Enter" || event.key === " ") && onPointClick) {
+      event.preventDefault();
+      const p = navigation[position]!;
+      onPointClick(data[p.index]!, p.index, p.seriesKey);
+      return;
+    } else return;
+    event.preventDefault();
+    const point = navigation[next]!;
+    setTabIndex(point.index);
+    refs.current[point.index]?.focus();
+  }
+  const xTicks = calculateNiceTicks(
+    domains.x[0],
+    domains.x[1],
+    Math.min(6, Math.max(2, Math.floor(plot.width / 80))),
+  );
+  const yTicks = calculateNiceTicks(
+    domains.y[0],
+    domains.y[1],
+    Math.min(5, Math.max(2, Math.floor(plot.height / 48))),
+  );
+  const xTickWidth = Math.max(
+    0,
+    Math.min(90, plot.width / Math.max(1, xTicks.length - 1)),
+  );
+  const stateMessage =
+    !loading && chartError
+      ? chartError
+      : !loading && !data.length
+        ? "No Data"
+        : !loading && !ready
+          ? "Waiting for chart space"
+          : null;
 
   return (
     <div
       ref={containerRef}
-      className={cn('relative w-full', className)}
-      style={{ height }}
+      className={cn("relative w-full", className)}
+      style={{ height: frameHeight }}
+      aria-busy={loading}
+      onMouseLeave={() => setInspection(matches(focus) ? focus : null)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setFocus(null);
+          setInspection(null);
+        }
+      }}
     >
-      <svg width="100%" height={height} className="overflow-visible">
-        <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
-          {/* Grid lines */}
-          {showGrid && (
-            <>
-              {/* Horizontal grid lines */}
-              {yTicks.map((tick, i) => {
-                const tickY = scaleValue(tick, domains.effectiveYDomain, [chartHeight, 0]);
-                return (
-                  <line
-                    key={`grid-h-${i}`}
-                    x1={0}
-                    y1={tickY}
-                    x2={chartWidth}
-                    y2={tickY}
-                    stroke="currentColor"
-                    opacity={0.1}
-                    strokeDasharray={gridDasharray}
-                  />
-                );
-              })}
-              {/* Vertical grid lines */}
-              {xTicks.map((tick, i) => {
-                const tickX = scaleValue(tick, domains.effectiveXDomain, [0, chartWidth]);
-                return (
-                  <line
-                    key={`grid-v-${i}`}
-                    x1={tickX}
-                    y1={0}
-                    x2={tickX}
-                    y2={chartHeight}
-                    stroke="currentColor"
-                    opacity={0.1}
-                    strokeDasharray={gridDasharray}
-                  />
-                );
-              })}
-            </>
-          )}
-
-          {/* Y Axis */}
-          <line
-            x1={0}
-            y1={0}
-            x2={0}
-            y2={chartHeight}
-            stroke="currentColor"
-            opacity={0.3}
-            strokeWidth={1.5}
-          />
-
-          {/* X Axis */}
-          <line
-            x1={0}
-            y1={chartHeight}
-            x2={chartWidth}
-            y2={chartHeight}
-            stroke="currentColor"
-            opacity={0.3}
-            strokeWidth={1.5}
-          />
-
-          {/* Y Axis ticks and labels */}
-          {yTicks.map((tick, i) => {
-            const tickY = scaleValue(tick, domains.effectiveYDomain, [chartHeight, 0]);
-            return (
-              <g key={`y-tick-${i}`}>
-                <line
-                  x1={-4}
-                  y1={tickY}
-                  x2={0}
-                  y2={tickY}
-                  stroke="currentColor"
-                  opacity={0.3}
-                />
-                <text
-                  x={-8}
-                  y={tickY}
-                  textAnchor="end"
-                  dominantBaseline="middle"
-                  fontSize={11}
-                  className="fill-muted-foreground"
-                >
-                  {formatValue(tick)}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* X Axis ticks and labels */}
-          {xTicks.map((tick, i) => {
-            const tickX = scaleValue(tick, domains.effectiveXDomain, [0, chartWidth]);
-            return (
-              <g key={`x-tick-${i}`}>
-                <line
-                  x1={tickX}
-                  y1={chartHeight}
-                  x2={tickX}
-                  y2={chartHeight + 4}
-                  stroke="currentColor"
-                  opacity={0.3}
-                />
-                <text
-                  x={tickX}
-                  y={chartHeight + 16}
-                  textAnchor="middle"
-                  fontSize={11}
-                  className="fill-muted-foreground"
-                >
-                  {formatValue(tick)}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Trend lines */}
-          {showTrendLine && processedSeries.map((series, seriesIndex) => (
-            series.trendLine && (
-              <motion.line
-                key={`trend-${seriesIndex}`}
-                x1={series.trendLine.screenX1}
-                y1={series.trendLine.screenY1}
-                x2={series.trendLine.screenX2}
-                y2={series.trendLine.screenY2}
-                stroke={trendLineColor || series.color}
-                strokeWidth={2}
-                strokeDasharray="6 4"
-                opacity={0.6}
-                {...(shouldAnimate && {
-                  initial: { pathLength: 0, opacity: 0 },
-                  animate: { pathLength: 1, opacity: 0.6 },
-                  transition: {
-                    duration: 0.8,
-                    delay: 0.5 + seriesIndex * 0.1,
-                    ease: [0.4, 0, 0.2, 1]
-                  }
-                })}
-              />
-            )
-          ))}
-
-          {/* Points */}
-          {processedSeries.flatMap((series, seriesIndex) =>
-            series.points.map((point, pointIndex) => {
-              const isHovered = hoveredPoint?.index === point.index && hoveredPoint?.series === series.key;
-              const ariaLabel = `${series.key !== 'default' ? `${series.key}: ` : ''}X ${point.formattedX}, Y ${point.formattedY}${point.formattedSize ? `, size ${point.formattedSize}` : ''}`;
-
-              return (
-                <motion.circle
-                  key={`point-${seriesIndex}-${pointIndex}`}
-                  cx={point.screenX}
-                  cy={point.screenY}
-                  r={isHovered ? point.radius * 1.2 : point.radius}
-                  fill={point.color}
-                  stroke="white"
-                  strokeWidth={2}
-                  className="cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  style={{ transformOrigin: `${point.screenX}px ${point.screenY}px` }}
-                  // Mouse interactions
-                  onMouseEnter={() => handleMouseEnter(point.index, series.key)}
-                  onMouseLeave={handleMouseLeave}
-                  onClick={() => handlePointClick(point, series.key)}
-                  // Keyboard accessibility (WCAG)
-                  tabIndex={0}
-                  role="button"
-                  aria-label={ariaLabel}
-                  onFocus={() => handleMouseEnter(point.index, series.key)}
-                  onBlur={handleMouseLeave}
-                  onKeyDown={(e) => handleKeyDown(e, point, series.key)}
-                  {...(shouldAnimate && {
-                    initial: { scale: 0, opacity: 0 },
-                    animate: { scale: 1, opacity: 1 },
-                    transition: {
-                      duration: 0.4,
-                      delay: seriesIndex * 0.1 + pointIndex * 0.02,
-                      ease: [0.4, 0, 0.2, 1]
-                    }
-                  })}
-                />
-              );
-            })
-          )}
-        </g>
-      </svg>
-
-      {/* Tooltip */}
-      {(() => {
-        const tipData: ScatterPlotTooltipData<T> | null = hoveredData ? {
-          xValue: hoveredData.point.xValue,
-          yValue: hoveredData.point.yValue,
-          formattedX: hoveredData.point.formattedX,
-          formattedY: hoveredData.point.formattedY,
-          seriesKey: hoveredData.seriesKey,
-          sizeValue: hoveredData.point.sizeValue,
-          color: hoveredData.color,
-        } : null;
-
-        return (
-          <ChartTooltip
-            visible={tipData !== null}
-            x={hoveredData ? hoveredData.point.screenX + MARGIN.left : 0}
-            y={hoveredData ? Math.max(10, hoveredData.point.screenY + MARGIN.top - 80) : 0}
-            className="transform -translate-x-1/2"
-          >
-            {tipData && (tooltipRenderer ? tooltipRenderer(tipData) : (
-              <>
-                {processedSeries.length > 1 && (
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: tipData.color }} />
-                    <span className="text-xs font-medium">{tipData.seriesKey}</span>
-                  </div>
-                )}
-                <div className="text-xs text-muted-foreground">
-                  X: <span className="font-medium text-foreground">{tipData.formattedX}</span>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Y: <span className="font-medium text-foreground">{tipData.formattedY}</span>
-                </div>
-                {hoveredData!.point.formattedSize && (
-                  <div className="text-xs text-muted-foreground">
-                    Size: <span className="font-medium text-foreground">{hoveredData!.point.formattedSize}</span>
-                  </div>
-                )}
-              </>
-            ))}
-          </ChartTooltip>
-        );
-      })()}
-
-      {/* Legend */}
-      {showLegend && processedSeries.length > 1 && (
-        <div className="flex flex-wrap gap-4 justify-center mt-2 px-4">
-          {processedSeries.map((series) => (
-            <div key={series.key} className="flex items-center space-x-2">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: series.color }}
-              />
-              <span className="text-sm text-muted-foreground">{series.key}</span>
-            </div>
-          ))}
+      {loading && (
+        <span role="status" className="sr-only">
+          Loading chart
+        </span>
+      )}
+      {stateMessage ? (
+        <div
+          role={chartError ? "alert" : "status"}
+          className="flex h-full items-center justify-center p-6 text-center"
+        >
+          <div className="space-y-2">
+            <p
+              className={cn(
+                "font-medium",
+                chartError ? "text-destructive" : "text-muted-foreground",
+              )}
+            >
+              {chartError ? "Chart Error" : stateMessage}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {chartError || (!data.length ? "There's no data to display" : "")}
+            </p>
+          </div>
         </div>
+      ) : (
+        <>
+          <svg
+            width="100%"
+            height={svgHeight}
+            role={loading ? "presentation" : "group"}
+            aria-hidden={loading || undefined}
+            aria-label={
+              ariaLabel ?? `Scatter plot with ${points.length} visible points`
+            }
+            aria-describedby={`${id}-description`}
+          >
+            <desc id={`${id}-description`}>
+              {description ? `${description} ` : ""}Left and Right inspect
+              points in X order; Up and Down switch series. Home and End jump;
+              Escape dismisses inspection.{" "}
+              {onPointClick ? "Enter or Space selects the point. " : ""}
+              {outsideCount > 0
+                ? `${outsideCount} observations lie outside the displayed domains. `
+                : ""}
+              {showTrendLine
+                ? "Trends use all observations in each series and are limited to observed X values."
+                : ""}
+            </desc>
+            <defs>
+              <clipPath id={`${id}-plot`}>
+                <rect
+                  x={plot.left}
+                  y={plot.top}
+                  width={plot.width}
+                  height={plot.height}
+                />
+              </clipPath>
+            </defs>
+            <g aria-hidden="true">
+              {showGrid && (
+                <g
+                  stroke="var(--border)"
+                  strokeDasharray={getGridDasharray(gridStyle)}
+                >
+                  {xTicks.map((tick, index) => (
+                    <line
+                      key={`x-${index}`}
+                      data-scatter-grid=""
+                      x1={
+                        plot.left + scaleValue(tick, domains.x, [0, plot.width])
+                      }
+                      x2={
+                        plot.left + scaleValue(tick, domains.x, [0, plot.width])
+                      }
+                      y1={plot.top}
+                      y2={plot.top + plot.height}
+                    />
+                  ))}
+                  {yTicks.map((tick, index) => (
+                    <line
+                      key={`y-${index}`}
+                      data-scatter-grid=""
+                      x1={plot.left}
+                      x2={plot.left + plot.width}
+                      y1={
+                        plot.top + scaleValue(tick, domains.y, [plot.height, 0])
+                      }
+                      y2={
+                        plot.top + scaleValue(tick, domains.y, [plot.height, 0])
+                      }
+                    />
+                  ))}
+                </g>
+              )}
+              <path
+                data-scatter-axis=""
+                d={`M ${plot.left} ${plot.top} V ${plot.top + plot.height} H ${plot.left + plot.width}`}
+                fill="none"
+                stroke="var(--border)"
+              />
+              {xTicks.map((tick, index) => {
+                const cx =
+                  plot.left + scaleValue(tick, domains.x, [0, plot.width]);
+                return (
+                  <foreignObject
+                    key={index}
+                    x={Math.max(
+                      plot.left,
+                      Math.min(
+                        cx - xTickWidth / 2,
+                        plot.left + plot.width - xTickWidth,
+                      ),
+                    )}
+                    y={plot.top + plot.height + 7}
+                    width={xTickWidth}
+                    height={18}
+                  >
+                    <div
+                      className="truncate text-xs text-muted-foreground"
+                      style={{
+                        textAlign:
+                          index === 0
+                            ? "left"
+                            : index === xTicks.length - 1
+                              ? "right"
+                              : "center",
+                      }}
+                      title={loading ? undefined : xFormatter(tick)}
+                    >
+                      {loading ? (
+                        <span className="inline-block h-2 w-6 rounded bg-muted" />
+                      ) : (
+                        xFormatter(tick)
+                      )}
+                    </div>
+                  </foreignObject>
+                );
+              })}
+              {yTicks.map((tick, index) => (
+                <foreignObject
+                  key={index}
+                  x={20}
+                  y={
+                    plot.top + scaleValue(tick, domains.y, [plot.height, 0]) - 9
+                  }
+                  width={Math.max(0, plot.left - 28)}
+                  height={18}
+                >
+                  <div
+                    className="truncate text-right text-xs text-muted-foreground"
+                    title={loading ? undefined : yFormatter(tick)}
+                  >
+                    {loading ? (
+                      <span className="inline-block h-2 w-6 rounded bg-muted" />
+                    ) : (
+                      yFormatter(tick)
+                    )}
+                  </div>
+                </foreignObject>
+              ))}
+              {!loading && (
+                <>
+                  <foreignObject
+                    x={plot.left}
+                    y={svgHeight - 21}
+                    width={plot.width}
+                    height={18}
+                  >
+                    <div
+                      className="truncate text-center text-xs text-muted-foreground"
+                      title={xLabel}
+                    >
+                      {xLabel}
+                    </div>
+                  </foreignObject>
+                  <text
+                    x={12}
+                    y={plot.top + plot.height / 2}
+                    textAnchor="middle"
+                    transform={`rotate(-90 12 ${plot.top + plot.height / 2})`}
+                    className="fill-muted-foreground text-xs"
+                  >
+                    <title>{yLabel}</title>
+                    {yLabel.length > Math.max(3, plot.height / 7)
+                      ? `${yLabel.slice(0, Math.max(1, Math.floor(plot.height / 7) - 1))}…`
+                      : yLabel}
+                  </text>
+                </>
+              )}
+            </g>
+            <g
+              clipPath={`url(#${id}-plot)`}
+              className={cn(
+                loading && "text-muted",
+                loading &&
+                  shouldAnimate &&
+                  "animate-pulse motion-reduce:animate-none",
+              )}
+            >
+              {!initialLoading &&
+                trends.map((line) => (
+                  <line
+                    key={line.key}
+                    data-scatter-trend=""
+                    x1={plot.left + line.x1 * plot.width}
+                    x2={plot.left + line.x2 * plot.width}
+                    y1={plot.top + line.y1 * plot.height}
+                    y2={plot.top + line.y2 * plot.height}
+                    stroke={
+                      loading
+                        ? "currentColor"
+                        : (trendLineColor ??
+                          colors[
+                            source.groups.indexOf(line.key) % colors.length
+                          ] ??
+                          DEFAULT_COLORS[0])
+                    }
+                    strokeWidth={2}
+                    strokeDasharray="6 4"
+                    opacity={0.65}
+                    aria-hidden="true"
+                  />
+                ))}
+              <PointCloud
+                key={loading ? "loading" : "ready"}
+                points={drawingOrder}
+                enabled={shouldAnimate && !loading}
+                loading={loading}
+              >
+                {!loading &&
+                  drawingOrder.map((point) => (
+                    <circle
+                      key={point.index}
+                      data-scatter-point={point.index}
+                      ref={(el) => {
+                        refs.current[point.index] = el;
+                      }}
+                      cx={point.cx}
+                      cy={point.cy}
+                      r={Math.max(12, point.radius + 3)}
+                      fill="transparent"
+                      stroke={
+                        active?.index === point.index || focused === point.index
+                          ? "var(--foreground)"
+                          : "transparent"
+                      }
+                      strokeWidth={1.5}
+                      className={cn(
+                        "outline-none touch-manipulation focus-visible:stroke-foreground",
+                        onPointClick ? "cursor-pointer" : "cursor-default",
+                      )}
+                      role={onPointClick ? "button" : "graphics-symbol"}
+                      tabIndex={point.index === selectedIndex ? 0 : -1}
+                      aria-label={`${point.label}${series !== undefined ? `, ${point.seriesKey}` : ""}: ${xLabel} ${xFormatter(point.x)}, ${yLabel} ${yFormatter(point.y)}${bubble ? `, ${sizeLabel} ${sizeFormatter(point.size)}` : ""}`}
+                      aria-describedby={
+                        active?.index === point.index
+                          ? `${id}-tooltip`
+                          : undefined
+                      }
+                      onMouseEnter={() => inspect(point.index)}
+                      onPointerDown={() => inspect(point.index)}
+                      onFocus={() => {
+                        setTabIndex(point.index);
+                        setFocus({
+                          data,
+                          x,
+                          y,
+                          series,
+                          size,
+                          index: point.index,
+                        });
+                        inspect(point.index);
+                      }}
+                      onClick={() => {
+                        inspect(point.index);
+                        onPointClick?.(
+                          data[point.index]!,
+                          point.index,
+                          point.seriesKey,
+                        );
+                      }}
+                      onKeyDown={(event) => navigate(event, point.index)}
+                    />
+                  ))}
+              </PointCloud>
+            </g>
+            {ready && !points.length && (
+              <text
+                role="status"
+                x={plot.left + plot.width / 2}
+                y={plot.top + plot.height / 2}
+                textAnchor="middle"
+                className="fill-muted-foreground text-sm"
+              >
+                No points in this range
+              </text>
+            )}
+          </svg>
+          {noticeHeight > 0 && (
+            <p
+              className="truncate px-3 text-center text-xs text-muted-foreground"
+              style={{ height: noticeHeight }}
+            >
+              {loading
+                ? "Updating observations…"
+                : `${outsideCount} of ${data.length} points outside this range`}
+            </p>
+          )}
+          {showLegend && (
+            <ul
+              aria-label={loading ? undefined : "Chart series"}
+              aria-hidden={loading || undefined}
+              className="flex flex-wrap content-start justify-center gap-x-5 gap-y-2 overflow-auto px-3 py-2 text-xs"
+              style={{ height: legendHeight }}
+            >
+              {source.groups.map((key, index) => (
+                <li
+                  key={key}
+                  className="flex min-w-0 max-w-full items-center gap-2"
+                >
+                  <span
+                    className={cn(
+                      "size-2.5 shrink-0 rounded-full",
+                      loading && "bg-muted",
+                    )}
+                    style={
+                      loading
+                        ? undefined
+                        : {
+                            backgroundColor:
+                              colors[index % colors.length] ??
+                              DEFAULT_COLORS[0],
+                          }
+                    }
+                  />
+                  {loading ? (
+                    <span className="h-2 w-16 rounded bg-muted" />
+                  ) : (
+                    <span className="truncate" title={key}>
+                      {key === "default" && series === undefined
+                        ? "Observations"
+                        : key}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {ready && (
+            <table className="sr-only">
+              <caption>
+                {ariaLabel ?? "Scatter plot"} observations, including points
+                outside the view
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Point</th>
+                  <th scope="col">Series</th>
+                  <th scope="col">{xLabel}</th>
+                  <th scope="col">{yLabel}</th>
+                  {bubble && <th scope="col">{sizeLabel}</th>}
+                  <th scope="col">View</th>
+                </tr>
+              </thead>
+              <tbody>
+                {model.points.map((point) => (
+                  <tr key={point.index}>
+                    <th scope="row">{point.label}</th>
+                    <td>{point.seriesKey}</td>
+                    <td>{xFormatter(point.x)}</td>
+                    <td>{yFormatter(point.y)}</td>
+                    {bubble && <td>{sizeFormatter(point.size)}</td>}
+                    <td>
+                      {point.x >= domains.x[0] &&
+                      point.x <= domains.x[1] &&
+                      point.y >= domains.y[0] &&
+                      point.y <= domains.y[1]
+                        ? "Inside"
+                        : "Outside"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {active && tipData && (
+            <InspectionTooltip
+              id={`${id}-tooltip`}
+              x={active.cx}
+              y={active.cy}
+              width={width}
+              height={svgHeight}
+            >
+              {tooltipRenderer ? (
+                tooltipRenderer(tipData)
+              ) : (
+                <>
+                  <div className="mb-2 flex items-center gap-2 border-b border-border pb-2 text-xs font-medium text-muted-foreground">
+                    <span
+                      className="size-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: active.color }}
+                    />
+                    {active.label}
+                  </div>
+                  {series !== undefined && (
+                    <p className="mb-2 text-xs text-muted-foreground">
+                      {active.seriesKey}
+                    </p>
+                  )}
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between gap-6">
+                      <span>{xLabel}</span>
+                      <span className="font-semibold tabular-nums">
+                        {tipData.formattedX}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-6">
+                      <span>{yLabel}</span>
+                      <span className="font-semibold tabular-nums">
+                        {tipData.formattedY}
+                      </span>
+                    </div>
+                    {bubble && (
+                      <div className="flex justify-between gap-6">
+                        <span>{sizeLabel}</span>
+                        <span className="font-semibold tabular-nums">
+                          {sizeFormatter(active.size)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </InspectionTooltip>
+          )}
+        </>
       )}
     </div>
   );
 }
 
-export const ScatterPlot = memo(ScatterPlotComponent);
-export { DEFAULT_COLORS, formatValue };
+export const ScatterPlot = memo(
+  ScatterPlotComponent,
+) as typeof ScatterPlotComponent;

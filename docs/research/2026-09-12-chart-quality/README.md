@@ -4,7 +4,7 @@ Research date: September 12, 2026. Repository baseline: `f5320be`.
 
 Implementation follow-up: [BarChart v1](bar-chart-v1.md) records the subsequent, user-approved first implementation, its compatibility notes, screenshots, and validation. Findings below describe the original research baseline.
 
-The subsequent [LineChart v1](line-chart-v1.md) records its implementation and validation. [AreaChart retirement](area-chart-v1.md) records the decision to remove the standalone component and use LineChart fills. [PieChart v1](pie-chart-v1.md) records the pie, donut, and semicircle pass. [RadarChart v1](radar-chart-v1.md) records the scale, animation, and inspection pass. Work on the other seven chart families remains pending.
+The subsequent [LineChart v1](line-chart-v1.md) records its implementation and validation. [AreaChart retirement](area-chart-v1.md) records the decision to remove the standalone component and use LineChart fills. [PieChart v1](pie-chart-v1.md) records the pie, donut, and semicircle pass. [RadarChart v1](radar-chart-v1.md) records the scale, animation, and inspection pass. [ScatterPlot v1](scatter-plot-v1.md) records the bubble, viewport, trend, and inspection pass. Work on the other six chart families remains pending.
 
 **Recommendation: preserve the visual identity, repair data correctness and lifecycle failures first, then standardize the developer and interaction contracts. A wholesale rewrite is not justified by this audit.**
 

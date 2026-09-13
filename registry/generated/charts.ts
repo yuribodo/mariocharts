@@ -27,7 +27,7 @@ export const REGISTRY_CHARTS: readonly RegistryChartSummary[] = [
   {
     name: "scatter-plot",
     title: "Scatter Plot",
-    description: "A versatile scatter plot and bubble chart component with multi-series support, trend lines, dynamic bubble sizing, responsive design, and smooth animations",
+    description: "A scatter and bubble chart with area-scaled bubbles, clipped viewports and trends, keyboard and touch inspection, and points that grow at fixed coordinates",
     docsPath: "/docs/components/scatter-plot",
     registryUrl: "https://mariocharts.com/r/scatter-plot.json",
   },

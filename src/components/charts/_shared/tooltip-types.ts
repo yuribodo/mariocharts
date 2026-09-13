@@ -72,6 +72,9 @@ export interface RadarChartTooltipData<T extends ChartDataItem> {
 }
 
 export interface ScatterPlotTooltipData<T extends ChartDataItem> {
+  readonly data: T;
+  readonly index: number;
+  readonly label: string;
   readonly xValue: number;
   readonly yValue: number;
   readonly formattedX: string;

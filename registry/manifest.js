@@ -47,7 +47,7 @@ const CHARTS = [
     name: 'scatter-plot',
     docsSlug: 'scatter-plot',
     title: 'Scatter Plot',
-    description: 'A versatile scatter plot and bubble chart component with multi-series support, trend lines, dynamic bubble sizing, responsive design, and smooth animations',
+    description: 'A scatter and bubble chart with area-scaled bubbles, clipped viewports and trends, keyboard and touch inspection, and points that grow at fixed coordinates',
     importName: 'ScatterPlot',
     exportName: 'ScatterPlot',
     siblingFiles: ['types.ts', 'scales.ts', 'regression.ts'],
