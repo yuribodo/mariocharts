@@ -331,7 +331,7 @@ export interface RadarChartProps<T extends ChartDataItem> {
 
 ### Stacked Bar Chart (`stacked-bar-chart`)
 
-A stacked bar chart component with multiple segment support, animated stacking, interactive tooltips, and both vertical and horizontal orientations
+A stacked bar chart with faithful signed stacks, growth from zero, segment inspection by keyboard and touch, and vertical or horizontal layouts
 
 Install: `npx shadcn@latest add https://mariocharts.com/r/stacked-bar-chart.json`
 Import: `import { StackedBarChart } from "@/components/charts/stacked-bar-chart";`
@@ -340,19 +340,36 @@ Docs: https://mariocharts.com/docs/components/stacked-bar-chart.md
 Props:
 
 ```ts
-interface StackedBarChartProps<T extends ChartDataItem> {
+export interface StackedBarChartProps<T extends ChartDataItem> {
+  /** Finite segment values; missing/malformed values show a row/key error. */
   readonly data: readonly T[];
+  /** Category key. Rows retain input order, including duplicate labels. */
   readonly x: keyof T;
+  /** Unique numeric keys in stack and legend order. */
   readonly y: readonly (keyof T)[];
   readonly colors?: readonly string[];
   readonly className?: string;
+  /** Total frame height, including the optional legend. Defaults to 300. */
   readonly height?: number;
+  /** Retain data during refresh to preserve exact segment geometry. */
   readonly loading?: boolean;
   readonly error?: string | null;
+  /** Grow entire stacks from zero, preserving segment joins. Respects reduced motion. */
   readonly animation?: boolean;
-  readonly variant?: 'filled' | 'outline';
-  readonly orientation?: 'vertical' | 'horizontal';
+  readonly variant?: "filled" | "outline";
+  readonly orientation?: "vertical" | "horizontal";
+  /** Radius in pixels at the outer ends of each signed stack. Internal joins stay flat. Defaults to 2. */
+  readonly cornerRadius?: number;
   readonly showLegend?: boolean;
+  readonly showGrid?: boolean;
+  readonly gridStyle?: "solid" | "dashed" | "dotted";
+  /** Format segment values and signed totals. */
+  readonly valueFormatter?: (value: number) => string;
+  /** Format numeric ticks; defaults to valueFormatter. */
+  readonly axisValueFormatter?: (value: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
+  /** Original row, selected stack key, and original row index. Enter/Space also activate. */
   readonly onSegmentClick?: (data: T, stackKey: string, index: number) => void;
   readonly tooltipRenderer?: TooltipRenderer<StackedBarChartTooltipData<T>>;
 }

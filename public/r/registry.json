@@ -131,7 +131,7 @@
       "name": "stacked-bar-chart",
       "type": "registry:component",
       "title": "Stacked Bar Chart",
-      "description": "A stacked bar chart component with multiple segment support, animated stacking, interactive tooltips, and both vertical and horizontal orientations",
+      "description": "A stacked bar chart with faithful signed stacks, growth from zero, segment inspection by keyboard and touch, and vertical or horizontal layouts",
       "categories": [
         "charts",
         "dashboard"
@@ -139,6 +139,10 @@
       "files": [
         {
           "path": "stacked-bar-chart/index.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "stacked-bar-chart/utils.ts",
           "type": "registry:component"
         }
       ]

@@ -33,6 +33,11 @@ export interface PieChartTooltipData<T extends ChartDataItem> {
 }
 
 export interface StackedBarChartTooltipData<T extends ChartDataItem> {
+  readonly data: T;
+  readonly activeKey: string;
+  readonly activeIndex: number;
+  readonly positiveTotal: number;
+  readonly negativeTotal: number;
   readonly label: string;
   readonly index: number;
   readonly segments: readonly {

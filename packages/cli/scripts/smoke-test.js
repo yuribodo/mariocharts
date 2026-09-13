@@ -135,6 +135,7 @@ try {
     'components/charts/radar-chart/scales.ts',
     'components/charts/radar-chart/types.ts',
     'components/charts/stacked-bar-chart/index.tsx',
+    'components/charts/stacked-bar-chart/utils.ts',
     'components/charts/gauge-chart/index.tsx',
     'components/charts/gauge-chart/utils.ts',
     'components/charts/heatmap/index.tsx',

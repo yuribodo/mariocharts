@@ -48,7 +48,7 @@ export const REGISTRY_CHARTS: readonly RegistryChartSummary[] = [
   {
     name: "stacked-bar-chart",
     title: "Stacked Bar Chart",
-    description: "A stacked bar chart component with multiple segment support, animated stacking, interactive tooltips, and both vertical and horizontal orientations",
+    description: "A stacked bar chart with faithful signed stacks, growth from zero, segment inspection by keyboard and touch, and vertical or horizontal layouts",
     docsPath: "/docs/components/stacked-bar-chart",
     registryUrl: "https://mariocharts.com/r/stacked-bar-chart.json",
   },
