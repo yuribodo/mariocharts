@@ -69,7 +69,7 @@ const CHARTS = [
     name: 'radar-chart',
     docsSlug: 'radar-chart',
     title: 'Radar Chart',
-    description: 'A multi-axis radar chart component with multi-series support, animated fills, interactive tooltips, and responsive design',
+    description: 'A multi-axis radar chart with explicit axis ranges, polygons that grow from the center, keyboard and touch inspection, and responsive labels',
     importName: 'RadarChart',
     exportName: 'RadarChart',
     siblingFiles: ['types.ts', 'geometry.ts', 'scales.ts'],

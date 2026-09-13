@@ -1,22 +1,30 @@
 "use client";
 
-import * as React from "react";
-import { memo, useMemo, useState, useRef, useCallback, useEffect } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import {
+  memo,
+  useMemo,
+  useState,
+  useRef,
+  useEffect,
+  useId,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
+import {
+  animate,
+  useMotionValue,
+  useTransform,
+  useReducedMotion,
+} from "framer-motion";
 import { cn } from "../../../../lib/utils";
-import { useContainerDimensions, ChartTooltip } from "../_shared";
+import { useContainerDimensions, formatValue } from "../_shared";
 import type { RadarChartTooltipData } from "../_shared";
-
-// Internal modules
+import { InspectionTooltip } from "../_shared/inspection-tooltip";
 import type {
   ChartDataItem,
   RadarChartProps,
-  RadarSeries,
   RadarAxis,
-  ProcessedAxis,
-  ProcessedSeries,
-  ProcessedPoint,
-  HoveredState,
+  RadarSeries,
 } from "./types";
 import {
   polarToCartesian,
@@ -24,132 +32,79 @@ import {
   generatePolygonPath,
   generateCircularGridPath,
   generatePolygonGridPath,
-  calculateLabelPosition,
+  getRadarLayout,
+  getAxisLabelBox,
 } from "./geometry";
-import {
-  getNumericValue,
-  calculateAxisBounds,
-  normalizeValue,
-  formatValue,
-} from "./scales";
+import { buildRadarModel, normalizeValue } from "./scales";
 
-// Re-export types for consumers
-export type {
-  ChartDataItem,
-  RadarChartProps,
-  RadarSeries,
-  RadarAxis,
-};
-
-// Constants
-const DEFAULT_COLORS = [
-  '#3b82f6', // blue
-  '#10b981', // green
-  '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // violet
-  '#06b6d4', // cyan
+export type { ChartDataItem, RadarChartProps, RadarSeries, RadarAxis };
+export { formatValue };
+export const DEFAULT_COLORS = [
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#06b6d4",
 ] as const;
-
 const DEFAULT_HEIGHT = 400;
-const DEFAULT_GRID_LEVELS = 5;
-const DEFAULT_FILL_OPACITY = 0.25;
-const DEFAULT_STROKE_WIDTH = 2;
-const PADDING = 40;
-const DEFAULT_LABEL_OFFSET = 30;
-const MAX_RECOMMENDED_SERIES = 5;
-const LEGEND_HEIGHT = 50;
+const PLACEHOLDER_AXES = Array.from({ length: 6 }, (_, index) => ({
+  key: `axis${index}`,
+  label: `Axis ${index + 1}`,
+  min: 0,
+  max: 100,
+}));
 
-// Animation constants
-const ANIMATION_DURATION = 0.6;
-const ANIMATION_EASING = [0.4, 0, 0.2, 1] as const;
-const HOVER_DURATION = 0.2;
-const STAGGER_DELAY = 0.1;
-const HOVER_DEBOUNCE_MS = 50;
-
-// ============================================================================
-// State Components
-// ============================================================================
-
-function LoadingState({ height = DEFAULT_HEIGHT }: { height?: number }) {
-  const size = Math.min(height - PADDING * 4, 200);
-
+/** One transform grows polygons and their points together, with a fixed SVG origin. */
+function RadarGrowth({
+  cx,
+  cy,
+  enabled,
+  children,
+}: {
+  cx: number;
+  cy: number;
+  enabled: boolean;
+  children: ReactNode;
+}) {
+  const ref = useRef<SVGGElement>(null);
+  const progress = useMotionValue(enabled ? 0 : 1);
+  const transform = useTransform(
+    progress,
+    (value) =>
+      `translate(${cx} ${cy}) scale(${value}) translate(${-cx} ${-cy})`,
+  );
+  // Keep the origin in SVG coordinates, independent of a measured bounding box.
+  useEffect(
+    () =>
+      transform.on("change", (value) => {
+        ref.current?.setAttribute("transform", value);
+      }),
+    [transform],
+  );
+  useEffect(() => {
+    if (!enabled) {
+      progress.jump(1);
+      return;
+    }
+    progress.set(0);
+    const controls = animate(progress, 1, {
+      duration: 0.75,
+      ease: [0.33, 0, 0.2, 1],
+    });
+    return () => controls.stop();
+  }, [enabled, progress]);
   return (
-    <div
-      className="relative w-full flex items-center justify-center"
-      style={{ height }}
+    <g
+      ref={ref}
+      data-radar-growth=""
+      transform={transform.get()}
+      onFocusCapture={() => progress.jump(1)}
     >
-      <svg
-        width={size}
-        height={size}
-        className="animate-pulse"
-        viewBox={`0 0 ${size} ${size}`}
-      >
-        {/* Pulsing concentric rings */}
-        {Array.from({ length: 5 }).map((_, i) => {
-          const radius = (size / 2 - 10) * ((i + 1) / 5);
-          return (
-            <circle
-              key={`ring-${i}`}
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              fill="none"
-              stroke="hsl(var(--muted))"
-              strokeWidth={1.5}
-              opacity={0.3 + i * 0.1}
-            />
-          );
-        })}
-        {/* Pulsing axis lines */}
-        {Array.from({ length: 6 }).map((_, i) => {
-          const angle = calculateAxisAngle(i, 6);
-          const end = polarToCartesian(size / 2, size / 2, size / 2 - 10, angle);
-          return (
-            <line
-              key={`axis-${i}`}
-              x1={size / 2}
-              y1={size / 2}
-              x2={end.x}
-              y2={end.y}
-              stroke="hsl(var(--muted))"
-              strokeWidth={1.5}
-              opacity={0.3}
-            />
-          );
-        })}
-      </svg>
-    </div>
+      {children}
+    </g>
   );
 }
-
-function ErrorState({ error }: { error: string }) {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center space-y-2">
-        <div className="text-destructive font-medium">Chart Error</div>
-        <div className="text-sm text-muted-foreground">{error}</div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center space-y-2">
-        <div className="text-muted-foreground">No Data</div>
-        <div className="text-sm text-muted-foreground">
-          There&apos;s no data to display
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// Main Component
-// ============================================================================
 
 function RadarChartComponent<T extends ChartDataItem>({
   series,
@@ -160,623 +115,672 @@ function RadarChartComponent<T extends ChartDataItem>({
   loading = false,
   error = null,
   animation = true,
-  gridType = 'polygon',
-  gridLevels = DEFAULT_GRID_LEVELS,
+  gridType = "polygon",
+  gridLevels = 5,
   showAxisLabels = true,
   showAxisLines = true,
   showGridLines = true,
   showDots = true,
-  fillOpacity = DEFAULT_FILL_OPACITY,
-  strokeWidth = DEFAULT_STROKE_WIDTH,
-  labelOffset = DEFAULT_LABEL_OFFSET,
+  fillOpacity = 0.25,
+  strokeWidth = 2,
+  labelOffset = 30,
+  showLegend = series.length > 1,
   onSeriesClick,
   onAxisClick,
   tooltipRenderer,
+  valueFormatter = formatValue,
+  ariaLabel,
+  description,
 }: RadarChartProps<T>) {
-  const [containerRef, containerWidth] = useContainerDimensions();
-  const [hoveredState, setHoveredState] = useState<HoveredState | null>(null);
-  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
-  // Not NodeJS.Timeout: this file ships through the registry into projects
-  // that may have no @types/node, where that namespace does not resolve.
-  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-
+  const [containerRef, width] = useContainerDimensions();
+  const id = useId();
   const reduceMotion = useReducedMotion();
   const shouldAnimate = animation && !reduceMotion;
-
-  // Cleanup timeout on unmount
+  const refs = useRef<(SVGCircleElement | null)[]>([]);
+  const [tabPosition, setTabPosition] = useState(0);
+  type Selection = {
+    series: typeof series;
+    axes: typeof axes;
+    seriesIndex: number;
+    axisIndex?: number;
+  };
+  const [inspection, setInspection] = useState<Selection | null>(null);
+  const [focus, setFocus] = useState<Selection | null>(null);
   useEffect(() => {
-    return () => {
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Soft limit warning for too many series
-  if (process.env.NODE_ENV === 'development' && series.length > MAX_RECOMMENDED_SERIES) {
-    console.warn(
-      `[RadarChart] ${series.length} series detected. More than ${MAX_RECOMMENDED_SERIES} series may cause visual clutter. Consider using separate charts or a different visualization.`
-    );
-  }
-
-  // Calculate chart dimensions - reserve space for legend
-  const hasLegend = series.length > 1;
-  const svgHeight = hasLegend ? height - LEGEND_HEIGHT : height;
-  const chartSize = Math.min(containerWidth - PADDING * 2, svgHeight - PADDING * 2);
-  const cx = containerWidth / 2;
-  const cy = svgHeight / 2;
-  const radius = Math.max(0, (chartSize / 2) - labelOffset);
-
-  // Process axes with memoization
-  const processedAxes = useMemo((): ProcessedAxis[] => {
-    if (!axes.length || radius <= 0) return [];
-
-    return axes.map((axis, index) => {
-      const angle = calculateAxisAngle(index, axes.length);
-      const bounds = calculateAxisBounds(axis, series);
-      const endpoint = polarToCartesian(cx, cy, radius, angle);
-      const labelPos = calculateLabelPosition(angle, cx, cy, radius, labelOffset);
-
-      return {
-        index,
-        key: axis.key,
-        label: axis.label,
-        angle,
-        maxValue: bounds.max,
-        minValue: bounds.min,
-        labelX: labelPos.x,
-        labelY: labelPos.y,
-        endpointX: endpoint.x,
-        endpointY: endpoint.y,
-      };
-    });
-  }, [axes, series, cx, cy, radius, labelOffset]);
-
-  // Process series with memoization
-  const processedSeries = useMemo((): ProcessedSeries<T>[] => {
-    if (!series.length || !processedAxes.length || radius <= 0) return [];
-
-    return series.map((s, seriesIndex) => {
-      const points: ProcessedPoint[] = processedAxes.map((axis) => {
-        const rawValue = getNumericValue(s.data, axis.key);
-        const normalizedValue = normalizeValue(rawValue, axis.minValue, axis.maxValue);
-        const pointRadius = radius * normalizedValue;
-        const { x, y } = polarToCartesian(cx, cy, pointRadius, axis.angle);
-
+    setInspection(null);
+    setFocus(null);
+  }, [series, axes, loading, error]);
+  const model = useMemo(() => buildRadarModel(axes, series), [axes, series]);
+  const placeholder = useMemo(() => {
+    const dimensions = (
+      axes.length >= 3 &&
+      new Set(axes.map((axis) => axis.key)).size === axes.length
+        ? axes
+        : PLACEHOLDER_AXES
+    ).map((axis) => ({ ...axis, min: 0, max: 100 }));
+    return buildRadarModel<Record<string, number>>(dimensions, [
+      {
+        id: "placeholder",
+        name: "",
+        data: Object.fromEntries(
+          dimensions.map((axis, index) => [
+            axis.key,
+            [60, 80, 50, 70, 45, 75][index % 6]!,
+          ]),
+        ),
+      },
+    ]);
+  }, [axes]);
+  const initialLoading =
+    loading && (!!model.error || !model.series.length || !model.axes.length);
+  const source = initialLoading ? placeholder : model;
+  const frameHeight =
+    Number.isFinite(height) && height > 0 ? height : DEFAULT_HEIGHT;
+  const legendHeight = showLegend ? Math.min(64, frameHeight / 4) : 0;
+  const svgHeight = frameHeight - legendHeight;
+  const validGridLevels =
+    Number.isInteger(gridLevels) && gridLevels >= 1 && gridLevels <= 20;
+  const safeGridLevels = validGridLevels ? gridLevels : 5;
+  const safeStrokeWidth =
+    Number.isFinite(strokeWidth) && strokeWidth >= 0 ? strokeWidth : 2;
+  const validOffset = Number.isFinite(labelOffset) && labelOffset >= 0;
+  const layout = useMemo(
+    () =>
+      getRadarLayout(
+        width,
+        svgHeight,
+        showAxisLabels,
+        validOffset ? labelOffset : 30,
+      ),
+    [width, svgHeight, showAxisLabels, validOffset, labelOffset],
+  );
+  const { cx, cy, radius } = layout;
+  const chartError =
+    error ||
+    model.error ||
+    (!(Number.isFinite(height) && height > 0)
+      ? "Chart height must be a positive, finite number."
+      : null) ||
+    (!validGridLevels ? "gridLevels must be an integer from 1 to 20." : null) ||
+    (!validOffset
+      ? "labelOffset must be a finite, nonnegative number."
+      : null) ||
+    (!(Number.isFinite(fillOpacity) && fillOpacity >= 0 && fillOpacity <= 1)
+      ? "fillOpacity must be a finite number from 0 to 1."
+      : null) ||
+    (!(Number.isFinite(strokeWidth) && strokeWidth >= 0)
+      ? "strokeWidth must be a finite, nonnegative number."
+      : null);
+  const ready =
+    !loading &&
+    !chartError &&
+    !!model.series.length &&
+    !!model.axes.length &&
+    radius > 0;
+  const dimensions = useMemo(
+    () =>
+      source.axes.map((axis) => {
+        const angle = calculateAxisAngle(axis.index, source.axes.length);
         return {
-          axisIndex: axis.index,
-          rawValue,
-          normalizedValue,
-          x,
-          y,
+          ...axis,
+          angle,
+          ...polarToCartesian(cx, cy, radius, angle),
+          box: getAxisLabelBox(angle, layout, width),
         };
-      });
-
-      const path = generatePolygonPath(points);
-      const color = s.color ?? colors[seriesIndex % colors.length] ?? DEFAULT_COLORS[0];
-
-      return {
-        id: s.id,
-        name: s.name,
-        data: s.data,
-        color,
-        points,
-        path,
-      };
+      }),
+    [source.axes, cx, cy, radius, layout, width],
+  );
+  const drawable = useMemo(
+    () =>
+      source.series.map((item) => {
+        const points = dimensions.map((axis) => ({
+          axisIndex: axis.index,
+          value: item.values[axis.index]!,
+          ...polarToCartesian(
+            cx,
+            cy,
+            radius *
+              normalizeValue(item.values[axis.index]!, axis.min, axis.max),
+            axis.angle,
+          ),
+        }));
+        return {
+          ...item,
+          color:
+            item.color ??
+            colors[item.index % colors.length] ??
+            DEFAULT_COLORS[0],
+          points,
+          path: generatePolygonPath(points),
+        };
+      }),
+    [source.series, dimensions, cx, cy, radius, colors],
+  );
+  const matches = (selection: Selection | null) =>
+    selection?.series === series && selection.axes === axes;
+  const active = ready && matches(inspection) ? inspection : null;
+  const focused = ready && matches(focus) ? focus : null;
+  const activeSeries = active ? drawable[active.seriesIndex] : undefined;
+  const activeAxis =
+    active?.axisIndex !== undefined ? dimensions[active.axisIndex] : undefined;
+  const activePoint =
+    active?.axisIndex !== undefined
+      ? activeSeries?.points[active.axisIndex]
+      : undefined;
+  const selectedPosition = Math.min(
+    tabPosition,
+    Math.max(0, drawable.length * dimensions.length - 1),
+  );
+  const tipData: RadarChartTooltipData<T> | null =
+    activeSeries && active
+      ? {
+          type: activeAxis ? "point" : "series",
+          seriesName: activeSeries.name,
+          ...(activeAxis && activePoint
+            ? {
+                axisLabel: activeAxis.label,
+                value: activePoint.value,
+                formattedValue: valueFormatter(
+                  activePoint.value,
+                  axes[activeAxis.index]!,
+                ),
+              }
+            : {}),
+          color: activeSeries.color,
+          data: series[active.seriesIndex]!.data,
+        }
+      : null;
+  function inspect(seriesIndex: number, axisIndex?: number) {
+    setInspection({
+      series,
+      axes,
+      seriesIndex,
+      ...(axisIndex !== undefined ? { axisIndex } : {}),
     });
-  }, [series, processedAxes, colors, cx, cy, radius]);
-
-  // Generate grid paths with memoization
-  const gridPaths = useMemo((): string[] => {
-    if (radius <= 0 || gridLevels <= 0) return [];
-
-    return Array.from({ length: gridLevels }).map((_, i) => {
-      const levelRadius = (radius * (i + 1)) / gridLevels;
-      return gridType === 'circular'
-        ? generateCircularGridPath(cx, cy, levelRadius)
-        : generatePolygonGridPath(cx, cy, levelRadius, axes.length);
-    });
-  }, [gridType, gridLevels, radius, cx, cy, axes.length]);
-
-  // Event handlers with debouncing to prevent flickering
-  const handleSeriesMouseEnter = useCallback((seriesId: string, pointIndex?: number) => {
-    // Clear any pending leave timeout
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
-    }
-    setHoveredState(
-      pointIndex !== undefined
-        ? { type: 'series', seriesId, pointIndex }
-        : { type: 'series', seriesId }
-    );
-  }, []);
-
-  const handleSeriesMouseLeave = useCallback(() => {
-    // Debounce the leave to prevent flickering when moving between elements
-    hoverTimeoutRef.current = setTimeout(() => {
-      setHoveredState(null);
-      setMousePos(null);
-    }, HOVER_DEBOUNCE_MS);
-  }, []);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
-    if (!svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
-  }, []);
-
-  const handleSeriesClick = useCallback((s: ProcessedSeries<T>, index: number) => {
-    const originalSeries = series[index];
-    if (originalSeries && onSeriesClick) {
-      onSeriesClick(originalSeries, index);
-    }
-  }, [series, onSeriesClick]);
-
-  const handleAxisClick = useCallback((axis: ProcessedAxis) => {
-    const originalAxis = axes[axis.index];
-    if (originalAxis && onAxisClick) {
-      onAxisClick(originalAxis, axis.index);
-    }
-  }, [axes, onAxisClick]);
-
-  // ============================================================================
-  // Early Returns
-  // ============================================================================
-
-  if (loading) return <LoadingState height={height} />;
-  if (error) return <ErrorState error={error} />;
-  if (!series.length || !axes.length) return <EmptyState />;
-  if (axes.length < 3) {
-    return <ErrorState error="Radar chart requires at least 3 axes" />;
   }
-
-  // Wait for container dimensions
-  if (!containerWidth) {
-    return (
-      <div
-        ref={containerRef}
-        className={cn('relative w-full', className)}
-        style={{ height }}
-      >
-        <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-          Loading...
-        </div>
-      </div>
-    );
+  function navigate(
+    event: KeyboardEvent<SVGCircleElement>,
+    seriesIndex: number,
+    axisIndex: number,
+  ) {
+    let nextSeries = seriesIndex,
+      nextAxis = axisIndex;
+    if (event.key === "ArrowRight")
+      nextAxis = (axisIndex + 1) % dimensions.length;
+    else if (event.key === "ArrowLeft")
+      nextAxis = (axisIndex + dimensions.length - 1) % dimensions.length;
+    else if (event.key === "ArrowDown")
+      nextSeries = (seriesIndex + 1) % drawable.length;
+    else if (event.key === "ArrowUp")
+      nextSeries = (seriesIndex + drawable.length - 1) % drawable.length;
+    else if (event.key === "Home") nextAxis = 0;
+    else if (event.key === "End") nextAxis = dimensions.length - 1;
+    else if (event.key === "Escape") {
+      event.preventDefault();
+      setInspection(null);
+      return;
+    } else if ((event.key === "Enter" || event.key === " ") && onSeriesClick) {
+      event.preventDefault();
+      onSeriesClick(series[seriesIndex]!, seriesIndex);
+      return;
+    } else return;
+    event.preventDefault();
+    const position = nextSeries * dimensions.length + nextAxis;
+    setTabPosition(position);
+    refs.current[position]?.focus();
   }
-
-  // Get hovered series for tooltip
-  const hoveredSeries = hoveredState?.seriesId
-    ? processedSeries.find(s => s.id === hoveredState.seriesId)
-    : null;
-
-  // ============================================================================
-  // Render
-  // ============================================================================
+  const stateMessage =
+    !loading && chartError
+      ? chartError
+      : !loading && (!series.length || !axes.length)
+        ? "No Data"
+        : !loading && !ready
+          ? "Waiting for chart space"
+          : null;
 
   return (
     <div
       ref={containerRef}
-      className={cn('relative w-full', className)}
-      style={{ height }}
+      className={cn("relative w-full", className)}
+      style={{ height: frameHeight }}
+      aria-busy={loading}
+      onMouseLeave={() => setInspection(matches(focus) ? focus : null)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setFocus(null);
+          setInspection(null);
+        }
+      }}
     >
-      <svg
-        ref={svgRef}
-        width="100%"
-        height={svgHeight}
-        className="overflow-visible"
-        role="img"
-        aria-label={`Radar chart with ${series.length} series and ${axes.length} axes`}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={() => {
-          setHoveredState(null);
-          setMousePos(null);
-        }}
-      >
-        {/* Grid Lines - Concentric rings */}
-        {showGridLines && gridPaths.map((path, i) => (
-          <motion.path
-            key={`grid-${i}`}
-            d={path}
-            fill="none"
-            stroke="hsl(var(--border))"
-            strokeWidth={1}
-            strokeOpacity={0.5}
-            {...(shouldAnimate && {
-              initial: { scale: 0.8, opacity: 0 },
-              animate: { scale: 1, opacity: 1 },
-              transition: {
-                duration: 0.4,
-                delay: i * 0.08,
-                ease: ANIMATION_EASING,
-              },
-            })}
-            style={{ transformOrigin: `${cx}px ${cy}px` }}
-          />
-        ))}
-
-        {/* Axis Lines - Spokes from center */}
-        {showAxisLines && processedAxes.map((axis) => (
-          <motion.line
-            key={`axis-line-${axis.index}`}
-            x1={cx}
-            y1={cy}
-            x2={axis.endpointX}
-            y2={axis.endpointY}
-            stroke="hsl(var(--border))"
-            strokeWidth={1}
-            strokeOpacity={0.6}
-            className={onAxisClick ? 'cursor-pointer hover:stroke-foreground' : undefined}
-            onClick={() => handleAxisClick(axis)}
-            {...(shouldAnimate && {
-              initial: { opacity: 0 },
-              animate: { opacity: 1 },
-              transition: {
-                duration: 0.3,
-                delay: axis.index * 0.05,
-                ease: ANIMATION_EASING,
-              },
-            })}
-          />
-        ))}
-
-        {/* Series Polygons - render non-hovered first, then hovered on top */}
-        {processedSeries
-          .map((s, index) => ({ s, index, isHovered: hoveredState?.seriesId === s.id }))
-          .sort((a, b) => (a.isHovered ? 1 : 0) - (b.isHovered ? 1 : 0))
-          .map(({ s, index, isHovered }) => {
-          const otherHovered = hoveredState?.seriesId && !isHovered;
-
-          // Separate initial animation from hover animation
-          const initialAnimationProps = shouldAnimate ? {
-            initial: { scale: 0, opacity: 0 },
-            animate: { scale: 1, opacity: 1 },
-            transition: {
-              duration: ANIMATION_DURATION,
-              delay: index * STAGGER_DELAY,
-              ease: ANIMATION_EASING,
-            },
-          } : {};
-
-          return (
-            <g
-              key={s.id}
-              style={{
-                opacity: otherHovered ? 0.25 : 1,
-                transition: `opacity ${HOVER_DURATION}s ease-out`,
-              }}
+      {loading && (
+        <span role="status" className="sr-only">
+          Loading chart
+        </span>
+      )}
+      {stateMessage ? (
+        <div
+          role={chartError ? "alert" : "status"}
+          className="flex h-full items-center justify-center p-6 text-center"
+        >
+          <div className="space-y-2">
+            <p
+              className={cn(
+                "font-medium",
+                chartError ? "text-destructive" : "text-muted-foreground",
+              )}
             >
-              {/* Filled area */}
-              <motion.path
-                d={s.path}
-                fill={s.color}
-                fillOpacity={isHovered ? fillOpacity * 2.5 : fillOpacity}
-                stroke="none"
-                className="cursor-pointer outline-none"
-                style={{
-                  transformOrigin: `${cx}px ${cy}px`,
-                  transition: `fill-opacity ${HOVER_DURATION}s ease-out`,
-                }}
-                onMouseEnter={() => handleSeriesMouseEnter(s.id)}
-                onMouseLeave={handleSeriesMouseLeave}
-                onClick={() => handleSeriesClick(s, index)}
-                role="graphics-symbol"
-                aria-label={`${s.name}: ${processedAxes.map(a => `${a.label} ${formatValue(getNumericValue(s.data, a.key))}`).join(', ')}`}
-                tabIndex={0}
-                onFocus={() => handleSeriesMouseEnter(s.id)}
-                onBlur={handleSeriesMouseLeave}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleSeriesClick(s, index);
-                  }
-                }}
-                {...initialAnimationProps}
-              />
-              {/* Visible stroke line */}
-              <motion.path
-                d={s.path}
-                fill="none"
-                stroke={s.color}
-                strokeWidth={isHovered ? strokeWidth + 2 : strokeWidth}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                className="pointer-events-none"
-                style={{
-                  transformOrigin: `${cx}px ${cy}px`,
-                  filter: isHovered ? `drop-shadow(0 0 8px ${s.color}) drop-shadow(0 0 16px ${s.color})` : 'none',
-                  transition: `stroke-width ${HOVER_DURATION}s ease-out, filter ${HOVER_DURATION}s ease-out`,
-                }}
-                {...initialAnimationProps}
-              />
-              {/* Invisible wider stroke for easier hover on lines */}
-              <path
-                d={s.path}
-                fill="none"
-                stroke="transparent"
-                strokeWidth={16}
-                strokeLinejoin="round"
-                className="cursor-pointer"
-                onMouseEnter={() => handleSeriesMouseEnter(s.id)}
-                onMouseLeave={handleSeriesMouseLeave}
-                onClick={() => handleSeriesClick(s, index)}
-              />
-            </g>
-          );
-        })}
-
-        {/* Data Point Dots - Interactive with priority over area */}
-        {showDots && processedSeries
-          .map((s, seriesIndex) => ({ s, seriesIndex, isSeriesHovered: hoveredState?.seriesId === s.id }))
-          .sort((a, b) => (a.isSeriesHovered ? 1 : 0) - (b.isSeriesHovered ? 1 : 0))
-          .map(({ s, seriesIndex, isSeriesHovered }) => {
-          const otherHovered = hoveredState?.seriesId && !isSeriesHovered;
-          const hoveredPointIndex = isSeriesHovered ? hoveredState?.pointIndex : undefined;
-
-          return s.points.map((point, pointIndex) => {
-            const isPointHovered = isSeriesHovered && hoveredPointIndex === pointIndex;
-            const dotRadius = isPointHovered ? 8 : isSeriesHovered ? 6 : 4;
-
-            const dotAnimationProps = shouldAnimate ? {
-              initial: { scale: 0, opacity: 0 },
-              animate: { scale: 1, opacity: 1 },
-              transition: {
-                duration: 0.4,
-                delay: seriesIndex * STAGGER_DELAY + pointIndex * 0.03,
-                ease: ANIMATION_EASING,
-              },
-            } : {};
-
-            return (
-              <g
-                key={`${s.id}-dot-group-${pointIndex}`}
-                style={{
-                  opacity: otherHovered ? 0.3 : 1,
-                  transition: `opacity ${HOVER_DURATION}s ease-out`,
-                }}
-              >
-                {/* Invisible hit area - larger for easier targeting */}
-                <circle
-                  cx={point.x}
-                  cy={point.y}
-                  r={20}
-                  fill="transparent"
-                  className="cursor-pointer"
-                  onMouseEnter={() => handleSeriesMouseEnter(s.id, pointIndex)}
-                  onMouseLeave={handleSeriesMouseLeave}
-                  onClick={() => {
-                    const originalSeries = series[seriesIndex];
-                    if (originalSeries && onSeriesClick) {
-                      onSeriesClick(originalSeries, seriesIndex);
+              {chartError ? "Chart Error" : stateMessage}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {chartError ||
+                (!series.length || !axes.length
+                  ? "There's no data to display"
+                  : "")}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <svg
+            width="100%"
+            height={svgHeight}
+            role={loading ? "presentation" : "group"}
+            aria-hidden={loading || undefined}
+            aria-label={
+              ariaLabel ??
+              `Radar chart with ${series.length} series and ${axes.length} axes`
+            }
+            aria-describedby={`${id}-description`}
+          >
+            <desc id={`${id}-description`}>
+              {description ? `${description} ` : ""}Left and Right inspect axes;
+              Up and Down switch series. Home and End jump to the first and last
+              axis. Escape dismisses the tooltip.{" "}
+              {onSeriesClick ? "Enter or Space selects the series. " : ""}Each
+              axis has its own range; inspect values and ranges before comparing
+              shapes.
+            </desc>
+            <g aria-hidden="true" className="text-border">
+              {showGridLines &&
+                Array.from({ length: safeGridLevels }, (_, index) => (
+                  <path
+                    key={index}
+                    data-radar-grid=""
+                    d={
+                      gridType === "circular"
+                        ? generateCircularGridPath(
+                            cx,
+                            cy,
+                            (radius * (index + 1)) / safeGridLevels,
+                          )
+                        : generatePolygonGridPath(
+                            cx,
+                            cy,
+                            (radius * (index + 1)) / safeGridLevels,
+                            dimensions.length,
+                          )
                     }
-                  }}
-                />
-                {/* Visible dot */}
-                <motion.circle
-                  cx={point.x}
-                  cy={point.y}
-                  r={dotRadius}
-                  fill={s.color}
-                  stroke="hsl(var(--background))"
-                  strokeWidth={isSeriesHovered ? 3 : 2}
-                  className="pointer-events-none"
-                  style={{
-                    filter: isSeriesHovered
-                      ? `drop-shadow(0 0 ${isPointHovered ? 12 : 8}px ${s.color})`
-                      : 'none',
-                    transition: `r ${HOVER_DURATION}s ease-out, filter ${HOVER_DURATION}s ease-out`,
-                  }}
-                  {...dotAnimationProps}
-                />
-                {/* Show value label on point hover */}
-                {isPointHovered && (
-                  <g className="pointer-events-none">
-                    <text
-                      x={point.x}
-                      y={point.y - 16}
-                      textAnchor="middle"
-                      className="text-xs font-bold fill-foreground"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1}
+                  />
+                ))}
+            </g>
+            {dimensions.map((axis) => (
+              <g
+                key={axis.key}
+                role={!loading && onAxisClick ? "button" : undefined}
+                tabIndex={!loading && onAxisClick ? 0 : undefined}
+                aria-label={
+                  !loading && onAxisClick
+                    ? `Select axis ${axis.label}`
+                    : undefined
+                }
+                className={cn(
+                  "group outline-none",
+                  !loading && onAxisClick && "cursor-pointer",
+                )}
+                onFocus={
+                  loading || !onAxisClick
+                    ? undefined
+                    : () => {
+                        setFocus(null);
+                        setInspection(null);
+                      }
+                }
+                onClick={
+                  loading || !onAxisClick
+                    ? undefined
+                    : () => onAxisClick(axes[axis.index]!, axis.index)
+                }
+                onKeyDown={
+                  loading || !onAxisClick
+                    ? undefined
+                    : (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          onAxisClick(axes[axis.index]!, axis.index);
+                        }
+                      }
+                }
+              >
+                {showAxisLines && (
+                  <line
+                    data-radar-axis=""
+                    x1={cx}
+                    y1={cy}
+                    x2={axis.x}
+                    y2={axis.y}
+                    stroke="var(--border)"
+                  />
+                )}
+                {!loading && onAxisClick && (
+                  <circle
+                    cx={axis.x}
+                    cy={axis.y}
+                    r={12}
+                    fill="transparent"
+                    stroke="transparent"
+                    className="group-focus-visible:stroke-foreground"
+                    strokeWidth={2}
+                  />
+                )}
+                {showAxisLabels && (
+                  <foreignObject
+                    x={axis.box.x}
+                    y={axis.box.y}
+                    width={axis.box.width}
+                    height={axis.box.height}
+                    className="overflow-hidden"
+                  >
+                    <div
+                      title={loading ? undefined : axis.label}
+                      className="flex h-full items-center text-xs font-medium text-muted-foreground"
                       style={{
-                        textShadow: '0 0 4px hsl(var(--background)), 0 0 8px hsl(var(--background))',
+                        justifyContent:
+                          axis.box.align === "left"
+                            ? "flex-start"
+                            : axis.box.align === "right"
+                              ? "flex-end"
+                              : "center",
+                        textAlign: axis.box.align,
                       }}
                     >
-                      {formatValue(point.rawValue)}
-                    </text>
-                  </g>
-                )}
-              </g>
-            );
-          });
-        })}
-
-        {/* Axis Labels */}
-        {showAxisLabels && processedAxes.map((axis) => {
-          const labelPos = calculateLabelPosition(
-            axis.angle,
-            cx,
-            cy,
-            radius,
-            labelOffset
-          );
-
-          return (
-            <motion.text
-              key={`label-${axis.index}`}
-              x={labelPos.x}
-              y={labelPos.y}
-              textAnchor={labelPos.textAnchor}
-              dominantBaseline={labelPos.dominantBaseline}
-              className={cn(
-                'text-xs font-medium fill-muted-foreground select-none',
-                onAxisClick && 'cursor-pointer hover:fill-foreground'
-              )}
-              onClick={() => handleAxisClick(axis)}
-              {...(shouldAnimate && {
-                initial: { opacity: 0 },
-                animate: { opacity: 1 },
-                transition: {
-                  duration: 0.3,
-                  delay: 0.3 + axis.index * 0.05,
-                },
-              })}
-            >
-              {axis.label}
-            </motion.text>
-          );
-        })}
-      </svg>
-
-      {/* Tooltip - follows mouse with smart positioning */}
-      {(() => {
-        const hoveredAxis = hoveredState?.pointIndex !== undefined ? processedAxes[hoveredState.pointIndex] : undefined;
-        const tipData: RadarChartTooltipData<T> | null = hoveredSeries && mousePos ? {
-          type: hoveredState?.type ?? 'series',
-          seriesName: hoveredSeries.name,
-          ...(hoveredAxis ? {
-            axisLabel: hoveredAxis.label,
-            value: getNumericValue(hoveredSeries.data, hoveredAxis.key),
-            formattedValue: formatValue(getNumericValue(hoveredSeries.data, hoveredAxis.key)),
-          } : {}),
-          color: hoveredSeries.color,
-          data: hoveredSeries.data,
-        } : null;
-
-        return (
-          <ChartTooltip
-            visible={tipData !== null}
-            x={mousePos ? Math.min(Math.max(mousePos.x + 16, 10), containerWidth - 180) : 0}
-            y={mousePos ? (mousePos.y < svgHeight / 2 ? mousePos.y + 20 : mousePos.y - 140) : 0}
-            style={{ minWidth: 170 }}
-          >
-            {tipData && (tooltipRenderer ? tooltipRenderer(tipData) : (
-              <>
-                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border/50">
-                  <div
-                    className="w-3 h-3 rounded-full shadow-sm"
-                    style={{
-                      backgroundColor: hoveredSeries!.color,
-                      boxShadow: `0 0 8px ${hoveredSeries!.color}`,
-                    }}
-                  />
-                  <span className="font-semibold text-sm text-foreground">{hoveredSeries!.name}</span>
-                </div>
-                <div className="space-y-1">
-                  {processedAxes.map((axis, axisIndex) => {
-                    const axisValue = getNumericValue(hoveredSeries!.data, axis.key);
-                    const percentage = ((axisValue - axis.minValue) / (axis.maxValue - axis.minValue)) * 100;
-                    const isHighlightedPoint = hoveredState?.pointIndex === axisIndex;
-                    return (
-                      <div
-                        key={axis.key}
-                        className={cn(
-                          "flex items-center justify-between gap-3 py-0.5 px-1 -mx-1 rounded",
-                          isHighlightedPoint && "bg-muted/50"
-                        )}
-                      >
-                        <span className={cn(
-                          "text-xs",
-                          isHighlightedPoint ? "text-foreground font-medium" : "text-muted-foreground"
-                        )}>
+                      {loading ? (
+                        <span className="h-2 w-10 max-w-full rounded bg-muted" />
+                      ) : (
+                        <span className="line-clamp-2 break-words">
                           {axis.label}
                         </span>
-                        <div className="flex items-center gap-2">
-                          <div className="w-12 h-1 bg-muted rounded-full overflow-hidden">
-                            <motion.div
-                              className="h-full rounded-full"
-                              style={{ backgroundColor: hoveredSeries!.color }}
-                              initial={{ width: 0 }}
-                              animate={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
-                              transition={{ duration: 0.2, ease: 'easeOut' }}
-                            />
-                          </div>
-                          <span className={cn(
-                            "text-xs tabular-nums w-8 text-right",
-                            isHighlightedPoint ? "font-bold text-foreground" : "font-medium text-foreground"
-                          )}>
-                            {formatValue(axisValue)}
+                      )}
+                    </div>
+                  </foreignObject>
+                )}
+              </g>
+            ))}
+            <RadarGrowth
+              key={loading ? "loading" : "ready"}
+              cx={cx}
+              cy={cy}
+              enabled={shouldAnimate && !loading}
+            >
+              <g
+                className={cn(
+                  loading && "text-muted",
+                  loading &&
+                    shouldAnimate &&
+                    "animate-pulse motion-reduce:animate-none",
+                )}
+              >
+                {drawable.map((item) => (
+                  <path
+                    key={item.id}
+                    data-radar-series={loading ? undefined : item.index}
+                    data-loading-series={loading ? item.index : undefined}
+                    d={item.path}
+                    fill={loading ? "currentColor" : item.color}
+                    fillOpacity={loading ? 0.4 : fillOpacity}
+                    stroke={loading ? "currentColor" : item.color}
+                    strokeWidth={safeStrokeWidth}
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                    aria-hidden="true"
+                    style={{
+                      opacity:
+                        active && active.seriesIndex !== item.index ? 0.25 : 1,
+                      transition: shouldAnimate
+                        ? "opacity 160ms ease-out"
+                        : "none",
+                    }}
+                    className={cn(
+                      !loading && onSeriesClick && "cursor-pointer",
+                    )}
+                    onMouseEnter={
+                      loading ? undefined : () => inspect(item.index)
+                    }
+                    onPointerDown={
+                      loading ? undefined : () => inspect(item.index)
+                    }
+                    onClick={
+                      loading
+                        ? undefined
+                        : () => {
+                            inspect(item.index);
+                            onSeriesClick?.(series[item.index]!, item.index);
+                          }
+                    }
+                  />
+                ))}
+                {drawable.flatMap((item) =>
+                  item.points.map((point) => {
+                    const position =
+                      item.index * dimensions.length + point.axisIndex;
+                    const isActive =
+                      active?.seriesIndex === item.index &&
+                      active.axisIndex === point.axisIndex;
+                    const isFocused =
+                      focused?.seriesIndex === item.index &&
+                      focused.axisIndex === point.axisIndex;
+                    const axis = axes[point.axisIndex];
+                    return (
+                      <g key={`${item.id}-${point.axisIndex}`}>
+                        {(showDots || isActive || isFocused) && (
+                          <circle
+                            cx={point.x}
+                            cy={point.y}
+                            r={isActive || isFocused ? 5 : 3.5}
+                            fill={loading ? "currentColor" : item.color}
+                            stroke="var(--background)"
+                            strokeWidth={2}
+                            className="pointer-events-none"
+                            aria-hidden="true"
+                          />
+                        )}
+                        {!loading && (
+                          <circle
+                            data-radar-point={`${item.index}-${point.axisIndex}`}
+                            ref={(el) => {
+                              refs.current[position] = el;
+                            }}
+                            cx={point.x}
+                            cy={point.y}
+                            r={12}
+                            fill="transparent"
+                            stroke={
+                              isFocused ? "var(--foreground)" : "transparent"
+                            }
+                            strokeWidth={2}
+                            vectorEffect="non-scaling-stroke"
+                            className={cn(
+                            "outline-none touch-manipulation focus-visible:stroke-foreground",
+                              onSeriesClick
+                                ? "cursor-pointer"
+                                : "cursor-default",
+                            )}
+                            role={onSeriesClick ? "button" : "graphics-symbol"}
+                            tabIndex={position === selectedPosition ? 0 : -1}
+                            aria-label={`${item.name}, ${axis!.label}: ${valueFormatter(point.value, axis!)}`}
+                            aria-describedby={
+                              isActive ? `${id}-tooltip` : undefined
+                            }
+                            onMouseEnter={() =>
+                              inspect(item.index, point.axisIndex)
+                            }
+                            onPointerDown={() =>
+                              inspect(item.index, point.axisIndex)
+                            }
+                            onFocus={() => {
+                              setTabPosition(position);
+                              setFocus({
+                                series,
+                                axes,
+                                seriesIndex: item.index,
+                                axisIndex: point.axisIndex,
+                              });
+                              inspect(item.index, point.axisIndex);
+                            }}
+                            onClick={() => {
+                              inspect(item.index, point.axisIndex);
+                              onSeriesClick?.(series[item.index]!, item.index);
+                            }}
+                            onKeyDown={(event) =>
+                              navigate(event, item.index, point.axisIndex)
+                            }
+                          />
+                        )}
+                      </g>
+                    );
+                  }),
+                )}
+              </g>
+            </RadarGrowth>
+          </svg>
+          {showLegend && (
+            <ul
+              aria-label={loading ? undefined : "Chart series"}
+              aria-hidden={loading || undefined}
+              className="flex flex-wrap content-start justify-center gap-x-3 gap-y-1 overflow-auto px-2 py-2"
+              style={{ height: legendHeight }}
+            >
+              {drawable.map((item) => (
+                <li key={item.id} className="min-w-0 max-w-full">
+                  {loading ? (
+                    <span className="block h-3 w-20 rounded bg-muted" />
+                  ) : (
+                    <button
+                      type="button"
+                      className="flex max-w-full items-center gap-2 rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+                      aria-label={`${onSeriesClick ? "Select" : "Inspect"} series ${item.name}`}
+                      onMouseEnter={() => inspect(item.index)}
+                      onFocus={() => {
+                        setFocus({ series, axes, seriesIndex: item.index });
+                        inspect(item.index);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Escape") {
+                          event.preventDefault();
+                          setInspection(null);
+                        }
+                      }}
+                      onClick={() => {
+                        inspect(item.index);
+                        onSeriesClick?.(series[item.index]!, item.index);
+                      }}
+                    >
+                      <span
+                        className="size-2.5 shrink-0 rounded-sm"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="truncate" title={item.name}>
+                        {item.name}
+                      </span>
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {ready && (
+            <table className="sr-only">
+              <caption>
+                {ariaLabel ?? "Radar chart"} data and axis ranges
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Series</th>
+                  {model.axes.map((axis) => (
+                    <th key={axis.key} scope="col">
+                      {axis.label} (
+                      {valueFormatter(axis.min, axes[axis.index]!)} to{" "}
+                      {valueFormatter(axis.max, axes[axis.index]!)})
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {model.series.map((item) => (
+                  <tr key={item.id}>
+                    <th scope="row">{item.name}</th>
+                    {item.values.map((value, index) => (
+                      <td key={axes[index]!.key}>
+                        {valueFormatter(value, axes[index]!)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {tipData && activeSeries && (
+            <InspectionTooltip
+              id={`${id}-tooltip`}
+              x={activePoint?.x ?? cx}
+              y={activePoint?.y ?? cy}
+              width={width}
+              height={svgHeight}
+            >
+              {tooltipRenderer ? (
+                tooltipRenderer(tipData)
+              ) : (
+                <>
+                  <div className="mb-2 flex items-center gap-2 border-b border-border pb-2 text-xs font-medium text-muted-foreground">
+                    <span
+                      className="size-2.5 shrink-0 rounded-sm"
+                      style={{ backgroundColor: activeSeries.color }}
+                    />
+                    {activeSeries.name}
+                  </div>
+                  <div className="space-y-2">
+                    {(activeAxis ? [activeAxis] : dimensions).map((axis) => (
+                      <div key={axis.key}>
+                        <div className="flex items-baseline justify-between gap-6 text-xs">
+                          <span>{axis.label}</span>
+                          <span className="font-semibold tabular-nums">
+                            {valueFormatter(
+                              activeSeries.values[axis.index]!,
+                              axes[axis.index]!,
+                            )}
                           </span>
                         </div>
+                        {activeAxis && (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Range {valueFormatter(axis.min, axes[axis.index]!)}–
+                            {valueFormatter(axis.max, axes[axis.index]!)}
+                          </p>
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
-              </>
-            ))}
-          </ChartTooltip>
-        );
-      })()}
-
-      {/* Legend */}
-      {hasLegend && (
-        <div className="flex items-center justify-center gap-2 pt-4" style={{ height: LEGEND_HEIGHT }}>
-          {processedSeries.map((s) => {
-            const isHovered = hoveredState?.seriesId === s.id;
-            const otherHovered = hoveredState?.seriesId && hoveredState.seriesId !== s.id;
-
-            return (
-              <motion.button
-                key={s.id}
-                type="button"
-                className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 rounded-full transition-all',
-                  'border border-transparent',
-                  'hover:border-border hover:bg-muted/50',
-                  isHovered && 'border-border bg-muted shadow-sm',
-                  otherHovered && 'opacity-50'
-                )}
-                onMouseEnter={(e) => {
-                  handleSeriesMouseEnter(s.id);
-                  // Set mouse position for tooltip near the legend item
-                  const rect = containerRef.current?.getBoundingClientRect();
-                  if (rect) {
-                    setMousePos({
-                      x: e.clientX - rect.left,
-                      y: svgHeight + 10,
-                    });
-                  }
-                }}
-                onMouseLeave={handleSeriesMouseLeave}
-                onClick={() => {
-                  const index = processedSeries.findIndex(ps => ps.id === s.id);
-                  const originalSeries = series[index];
-                  if (originalSeries && onSeriesClick) {
-                    onSeriesClick(originalSeries, index);
-                  }
-                }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <motion.div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: s.color }}
-                  animate={{
-                    scale: isHovered ? 1.2 : 1,
-                    boxShadow: isHovered ? `0 0 8px ${s.color}` : '0 0 0px transparent',
-                  }}
-                  transition={{ duration: 0.2 }}
-                />
-                <span className={cn(
-                  'text-xs font-medium transition-colors',
-                  isHovered ? 'text-foreground' : 'text-muted-foreground'
-                )}>
-                  {s.name}
-                </span>
-              </motion.button>
-            );
-          })}
-        </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </InspectionTooltip>
+          )}
+        </>
       )}
     </div>
   );
 }
 
-// Export memoized component
-export const RadarChart = memo(RadarChartComponent) as typeof RadarChartComponent;
-
-// Export utilities for advanced use cases
-export { DEFAULT_COLORS, formatValue };
+export const RadarChart = memo(
+  RadarChartComponent,
+) as typeof RadarChartComponent;

@@ -41,7 +41,7 @@ export const REGISTRY_CHARTS: readonly RegistryChartSummary[] = [
   {
     name: "radar-chart",
     title: "Radar Chart",
-    description: "A multi-axis radar chart component with multi-series support, animated fills, interactive tooltips, and responsive design",
+    description: "A multi-axis radar chart with explicit axis ranges, polygons that grow from the center, keyboard and touch inspection, and responsive labels",
     docsPath: "/docs/components/radar-chart",
     registryUrl: "https://mariocharts.com/r/radar-chart.json",
   },

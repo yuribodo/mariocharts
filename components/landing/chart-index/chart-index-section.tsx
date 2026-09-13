@@ -77,9 +77,7 @@ const marketShare = [
 ] as const;
 
 /**
- * One series, deliberately: RadarChart reserves 50px for a legend as soon as
- * there is more than one, which at preview height leaves a radius of a few
- * pixels and draws nothing.
+ * One series keeps the compact preview focused on the radar shape.
  */
 const skillSeries = [
   {
@@ -95,7 +93,7 @@ const skillAxes = [
   { key: "database", label: "Database" },
   { key: "devops", label: "DevOps" },
   { key: "design", label: "Design" },
-];
+] as const;
 
 /**
  * Flat, with values close enough together that squarify produces actual

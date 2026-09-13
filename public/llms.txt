@@ -102,7 +102,7 @@ A customizable pie and donut chart component with animated segments, interactive
 
 ### Radar Chart (`radar-chart`)
 
-A multi-axis radar chart component with multi-series support, animated fills, interactive tooltips, and responsive design
+A multi-axis radar chart with explicit axis ranges, polygons that grow from the center, keyboard and touch inspection, and responsive labels
 
 - Install: `npx shadcn@latest add https://mariocharts.com/r/radar-chart.json`
 - Docs: https://mariocharts.com/docs/components/radar-chart.md
