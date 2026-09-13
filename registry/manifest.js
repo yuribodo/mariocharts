@@ -91,7 +91,7 @@ const CHARTS = [
     name: 'gauge-chart',
     docsSlug: 'gauge-chart',
     title: 'Gauge Chart',
-    description: 'A 3/4 arc gauge chart component with configurable color zones, animated needle, center value display, and responsive design',
+    description: 'A 270-degree arc gauge with truthful range limits, nonoverlapping color zones, animated value updates, and keyboard and touch inspection',
     importName: 'GaugeChart',
     exportName: 'GaugeChart',
     siblingFiles: ['utils.ts'],

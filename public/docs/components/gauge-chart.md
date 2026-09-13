@@ -1,6 +1,6 @@
 # Gauge Chart
 
-A 3/4 arc gauge chart component with configurable color zones, animated needle, center value display, and responsive design
+A 270-degree arc gauge with truthful range limits, nonoverlapping color zones, animated value updates, and keyboard and touch inspection
 
 ## Install
 
@@ -21,31 +21,35 @@ import { GaugeChart } from "@/components/charts/gauge-chart";
 ## Props
 
 ```ts
-interface GaugeChartProps {
-  /** The current value to display on the gauge. */
+export interface GaugeChartProps {
+  /** Actual finite measurement. Outside-range values remain visible; the arc keeps the boundary zone color and is clamped. */
   readonly value: number;
-  /** Minimum value of the gauge range. @default 0 */
+  /** Finite increasing bounds. @default 0 */
   readonly min?: number;
-  /** Maximum value of the gauge range. @default 100 */
+  /** @default 100 */
   readonly max?: number;
-  /** Array of zone objects defining color regions. */
+  /** Nonoverlapping zones inside the range; input order and colors need not be unique. */
   readonly zones: readonly GaugeZone[];
-  /** Unit label shown next to the center value (e.g. `"%"`, `"GB"`). */
   readonly unit?: string;
-  /** Descriptive label shown below the center value. */
   readonly label?: string;
-  /** Thickness of the gauge arc stroke in pixels. @default 20 */
+  /** Requested stroke thickness, capped to fit small frames. @default 20 */
   readonly strokeWidth?: number;
-  /** Height of the chart container in pixels. @default 300 */
+  /** Progress/track end caps. Zone boundaries remain flat. @default "round" */
+  readonly strokeLinecap?: "round" | "butt";
+  /** Stable total height in every state. @default 300 */
   readonly height?: number;
-  /** Show loading skeleton state. @default false */
+  /** Retain value and zones during refresh for matching geometry. */
   readonly loading?: boolean;
-  /** Error message to display in place of the chart. @default null */
   readonly error?: string | null;
-  /** Enable entrance animation for the progress arc. @default true */
+  /** Sweep from minimum on entrance and retarget from the current arc on updates. */
   readonly animation?: boolean;
-  /** Additional CSS classes to apply to the container. */
   readonly className?: string;
+  /** Format actual measurement and inspection values; unit is appended separately. */
+  readonly valueFormatter?: (value: number) => string;
+  /** Compact endpoint labels. Defaults to valueFormatter. */
+  readonly axisValueFormatter?: (value: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
   readonly tooltipRenderer?: TooltipRenderer<GaugeChartTooltipData>;
 }
 ```

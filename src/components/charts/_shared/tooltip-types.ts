@@ -99,6 +99,8 @@ export interface HeatmapChartTooltipData<T extends ChartDataItem> {
 }
 
 export interface GaugeChartTooltipData {
+  readonly clampedValue: number;
+  readonly rangeStatus: "below" | "within" | "above";
   readonly value: number;
   readonly min: number;
   readonly max: number;
@@ -106,6 +108,7 @@ export interface GaugeChartTooltipData {
   readonly unit?: string;
   readonly label?: string;
   readonly zone?: {
+    readonly index?: number;
     readonly from: number;
     readonly to: number;
     readonly color: string;

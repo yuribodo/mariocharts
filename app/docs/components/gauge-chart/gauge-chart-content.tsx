@@ -1,533 +1,458 @@
 "use client";
-
 import { useState } from "react";
-import { Breadcrumbs } from "../../../../components/site/breadcrumbs";
-import { GaugeChart, type GaugeZone } from "@/src/components/charts/gauge-chart";
-import { ExampleShowcase } from "../../../../components/ui/example-showcase";
+import { RotateCcw } from "lucide-react";
+import {
+  GaugeChart,
+  type GaugeZone,
+} from "@/src/components/charts/gauge-chart";
 import { APIReference } from "../../../../components/ui/api-reference";
-import { InstallationGuide } from "../../../../components/ui/installation-guide";
-import { ChartLine } from "@phosphor-icons/react";
-import { StyledSelect } from "../../../../components/ui/styled-select";
-import { AnimatedCheckbox } from "../../../../components/ui/animated-checkbox";
+import { CodeBlock } from "../../../../components/ui/code-block";
+import { CommandSnippet } from "../../../../components/ui/command-snippet";
+const zones: readonly GaugeZone[] = [
+  { from: 0, to: 60, color: "#22c55e", label: "Normal" },
+  { from: 60, to: 80, color: "#f59e0b", label: "High" },
+  { from: 80, to: 100, color: "#ef4444", label: "Critical" },
+];
+const presets = {
+  cpu: { min: 0, max: 100, zones, label: "CPU utilization", unit: "%" },
+  signed: {
+    min: -50,
+    max: 50,
+    zones: [
+      { from: -50, to: 0, color: "#3b82f6", label: "Below reference" },
+      { from: 0, to: 50, color: "#f59e0b", label: "Above reference" },
+    ],
+    label: "Temperature offset",
+    unit: "°C",
+  },
+  offset: {
+    min: 20,
+    max: 120,
+    zones: [
+      { from: 20, to: 70, color: "#22c55e", label: "Normal" },
+      { from: 70, to: 120, color: "#f59e0b", label: "High" },
+    ],
+    label: "Operating pressure",
+    unit: "kPa",
+  },
+  gap: {
+    min: 0,
+    max: 100,
+    zones: [zones[0]!, zones[2]!],
+    label: "CPU utilization",
+    unit: "%",
+  },
+  repeated: {
+    min: 0,
+    max: 100,
+    zones: zones.map((zone) => ({ ...zone, color: "#3b82f6" })),
+    label: "CPU utilization",
+    unit: "%",
+  },
+  unsorted: {
+    min: 0,
+    max: 100,
+    zones: [...zones].reverse(),
+    label: "CPU utilization",
+    unit: "%",
+  },
+  long: {
+    min: 0,
+    max: 100,
+    zones: zones.map((zone) => ({
+      ...zone,
+      label: `${zone.label} operating range for enterprise workloads`,
+    })),
+    label: "CPU utilization across all production workloads in North America",
+    unit: "%",
+  },
+  overlap: {
+    min: 0,
+    max: 100,
+    zones: [zones[0]!, { ...zones[1]!, from: 50 }, zones[2]!],
+    label: "CPU utilization",
+    unit: "%",
+  },
+  outside: {
+    min: 0,
+    max: 100,
+    zones: [{ ...zones[0]!, from: -10 }, zones[1]!, zones[2]!],
+    label: "CPU utilization",
+    unit: "%",
+  },
+  reversed: { min: 100, max: 0, zones, label: "CPU utilization", unit: "%" },
+} satisfies Record<
+  string,
+  {
+    min: number;
+    max: number;
+    zones: readonly GaugeZone[];
+    label: string;
+    unit: string;
+  }
+>;
+const example = `import { GaugeChart } from "@/components/charts/gauge-chart";
 
-// Zone presets
-const cpuZones: readonly GaugeZone[] = [
+const zones = [
   { from: 0, to: 60, color: "#22c55e", label: "Normal" },
   { from: 60, to: 80, color: "#f59e0b", label: "High" },
   { from: 80, to: 100, color: "#ef4444", label: "Critical" },
 ];
 
-const memoryZones: readonly GaugeZone[] = [
-  { from: 0, to: 16, color: "#22c55e", label: "Available" },
-  { from: 16, to: 24, color: "#f59e0b", label: "Pressure" },
-  { from: 24, to: 32, color: "#ef4444", label: "Critical" },
-];
-
-const performanceZones: readonly GaugeZone[] = [
-  { from: 0, to: 50, color: "#ef4444", label: "Poor" },
-  { from: 50, to: 80, color: "#f59e0b", label: "Needs Work" },
-  { from: 80, to: 100, color: "#22c55e", label: "Good" },
-];
-
-// API Reference props
-const gaugeChartProps = [
+export function Utilization() {
+  return <GaugeChart value={65} zones={zones} unit="%"
+    label="CPU utilization" ariaLabel="CPU utilization" height={360} />;
+}`;
+const props = [
   {
     name: "value",
     type: "number",
-    description: "The current value to display on the gauge",
     required: true,
+    description:
+      "Actual finite measurement. Outside-range values remain visible; the arc is clamped and retains the boundary zone color, with an Above range / Below range indication.",
   },
   {
     name: "zones",
     type: "readonly GaugeZone[]",
-    description: "Array of zone objects defining color regions: { from, to, color, label? }",
     required: true,
+    description:
+      "Nonoverlapping { from, to, color, label? } regions inside the range. Zones may be unordered and share colors. Gaps remain unclassified; an empty list displays No Data.",
   },
   {
-    name: "min",
+    name: "min / max",
     type: "number",
-    default: "0",
-    description: "Minimum value of the gauge range",
+    default: "0 / 100",
+    description:
+      "Finite bounds with min < max. Signed ranges and nonzero minima are supported.",
   },
   {
-    name: "max",
-    type: "number",
-    default: "100",
-    description: "Maximum value of the gauge range",
-  },
-  {
-    name: "unit",
+    name: "unit / label",
     type: "string",
-    description: "Unit label displayed next to the center value (e.g. '%', 'GB')",
-  },
-  {
-    name: "label",
-    type: "string",
-    description: "Descriptive label displayed below the center value",
+    description:
+      "Unit appended to the formatted measurement and a descriptive center label. Full text remains available through inspection.",
   },
   {
     name: "strokeWidth",
     type: "number",
     default: "20",
-    description: "Thickness of the gauge arc stroke in pixels",
+    description:
+      "Positive requested stroke thickness in pixels; capped to fit small frames.",
+  },
+  {
+    name: "strokeLinecap",
+    type: "'round' | 'butt'",
+    default: "'round'",
+    description:
+      "Rounded or flat progress/track ends. Zone boundaries stay flat so adjacent regions do not overlap.",
   },
   {
     name: "height",
     type: "number",
     default: "300",
-    description: "Height of the chart container in pixels",
+    description:
+      "Stable positive frame height across ready, loading, empty, and error states.",
   },
   {
     name: "loading",
     type: "boolean",
     default: "false",
-    description: "Show loading skeleton state",
+    description:
+      "Retain the measurement and zones for matching skeleton geometry. Missing/invalid input uses a neutral placeholder.",
   },
   {
     name: "error",
     type: "string | null",
     default: "null",
-    description: "Error message to display in place of the chart",
+    description: "Actionable error message inside the persistent frame.",
   },
   {
     name: "animation",
     type: "boolean",
     default: "true",
-    description: "Enable entrance animation for the progress arc",
+    description:
+      "Sweep from the minimum on entrance and animate updates from the current arc. Focus finishes motion immediately; reduced motion is respected.",
+  },
+  {
+    name: "valueFormatter",
+    type: "(value: number) => string",
+    default: "formatValue",
+    description:
+      "Format the actual measurement, ranges, and inspection. Unit is appended separately.",
+  },
+  {
+    name: "axisValueFormatter",
+    type: "(value: number) => string",
+    default: "valueFormatter",
+    description: "Optional compact endpoint formatting.",
+  },
+  {
+    name: "ariaLabel / description",
+    type: "string",
+    default: "label or 'Gauge' / undefined",
+    description:
+      "Accessible meter name and context. ARIA reports the actual measurement in value text and the bounded arc value numerically.",
+  },
+  {
+    name: "tooltipRenderer",
+    type: "TooltipRenderer<GaugeChartTooltipData>",
+    description:
+      "Actual value, clampedValue, min/max, rangeStatus, bounded range-position percentage, unit/label, and the actual zone with original index.",
   },
   {
     name: "className",
     type: "string",
-    description: "Additional CSS classes to apply to the container",
+    description: "Classes for the persistent outer frame.",
   },
 ];
-
-// Installation steps
-const installationSteps = [
-  {
-    title: "Initialize Mario Charts (first time only)",
-    description: "Set up Mario Charts in your React project. This configures paths and dependencies.",
-    code: `# Initialize the project (run once)
-npx mario-charts@latest init
-
-# Or initialize with components
-npx mario-charts@latest init --components gauge-chart`,
-    language: "bash",
-  },
-  {
-    title: "Add the GaugeChart component",
-    description: "Install the GaugeChart component using the CLI. This automatically handles dependencies.",
-    code: `# Add GaugeChart component
-npx mario-charts@latest add gauge-chart
-
-# Add multiple components at once
-npx mario-charts@latest add gauge-chart bar-chart line-chart`,
-    language: "bash",
-  },
-  {
-    title: "Start using the component",
-    description: "Import and use the GaugeChart in your React components.",
-    code: `import { GaugeChart } from "@/components/charts/gauge-chart";
-
-const zones = [
-  { from: 0, to: 60, color: "#22c55e", label: "Normal" },
-  { from: 60, to: 80, color: "#f59e0b", label: "High" },
-  { from: 80, to: 100, color: "#ef4444", label: "Critical" },
-];
-
-export function CpuGauge() {
-  return (
-    <GaugeChart
-      value={72}
-      zones={zones}
-      unit="%"
-      label="CPU Usage"
-    />
-  );
-}`,
-    language: "tsx",
-  },
-];
-
-type ZonePreset = "cpu" | "memory" | "performance";
-
-const ZONE_PRESETS: Record<ZonePreset, { zones: readonly GaugeZone[]; max: number; unit: string; label: string }> = {
-  cpu: { zones: cpuZones, max: 100, unit: "%", label: "CPU Usage" },
-  memory: { zones: memoryZones, max: 32, unit: "GB", label: "Memory" },
-  performance: { zones: performanceZones, max: 100, unit: "", label: "Performance Score" },
-};
-
-function ReplayButton({ onClick, disabled }: { onClick: () => void; disabled: boolean }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-    >
-      <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-      </svg>
-      Replay Animation
-    </button>
-  );
-}
-
+const selectClass = "h-10 min-w-0 rounded border bg-background px-2";
 export function GaugeChartContent() {
-  const [liveValue, setLiveValue] = useState(72);
-  const [preset, setPreset] = useState<ZonePreset>("cpu");
-  const [showAnimation, setShowAnimation] = useState(true);
-  const [chartKey, setChartKey] = useState(0);
-
-  // Memory example controls
-  const memoryValue = 20;
-  const [memoryAnimation, setMemoryAnimation] = useState(true);
-
-  // Performance example controls
-  const perfValue = 85;
-  const [perfAnimation, setPerfAnimation] = useState(true);
-
-  const replayAnimation = () => {
-    setChartKey((prev) => prev + 1);
-  };
-
-  const activePreset = ZONE_PRESETS[preset];
-
+  const [preset, setPreset] = useState<keyof typeof presets>("cpu");
+  const [value, setValue] = useState(65);
+  const [state, setState] = useState("ready");
+  const [strokeWidth, setStrokeWidth] = useState(20);
+  const [strokeLinecap, setStrokeLinecap] = useState<"round" | "butt">("round");
+  const [animation, setAnimation] = useState(true);
+  const [replay, setReplay] = useState(0);
+  const config = presets[preset];
+  const loading = state === "loading" || state === "initial-loading";
   return (
-    <div className="max-w-none space-y-12">
-      {/* Breadcrumbs */}
-      <Breadcrumbs />
-
-      {/* Hero Section */}
-      <div className="flex flex-col space-y-4 pb-8 pt-6">
-        <div className="flex items-center space-x-3">
-          <ChartLine size={24} weight="duotone" className="text-primary" />
-          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
-            Gauge Chart
-          </h1>
-        </div>
-        <p className="text-xl text-muted-foreground leading-7 max-w-3xl">
-          A production-ready gauge chart with configurable color zones on a 3/4 arc.
-          Perfect for dashboards displaying CPU, memory, scores, and any bounded metric.
-          Full TypeScript support and one-command installation.
+    <div className="space-y-12">
+      <header className="space-y-4">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Components
         </p>
-
-        {/* Features */}
-        <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-            CLI Installation
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-            Configurable Zones
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-            3/4 Arc Design
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-            Glow Effect
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-            Responsive
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-            TypeScript
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-            Loading & Error States
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-            Reduced Motion
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Start Example */}
-      <ExampleShowcase
-        title="Interactive Example"
-        description="Drag the slider to update the gauge value in real time"
-        preview={
-          <div className="space-y-4">
-            <div className="flex justify-center">
-              <div className="w-full max-w-xs">
-                <GaugeChart
-                  key={chartKey}
-                  value={liveValue}
-                  min={0}
-                  max={activePreset.max}
-                  zones={activePreset.zones}
-                  unit={activePreset.unit}
-                  label={activePreset.label}
-                  animation={showAnimation}
-                  height={280}
-                />
-              </div>
-            </div>
-
-            {/* Slider */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Value</span>
-                <span className="font-mono font-medium tabular-nums">
-                  {liveValue}{activePreset.unit}
-                </span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={activePreset.max}
-                value={liveValue}
-                onChange={(e) => setLiveValue(Number(e.target.value))}
-                className="w-full accent-primary"
-                aria-label="Gauge value"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>0</span>
-                <span>{activePreset.max}</span>
-              </div>
-            </div>
-
-            {/* Controls */}
-            <div className="space-y-3 pt-2 border-t">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-6">
-                  <AnimatedCheckbox
-                    checked={showAnimation}
-                    onChange={setShowAnimation}
-                    label="Animations"
-                    id="gauge-animations"
-                  />
-
-                  <div className="flex items-center space-x-2 text-sm">
-                    <span>Preset:</span>
-                    <StyledSelect
-                      value={preset}
-                      onValueChange={(value) => {
-                        if (value in ZONE_PRESETS) {
-                          setPreset(value as ZonePreset);
-                          setLiveValue(Math.round(ZONE_PRESETS[value as ZonePreset].max * 0.72));
-                        }
-                      }}
-                      options={[
-                        { value: "cpu", label: "CPU Usage" },
-                        { value: "memory", label: "Memory" },
-                        { value: "performance", label: "Performance" },
-                      ]}
-                    />
-                  </div>
-                </div>
-
-                <ReplayButton onClick={replayAnimation} disabled={!showAnimation} />
-              </div>
-            </div>
-          </div>
-        }
-        code={`import { GaugeChart } from '@/components/charts/gauge-chart';
-
-const zones = [
-  { from: 0, to: 60, color: "#22c55e", label: "Normal" },
-  { from: 60, to: 80, color: "#f59e0b", label: "High" },
-  { from: 80, to: 100, color: "#ef4444", label: "Critical" },
-];
-
-export function CpuGauge() {
-  return (
-    <GaugeChart
-      value={72}
-      min={0}
-      max={100}
-      zones={zones}
-      unit="%"
-      label="CPU Usage"
-      animation={true}
-    />
-  );
-}`}
-      />
-
-      {/* Installation */}
-      <InstallationGuide
-        title="Installation"
-        description="Get started with the GaugeChart component in just a few steps."
-        cliCommand="npx mario-charts@latest add gauge-chart"
-        steps={installationSteps}
-        copyPasteCode={`// Complete GaugeChart component code available after CLI installation`}
-      />
-
-      {/* Advanced Examples */}
-      <div className="space-y-8">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          Gauge Chart
+        </h1>
+        <p className="max-w-2xl text-base leading-7 text-muted-foreground">
+          Put a measurement in context with a bounded scale and meaningful
+          ranges. Keep the exact value visible, even when it goes beyond a
+          limit.
+        </p>
+        <CommandSnippet command="npx mario-charts@latest add gauge-chart" />
+      </header>
+      <section aria-labelledby="playground-title" className="space-y-5">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight mb-2">Examples</h2>
-          <p className="text-muted-foreground">
-            Explore different configurations and use cases for the GaugeChart component.
+          <h2
+            id="playground-title"
+            className="text-xl font-semibold tracking-tight"
+          >
+            Playground
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Explore live values, thresholds, and range limits.
           </p>
         </div>
-
-        {/* Memory Gauge */}
-        <ExampleShowcase
-          title="Memory Usage — GB Range"
-          description="Gauge with a non-percentage range (0–32 GB) and zone labels"
-          preview={
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                <div className="w-full max-w-xs">
-                  <GaugeChart
-                    key={`memory-${chartKey}`}
-                    value={memoryValue}
-                    min={0}
-                    max={32}
-                    zones={memoryZones}
-                    unit="GB"
-                    label="Memory"
-                    animation={memoryAnimation}
-                    height={280}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-2 border-t">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-6">
-                    <AnimatedCheckbox
-                      checked={memoryAnimation}
-                      onChange={setMemoryAnimation}
-                      label="Animations"
-                      id="memory-animations"
-                    />
-                  </div>
-
-                  <ReplayButton onClick={replayAnimation} disabled={!memoryAnimation} />
-                </div>
-              </div>
+        <div className="grid overflow-hidden rounded-md border bg-card lg:grid-cols-[240px_minmax(0,1fr)]">
+          <div className="space-y-5 border-b p-4 lg:border-b-0 lg:border-r">
+            <div>
+              <h3 className="text-sm font-medium">Settings</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                The same gauge through every state.
+              </p>
             </div>
-          }
-          code={`import { GaugeChart } from '@/components/charts/gauge-chart';
-
-const memoryZones = [
-  { from: 0,  to: 16, color: "#22c55e", label: "Available" },
-  { from: 16, to: 24, color: "#f59e0b", label: "Pressure" },
-  { from: 24, to: 32, color: "#ef4444", label: "Critical" },
-];
-
-export function MemoryGauge() {
-  return (
-    <GaugeChart
-      value={20}
-      min={0}
-      max={32}
-      zones={memoryZones}
-      unit="GB"
-      label="Memory"
-    />
-  );
-}`}
-        />
-
-        {/* Performance Score */}
-        <ExampleShowcase
-          title="Performance Score — Reversed Zones"
-          description="Zones ordered from worst to best — red at the low end, green at the high end"
-          preview={
-            <div className="space-y-4">
-              <div className="flex justify-center">
-                <div className="w-full max-w-xs">
-                  <GaugeChart
-                    key={`perf-${chartKey}`}
-                    value={perfValue}
-                    min={0}
-                    max={100}
-                    zones={performanceZones}
-                    label="Performance Score"
-                    animation={perfAnimation}
-                    height={280}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-2 border-t">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-6">
-                    <AnimatedCheckbox
-                      checked={perfAnimation}
-                      onChange={setPerfAnimation}
-                      label="Animations"
-                      id="perf-animations"
-                    />
-                  </div>
-
-                  <ReplayButton onClick={replayAnimation} disabled={!perfAnimation} />
-                </div>
-              </div>
+            <label className="grid gap-2 text-sm">
+              Preset
+              <select
+                aria-label="Preset"
+                className={selectClass}
+                value={preset}
+                onChange={(e) => {
+                  const key = e.target.value as typeof preset;
+                  setPreset(key);
+                  setValue(key === "signed" ? 15 : 65);
+                }}
+              >
+                {[
+                  ["cpu", "CPU utilization"],
+                  ["signed", "Signed range"],
+                  ["offset", "Nonzero minimum"],
+                  ["gap", "Gap between zones"],
+                  ["repeated", "Repeated colors"],
+                  ["unsorted", "Unordered zones"],
+                  ["long", "Long labels"],
+                  ["overlap", "Overlapping zones"],
+                  ["outside", "Zone outside range"],
+                  ["reversed", "Invalid range"],
+                ].map(([key, title]) => (
+                  <option key={key} value={key}>
+                    {title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm">
+              Value · {value}
+              {config.unit}
+              <input
+                aria-label="Value"
+                type="range"
+                min={Math.min(config.min, config.max) - 20}
+                max={Math.max(config.min, config.max) + 20}
+                step={1}
+                value={value}
+                onChange={(e) => setValue(Number(e.target.value))}
+              />
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                ["Minimum", config.min],
+                ["Maximum", config.max],
+                ["Above range", config.max + 15],
+              ].map(([title, next]) => (
+                <button
+                  key={title}
+                  type="button"
+                  className="rounded border px-2 py-1 text-xs hover:bg-muted"
+                  onClick={() => setValue(Number(next))}
+                >
+                  {title}
+                </button>
+              ))}
             </div>
-          }
-          code={`import { GaugeChart } from '@/components/charts/gauge-chart';
-
-const performanceZones = [
-  { from: 0,  to: 50,  color: "#ef4444", label: "Poor" },
-  { from: 50, to: 80,  color: "#f59e0b", label: "Needs Work" },
-  { from: 80, to: 100, color: "#22c55e", label: "Good" },
-];
-
-export function PerformanceGauge() {
-  return (
-    <GaugeChart
-      value={85}
-      min={0}
-      max={100}
-      zones={performanceZones}
-      label="Performance Score"
-    />
-  );
-}`}
-        />
-
-        {/* States Demo */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-3">Loading State</h3>
-            <GaugeChart
-              key={`loading-${chartKey}`}
-              value={50}
-              zones={cpuZones}
-              loading={true}
-              height={240}
-            />
+            <label className="grid gap-2 text-sm">
+              State
+              <select
+                aria-label="State"
+                className={selectClass}
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+              >
+                {[
+                  ["ready", "Ready"],
+                  ["loading", "Loading"],
+                  ["initial-loading", "Initial loading"],
+                  ["empty", "Empty"],
+                  ["error", "Error"],
+                  ["invalid", "Invalid value"],
+                ].map(([key, title]) => (
+                  <option key={key} value={key}>
+                    {title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm">
+              End caps
+              <select
+                aria-label="End caps"
+                className={selectClass}
+                value={strokeLinecap}
+                onChange={(e) =>
+                  setStrokeLinecap(e.target.value as typeof strokeLinecap)
+                }
+              >
+                <option value="round">Rounded</option>
+                <option value="butt">Flat</option>
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm">
+              Stroke width · {strokeWidth}px
+              <input
+                aria-label="Stroke width"
+                type="range"
+                min={8}
+                max={40}
+                step={2}
+                value={strokeWidth}
+                onChange={(e) => setStrokeWidth(Number(e.target.value))}
+              />
+            </label>
+            <div className="flex items-center justify-between border-t pt-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={animation}
+                  onChange={(e) => setAnimation(e.target.checked)}
+                />
+                Animate
+              </label>
+              <button
+                type="button"
+                aria-label="Replay animation"
+                disabled={!animation || loading}
+                onClick={() => setReplay((v) => v + 1)}
+                className="rounded border p-2 text-muted-foreground hover:text-foreground disabled:opacity-40"
+              >
+                <RotateCcw size={16} />
+              </button>
+            </div>
           </div>
-
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-3">Error State</h3>
+          <div className="flex min-w-0 flex-col justify-center p-5 sm:p-8">
+            <div className="mb-6">
+              <h3 className="font-medium">{config.label}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Illustrative measurement · {config.min} to {config.max}
+                {config.unit}
+              </p>
+            </div>
             <GaugeChart
-              key={`error-${chartKey}`}
-              value={50}
-              zones={cpuZones}
-              error="Failed to fetch metric data"
-              height={240}
+              key={replay}
+              {...config}
+              value={
+                state === "invalid" || state === "initial-loading" ? NaN : value
+              }
+              zones={
+                state === "empty" || state === "initial-loading"
+                  ? []
+                  : config.zones
+              }
+              height={360}
+              strokeWidth={strokeWidth}
+              strokeLinecap={strokeLinecap}
+              animation={animation}
+              loading={loading}
+              error={
+                state === "error"
+                  ? "Could not load the measurement. Check your connection and try again."
+                  : null
+              }
+              ariaLabel="Current measurement"
+              description="Illustrative measurement with configurable thresholds."
             />
-          </div>
-
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-3">Empty State</h3>
-            <GaugeChart
-              key={`empty-${chartKey}`}
-              value={50}
-              zones={[]}
-              height={240}
-            />
+            <p className="mt-5 text-xs leading-5 text-muted-foreground">
+              Hover, tap, or focus the gauge to inspect. Escape dismisses the
+              tooltip. Change the value to see the arc update.
+            </p>
           </div>
         </div>
-      </div>
-
-      {/* API Reference */}
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold tracking-tight">Usage</h2>
+        <CodeBlock code={example} language="tsx" />
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold tracking-tight">
+          Reading the gauge
+        </h2>
+        <div className="max-w-3xl space-y-3 text-sm leading-6 text-muted-foreground">
+          <p>
+            The arc shows position within the configured range, measured from
+            the minimum. A range of 20–120 places 70 at the midpoint; this is
+            not a percentage of the maximum.
+          </p>
+          <p>
+            The center and tooltip retain the actual measurement. Above or below
+            the range, the arc stops at its endpoint and keeps the boundary zone’s
+            color. A visible status explains why. The meter is read-only.
+          </p>
+          <p>
+            Zones include their starting value and exclude their ending value,
+            except at the gauge maximum. A shared boundary belongs to the zone
+            starting there. Gaps remain unclassified; overlapping zones produce
+            an error.
+          </p>
+          <p>
+            Use thresholds that match your metric. A high value may be good for
+            target attainment and bad for CPU pressure. Keep labels descriptive
+            so color is not the only explanation.
+          </p>
+        </div>
+      </section>
       <APIReference
         title="API Reference"
-        description="Complete TypeScript interface with all available props and configurations."
-        props={gaugeChartProps}
+        description="Typed props for values, ranges, zones, and inspection."
+        props={props}
       />
     </div>
   );

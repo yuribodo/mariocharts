@@ -118,7 +118,7 @@ A stacked bar chart with faithful signed stacks, growth from zero, segment inspe
 
 ### Gauge Chart (`gauge-chart`)
 
-A 3/4 arc gauge chart component with configurable color zones, animated needle, center value display, and responsive design
+A 270-degree arc gauge with truthful range limits, nonoverlapping color zones, animated value updates, and keyboard and touch inspection
 
 - Install: `npx shadcn@latest add https://mariocharts.com/r/gauge-chart.json`
 - Docs: https://mariocharts.com/docs/components/gauge-chart.md
