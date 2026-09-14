@@ -152,6 +152,8 @@ try {
     'components/charts/funnel-chart/geometry.ts',
     'components/charts/treemap-chart/index.tsx',
     'components/charts/treemap-chart/layout.ts',
+    'components/charts/treemap-chart/model.ts',
+    'components/charts/treemap-chart/ink.ts',
     'components/charts/waterfall-chart/index.tsx',
     'components/charts/waterfall-chart/utils.ts',
   ];

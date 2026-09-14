@@ -5,7 +5,7 @@ import { BreadcrumbSchema } from "../../../../components/seo/json-ld";
 
 export const metadata: Metadata = {
   title: "TreeMap Chart",
-  description: "Production-ready treemap chart component for React. Visualize hierarchical data as proportional rectangles with smooth animations and TypeScript support. Copy-paste ready.",
+  description: "Production-ready treemap chart component for React. Explore hierarchical data with three proportional layouts, group navigation, readable labels and growing tiles. Copy-paste ready.",
   keywords: ["treemap", "treemap chart", "react treemap", "hierarchical data", "data visualization", "typescript chart"],
   alternates: markdownAlternate("/docs/components/treemap"),
   openGraph: {

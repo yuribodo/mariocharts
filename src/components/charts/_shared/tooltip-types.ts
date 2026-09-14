@@ -62,12 +62,17 @@ export interface FunnelChartTooltipData<T extends ChartDataItem> {
   readonly color: string;
 }
 
-export interface TreemapChartTooltipData {
+export interface TreemapChartTooltipData<T = unknown> {
+  readonly node: T;
   readonly name: string;
   readonly value: number;
   readonly formattedValue: string;
-  readonly percentage: number;
+  readonly percentage: number | null;
+  readonly parentPercentage: number | null;
+  readonly viewPercentage: number | null;
   readonly path: readonly string[];
+  readonly indexPath: readonly number[];
+  readonly depth: number;
   readonly color: string;
 }
 

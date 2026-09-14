@@ -137,14 +137,14 @@ const CHARTS = [
     // treemap-chart — see the comment above CHARTS.
     docsSlug: 'treemap',
     title: 'Treemap Chart',
-    description: 'A squarified treemap chart component for hierarchical data with nested rectangles, animated layout, interactive tooltips, and responsive design',
+    description: 'A treemap with three proportional layouts, nested or flat views, group navigation, contrast-aware labels, growing tiles, and keyboard and touch inspection',
     // TreeMapChart, with a capital M — the component and the barrel in
     // src/components/index.ts both spell it that way, even though the
     // directory is treemap-chart. Every published import example is built
     // from this string, so a mismatch ships a non-compiling copy-paste.
     importName: 'TreeMapChart',
     exportName: 'TreeMapChart',
-    siblingFiles: ['layout.ts'],
+    siblingFiles: ['layout.ts', 'model.ts', 'ink.ts'],
     categories: ['charts', 'dashboard'],
     propsSourceFile: 'index.tsx',
   },

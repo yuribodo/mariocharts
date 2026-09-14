@@ -150,7 +150,7 @@ A Sankey chart for branching and converging flows with proportional ribbons, rea
 
 ### Treemap Chart (`treemap-chart`)
 
-A squarified treemap chart component for hierarchical data with nested rectangles, animated layout, interactive tooltips, and responsive design
+A treemap with three proportional layouts, nested or flat views, group navigation, contrast-aware labels, growing tiles, and keyboard and touch inspection
 
 - Install: `npx shadcn@latest add https://mariocharts.com/r/treemap-chart.json`
 - Docs: https://mariocharts.com/docs/components/treemap.md
