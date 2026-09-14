@@ -90,12 +90,15 @@ export interface ScatterPlotTooltipData<T extends ChartDataItem> {
 }
 
 export interface HeatmapChartTooltipData<T extends ChartDataItem> {
+  readonly data: T | null;
+  readonly index: number | null;
   readonly xLabel: string;
   readonly yLabel: string;
-  readonly value: number;
+  readonly value: number | null;
   readonly formattedValue: string;
-  readonly normalizedValue: number;
+  readonly normalizedValue: number | null;
   readonly color: string;
+  readonly weightValue?: number;
 }
 
 export interface GaugeChartTooltipData {

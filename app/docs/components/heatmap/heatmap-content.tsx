@@ -1,461 +1,553 @@
 "use client";
-
-import { useState } from "react";
-import { Breadcrumbs } from "../../../../components/site/breadcrumbs";
-import { HeatmapChart } from "@/src/components/charts/heatmap";
-import { ExampleShowcase } from "../../../../components/ui/example-showcase";
+import { useMemo, useState } from "react";
+import { RotateCcw } from "lucide-react";
+import {
+  HeatmapChart,
+  type ColorScheme,
+  type HeatmapVariant,
+} from "@/src/components/charts/heatmap";
 import { APIReference } from "../../../../components/ui/api-reference";
-import { InstallationGuide } from "../../../../components/ui/installation-guide";
-import { GridFour } from "@phosphor-icons/react";
-import { StyledSelect } from "../../../../components/ui/styled-select";
-import { AnimatedCheckbox } from "../../../../components/ui/animated-checkbox";
-import type { ColorScheme, HeatmapVariant } from "@/src/components/charts/heatmap";
+import { CodeBlock } from "../../../../components/ui/code-block";
+import { CommandSnippet } from "../../../../components/ui/command-snippet";
+type Observation = {
+  day: string;
+  hour: string;
+  amount: number | string | null;
+  weight: number;
+};
+const hours = ["6am", "9am", "12pm", "3pm", "6pm", "9pm"];
+const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const activity: Observation[] = days.flatMap((day, row) =>
+  hours.map((hour, col) => ({
+    day,
+    hour,
+    amount: Math.round((12 + row * 3) * [0.3, 0.8, 1.4, 1.7, 1.1, 0.5][col]!),
+    weight: 1,
+  })),
+);
+const stocks: Observation[] = [
+  ["AAPL", 2.4, 30],
+  ["MSFT", 1.2, 28],
+  ["NVDA", -1.8, 24],
+  ["GOOGL", 0.8, 18],
+  ["AMZN", -0.9, 16],
+  ["META", 3.1, 12],
+  ["TSLA", -2.6, 8],
+  ["BRK", 0, 7],
+].map(([hour, amount, weight]) => ({
+  day: "",
+  hour: String(hour),
+  amount: Number(amount),
+  weight: Number(weight),
+}));
+const diversified: Observation[] = [
+  ...stocks,
+  ...[
+    ["JPM", 1.4, 6],
+    ["V", 0.3, 5.5],
+    ["LLY", -0.2, 5],
+    ["XOM", -1.1, 4.8],
+    ["UNH", 0.6, 4.2],
+    ["MA", 1.8, 4],
+    ["COST", 0.4, 3.8],
+    ["HD", -0.7, 3.5],
+    ["PG", 0.1, 3.3],
+    ["JNJ", -1.3, 3.1],
+    ["ABBV", 2.1, 2.9],
+    ["BAC", 0.9, 2.7],
+    ["NFLX", -2.2, 2.5],
+    ["KO", 0, 2.3],
+    ["CRM", 1.5, 2.1],
+    ["AMD", -3.1, 1.9],
+  ].map(([hour, amount, weight]) => ({
+    day: "",
+    hour: String(hour),
+    amount: Number(amount),
+    weight: Number(weight),
+  })),
+];
+const example = `import { HeatmapChart } from "@/components/charts/heatmap";
 
-// Dataset 1: Temperature by hour × day (grid)
-const temperatureData = (() => {
-  const hours = ["6am", "9am", "12pm", "3pm", "6pm", "9pm"];
-  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  const baseTemps = [16, 18, 20, 19, 17, 22, 23];
-  const hourMultiplier = [0.8, 0.9, 1.1, 1.15, 1.0, 0.85];
-  return days.flatMap((day, di) =>
-    hours.map((hour, hi) => ({
-      day,
-      hour,
-      temp: Math.round(baseTemps[di]! * hourMultiplier[hi]!),
-    }))
-  );
-})();
+const data = [
+  { day: "Mon", hour: "9am", visits: 0 },
+  { day: "Mon", hour: "12pm", visits: 24 },
+  { day: "Tue", hour: "9am", visits: null },
+  { day: "Tue", hour: "12pm", visits: 36 },
+];
 
-// Dataset 2: Traffic by hour × day (radial)
-const trafficData = (() => {
-  const hours = Array.from({ length: 24 }, (_, i) => `${i}h`);
-  const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  return hours.flatMap((hour, hi) =>
-    weekdays.map((day, di) => ({
-      hour,
-      day,
-      traffic: Math.round(
-        Math.abs(Math.sin((hi * Math.PI) / 12)) * 100 *
-        (di < 5 ? 1 : 0.5) *
-        (hi >= 8 && hi <= 18 ? 1 : 0.3) + (hi * di) % 15
-      ),
-    }))
-  );
-})();
-
-// Dataset 3: Stock market heatmap (S&P 500 sectors)
-const stockData = [
-  { name: "Apple",       change:  3.21, marketCap: 2780 },
-  { name: "Microsoft",   change:  1.87, marketCap: 2490 },
-  { name: "Nvidia",      change:  6.44, marketCap: 1820 },
-  { name: "Amazon",      change: -2.10, marketCap: 1750 },
-  { name: "Alphabet",    change:  0.95, marketCap: 1640 },
-  { name: "Meta",        change:  4.32, marketCap: 1210 },
-  { name: "Tesla",       change: -5.67, marketCap:  780 },
-  { name: "Berkshire",   change:  0.41, marketCap:  860 },
-  { name: "Broadcom",    change:  2.88, marketCap:  720 },
-  { name: "JPMorgan",    change: -0.73, marketCap:  580 },
-  { name: "Visa",        change:  1.12, marketCap:  520 },
-  { name: "ExxonMobil",  change: -1.44, marketCap:  490 },
-  { name: "UnitedHealth",change:  0.28, marketCap:  460 },
-  { name: "Johnson",     change: -0.55, marketCap:  380 },
-  { name: "Walmart",     change:  2.01, marketCap:  420 },
-  { name: "Mastercard",  change:  1.34, marketCap:  395 },
-  { name: "P&G",         change: -0.18, marketCap:  360 },
-  { name: "ASML",        change:  3.77, marketCap:  310 },
-  { name: "Netflix",     change:  7.22, marketCap:  290 },
-  { name: "AMD",         change:  5.90, marketCap:  240 },
-  { name: "Costco",      change:  0.63, marketCap:  345 },
-  { name: "Oracle",      change:  2.15, marketCap:  350 },
-  { name: "Salesforce",  change: -1.82, marketCap:  245 },
-  { name: "Adobe",       change: -3.10, marketCap:  210 },
-] as const;
-
-// API Reference
-const heatmapProps = [
-  { name: "data", type: "readonly T[]", description: "Array of data objects", required: true },
-  { name: "x", type: "keyof T", description: "Column / angular axis / stock label key", required: true },
-  { name: "y", type: "keyof T", description: "Row / ring axis key (not used for stock)", required: true },
-  { name: "value", type: "keyof T", description: "Numeric value key — color intensity for grid/radial, % change for stock", required: true },
-  { name: "weight", type: "keyof T", description: "Area weight key for stock treemap (e.g. marketCap). Defaults to equal area." },
+export function Activity() {
+  return <HeatmapChart data={data} x="hour" y="day" value="visits"
+    showLegend height={360} ariaLabel="Visits by day and hour" />;
+}`;
+const props = [
+  {
+    name: "data",
+    type: "readonly T[]",
+    required: true,
+    description:
+      "Original observations. Grid/radial require unique x/y pairs. Null, undefined and blank values mean missing; numeric strings are supported. Invalid values produce an actionable error.",
+  },
+  {
+    name: "x / y / value",
+    type: "keyof T",
+    required: true,
+    description:
+      "Column, row/ring, and measurement keys. Categories retain first appearance. Stock ignores y and keeps each original row, including repeated labels.",
+  },
   {
     name: "variant",
     type: "'grid' | 'radial' | 'stock'",
     default: "'grid'",
-    description: "grid: standard with cross-highlight; radial: polar clock rings; stock: treemap sized by weight",
+    description:
+      "Grid matrix, clockwise radial matrix, or stock treemap. Radial rows run from outer to inner rings.",
+  },
+  {
+    name: "weight",
+    type: "keyof T",
+    description:
+      "Stock area key: finite nonnegative values. Omit for equal allocation. Zero weights have no area and remain in the accessible source table. Gutters inset the allocated rectangles.",
   },
   {
     name: "colorScheme",
     type: "'blue' | 'green' | 'amber' | 'purple' | 'diverging'",
     default: "'blue'",
-    description: "Built-in color scheme. Stock variant uses red/green regardless unless colorFrom/colorTo are set.",
+    description:
+      "Sequential palettes or blue/neutral/red diverging scale. Stock uses red/slate/green with a dark neutral midpoint, independent of colorScheme.",
   },
-  { name: "colorFrom", type: "string", description: "Override low-value color (hex). For stock: overrides the negative/red end." },
-  { name: "colorTo", type: "string", description: "Override high-value color (hex). For stock: overrides the positive/green end." },
-  { name: "showLabels", type: "boolean", default: "true", description: "Show axis labels" },
-  { name: "showLegend", type: "boolean", default: "false", description: "Show color legend swatch" },
-  { name: "cellRadius", type: "number", default: "4", description: "Cell border radius in pixels (grid variant)" },
-  { name: "height", type: "number", default: "320", description: "Height of the chart in pixels" },
-  { name: "loading", type: "boolean", default: "false", description: "Show loading skeleton state" },
-  { name: "error", type: "string | null", default: "null", description: "Error message to display" },
-  { name: "animation", type: "boolean", default: "true", description: "Enable entrance animation" },
+  {
+    name: "colorFrom / colorTo",
+    type: "string",
+    description:
+      "Endpoint CSS colors, including rgb, oklch and inherited CSS variables. Diverging scales retain a neutral middle.",
+  },
+  {
+    name: "domain",
+    type: "readonly [number, number]",
+    description:
+      "Fixed finite increasing color bounds containing every measurement. Omit for observed extent, symmetric around midpoint for diverging/stock. A constant sequential dataset uses one middle color.",
+  },
+  {
+    name: "midpoint",
+    type: "number",
+    default: "0",
+    description:
+      "Neutral value for diverging/stock. Fixed diverging bounds must extend below and above it. The legend uses this same piecewise scale.",
+  },
+  {
+    name: "showLabels / showLegend",
+    type: "boolean",
+    default: "true / false",
+    description:
+      "Category labels and the actual color scale. Stock labels sit directly on cells with measured font sizing and automatic black/white contrast. Values shrink to fit before being hidden; full text remains in inspection and the source table.",
+  },
+  {
+    name: "cellRadius",
+    type: "number",
+    default: "4",
+    description:
+      "Nonnegative grid/stock corner radius in pixels, bounded by cell size. Set 0 for flat corners. Radial cells keep circular edges.",
+  },
+  {
+    name: "height / className",
+    type: "number / string",
+    default: "320",
+    description:
+      "Stable positive frame height includes the legend and notices. className styles the measured wrapper.",
+  },
+  {
+    name: "loading / error",
+    type: "boolean / string | null",
+    default: "false / null",
+    description:
+      "Retain observations while loading to preserve geometry. Initial loading uses a variant-specific neutral placeholder. Empty and error states preserve frame size.",
+  },
+  {
+    name: "animation",
+    type: "boolean",
+    default: "true",
+    description:
+      "Cells grow at fixed positions on entrance; their final colors stay constant. Focus finishes the entrance immediately. Reduced motion is respected.",
+  },
+  {
+    name: "valueFormatter / weightFormatter",
+    type: "(value: number) => string",
+    description:
+      "Format inspection, legend and accessible values. Stock defaults to signed percentages; use valueFormatter for other units. Weight defaults to formatValue.",
+  },
+  {
+    name: "ariaLabel / description",
+    type: "string",
+    default: "'Heatmap chart'",
+    description:
+      "Accessible chart name and additional context. One tab stop with arrow navigation, Home/End, Escape and optional Enter/Space activation.",
+  },
   {
     name: "onClick",
     type: "(item: T, colLabel: string, rowLabel: string) => void",
-    description: "Callback on cell click",
-  },
-  { name: "className", type: "string", description: "Additional CSS classes for the container" },
-];
-
-const installationSteps = [
-  {
-    title: "Initialize Mario Charts (first time only)",
-    description: "Set up Mario Charts in your React project.",
-    code: `npx mario-charts@latest init`,
-    language: "bash",
+    description:
+      "Mouse, touch or keyboard activation with the original row. Missing matrix combinations have no callback. Stock passes an empty rowLabel.",
   },
   {
-    title: "Add the HeatmapChart component",
-    description: "Install the HeatmapChart component using the CLI.",
-    code: `npx mario-charts@latest add heatmap`,
-    language: "bash",
-  },
-  {
-    title: "Start using the component",
-    description: "Import and use HeatmapChart in your components.",
-    code: `import { HeatmapChart } from "@/components/charts/heatmap";
-
-<HeatmapChart
-  data={stockData}
-  x="name"
-  y="name"
-  value="change"
-  weight="marketCap"
-  variant="stock"
-  showLegend
-/>`,
-    language: "tsx",
+    name: "tooltipRenderer",
+    type: "TooltipRenderer<HeatmapChartTooltipData<T>>",
+    description:
+      "Receives data/index (null for absent combinations), value/normalizedValue (null for missing values), labels, formattedValue, color and stock weightValue.",
   },
 ];
-
 export function HeatmapContent() {
   const [variant, setVariant] = useState<HeatmapVariant>("grid");
-  const [colorScheme, setColorScheme] = useState<ColorScheme>("amber");
-  const [showLabels, setShowLabels] = useState(true);
-  const [showLegend, setShowLegend] = useState(true);
-  const [showAnimation, setShowAnimation] = useState(true);
-  const [chartKey, setChartKey] = useState(0);
-
-  const replay = () => setChartKey(prev => prev + 1);
-
-  // Dataset for interactive example
-  const isStock = variant === "stock";
-  const isRadial = variant === "radial";
-  const activeH = isRadial ? 360 : isStock ? 340 : 280;
-
+  const [scheme, setScheme] = useState<ColorScheme>("blue");
+  const [dataset, setDataset] = useState("default");
+  const [state, setState] = useState("ready");
+  const [showLabels, setLabels] = useState(true),
+    [showLegend, setLegend] = useState(true);
+  const [animation, setAnimation] = useState(true),
+    [replay, setReplay] = useState(0);
+  const [radius, setRadius] = useState(4),
+    [fixed, setFixed] = useState(false);
+  const [colors, setColors] = useState("default"),
+    [weighted, setWeighted] = useState(true);
+  const [selection, setSelection] = useState<string | null>(null);
+  const data = useMemo(() => {
+    let rows =
+      variant === "stock"
+        ? dataset === "dense"
+          ? diversified
+          : stocks
+        : activity;
+    if (dataset === "missing")
+      rows = rows
+        .filter((_, i) => i !== 1)
+        .map((row, i) => ({ ...row, amount: i === 2 ? null : row.amount }));
+    if (dataset === "zero") rows = rows.map((row) => ({ ...row, amount: 0 }));
+    if (dataset === "signed")
+      rows = rows.map((row, i) => ({ ...row, amount: (i % 11) - 5 }));
+    if (dataset === "single")
+      rows = rows.filter((row) => row.hour === rows[0]!.hour);
+    if (dataset === "long")
+      rows = rows.map((row) => ({
+        ...row,
+        day: row.day + " · North America production",
+        hour: row.hour + " · enterprise workload",
+      }));
+    if (dataset === "invalid")
+      rows = rows.map((row, i) => ({
+        ...row,
+        amount: i === 0 ? "12px" : row.amount,
+      }));
+    if (dataset === "duplicate") rows = [...rows, rows[0]!];
+    if (dataset === "zero-weight")
+      rows = rows.map((row, i) => ({ ...row, weight: i < 3 ? 0 : row.weight }));
+    if (dataset === "all-zero-weight")
+      rows = rows.map((row) => ({ ...row, weight: 0 }));
+    return state === "empty" || state === "initial-loading" ? [] : rows;
+  }, [variant, dataset, state]);
+  const selectClass = "h-9 w-full rounded border bg-background px-2 text-sm";
   return (
-    <div className="max-w-none space-y-12">
-      <Breadcrumbs />
-
-      {/* Hero */}
-      <div className="flex flex-col space-y-4 pb-8 pt-6">
-        <div className="flex items-center space-x-3">
-          <GridFour size={24} weight="duotone" className="text-primary" />
-          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
-            Heatmap Chart
-          </h1>
-        </div>
-        <p className="text-xl text-muted-foreground leading-7 max-w-3xl">
-          Three powerful heatmap variants — grid with crosshair highlight, radial polar clock, and a stock-market treemap
-          where cell size encodes market cap and color encodes price change.
+    <div className="space-y-12">
+      <header className="space-y-4">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Components
         </p>
-        <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2 text-sm text-muted-foreground">
-          {[
-            "Grid + Cross-Highlight",
-            "Radial / Polar Clock",
-            "Stock Treemap",
-            "Color Interpolation",
-            "Color Legend",
-            "Responsive",
-            "TypeScript",
-          ].map(f => (
-            <div key={f} className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 bg-foreground rounded-full" />
-              {f}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Example 1: Interactive — all 3 variants */}
-      <ExampleShowcase
-        title="Three Variants — Switch Live"
-        description="Grid, Radial, and Stock with different datasets — all from the same component"
-        preview={
-          <div className="space-y-4">
-            <div style={{ height: activeH }}>
-              {isStock ? (
-                <HeatmapChart
-                  key={`${chartKey}-${variant}`}
-                  data={stockData}
-                  x="name"
-                  y="name"
-                  value="change"
-                  weight="marketCap"
-                  variant="stock"
-                  colorScheme={colorScheme}
-                  showLabels={showLabels}
-                  showLegend={showLegend}
-                  animation={showAnimation}
-                  height={activeH}
-                />
-              ) : isRadial ? (
-                <HeatmapChart
-                  key={`${chartKey}-${variant}`}
-                  data={trafficData}
-                  x="hour"
-                  y="day"
-                  value="traffic"
-                  variant="radial"
-                  colorScheme={colorScheme}
-                  showLabels={showLabels}
-                  showLegend={showLegend}
-                  animation={showAnimation}
-                  height={activeH}
-                />
-              ) : (
-                <HeatmapChart
-                  key={`${chartKey}-${variant}`}
-                  data={temperatureData}
-                  x="hour"
-                  y="day"
-                  value="temp"
-                  variant="grid"
-                  colorScheme={colorScheme}
-                  showLabels={showLabels}
-                  showLegend={showLegend}
-                  animation={showAnimation}
-                  height={activeH}
-                />
-              )}
-            </div>
-            <div className="space-y-3 pt-2 border-t">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center gap-6 flex-wrap">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span>Variant:</span>
-                    <StyledSelect
-                      value={variant}
-                      onValueChange={v => {
-                        setVariant(v as HeatmapVariant);
-                        if (v === "stock") setColorScheme("diverging");
-                        else if (v === "radial") setColorScheme("blue");
-                        else setColorScheme("amber");
-                      }}
-                      options={[
-                        { value: "grid", label: "Grid" },
-                        { value: "radial", label: "Radial" },
-                        { value: "stock", label: "Stock" },
-                      ]}
-                    />
-                  </div>
-                  {variant !== "stock" && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <span>Color:</span>
-                      <StyledSelect
-                        value={colorScheme}
-                        onValueChange={v => setColorScheme(v as ColorScheme)}
-                        options={[
-                          { value: "amber", label: "Amber" },
-                          { value: "blue", label: "Blue" },
-                          { value: "green", label: "Green" },
-                          { value: "purple", label: "Purple" },
-                          { value: "diverging", label: "Diverging" },
-                        ]}
-                      />
-                    </div>
-                  )}
-                  {variant !== "stock" && (
-                    <AnimatedCheckbox checked={showLabels} onChange={setShowLabels} label="Labels" id="heatmap-labels" />
-                  )}
-                  <AnimatedCheckbox checked={showLegend} onChange={setShowLegend} label="Legend" id="heatmap-legend" />
-                  <AnimatedCheckbox checked={showAnimation} onChange={setShowAnimation} label="Animation" id="heatmap-anim" />
-                </div>
-                <button
-                  onClick={replay}
-                  disabled={!showAnimation}
-                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-                >
-                  Replay
-                </button>
-              </div>
-            </div>
-          </div>
-        }
-        code={`import { HeatmapChart } from '@/components/charts/heatmap';
-
-// Grid
-<HeatmapChart data={data} x="hour" y="day" value="temp" variant="grid" colorScheme="amber" showLegend />
-
-// Radial
-<HeatmapChart data={data} x="hour" y="day" value="traffic" variant="radial" showLegend />
-
-// Stock treemap
-<HeatmapChart data={stocks} x="name" y="name" value="change" weight="marketCap" variant="stock" showLegend />`}
-      />
-
-      <InstallationGuide
-        title="Installation"
-        description="Get started with the HeatmapChart component in just a few steps."
-        cliCommand="npx mario-charts@latest add heatmap"
-        steps={installationSteps}
-        copyPasteCode="// Complete HeatmapChart component code available after CLI installation"
-      />
-
-      <div className="space-y-8">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          Heatmap
+        </h1>
+        <p className="max-w-2xl text-base leading-7 text-muted-foreground">
+          Find patterns across two dimensions with color. Explore a matrix, wrap
+          it into rings, or size stock cells by a separate weight.
+        </p>
+        <CommandSnippet command="npx mario-charts@latest add heatmap" />
+      </header>
+      <section aria-labelledby="playground-title" className="space-y-5">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight mb-2">Examples</h2>
-          <p className="text-muted-foreground">Dedicated examples for each variant.</p>
+          <h2
+            id="playground-title"
+            className="text-xl font-semibold tracking-tight"
+          >
+            Playground
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Explore color, shape, missing observations, and area weights.
+          </p>
         </div>
-
-        {/* Example 2: Stock treemap */}
-        <ExampleShowcase
-          title="Stock Market Treemap"
-          description="Cell area = market cap, color = daily % change. Negative red, positive green — just like Finviz."
-          preview={
-            <div style={{ height: 360 }}>
-              <HeatmapChart
-                key={`stock-${chartKey}`}
-                data={stockData}
-                x="name"
-                y="name"
-                value="change"
-                weight="marketCap"
-                variant="stock"
-                showLegend
-                height={360}
-                animation={showAnimation}
-              />
+        <div className="grid overflow-hidden rounded-md border bg-card lg:grid-cols-[240px_minmax(0,1fr)]">
+          <div className="space-y-5 border-b p-4 lg:border-b-0 lg:border-r">
+            <h3 className="text-sm font-medium">Settings</h3>
+            <label className="grid gap-2 text-sm">
+              Variant
+              <select
+                className={selectClass}
+                aria-label="Variant"
+                value={variant}
+                onChange={(e) => {
+                  setVariant(e.target.value as HeatmapVariant);
+                  setDataset("default");
+                  setSelection(null);
+                }}
+              >
+                <option value="grid">Grid</option>
+                <option value="radial">Radial</option>
+                <option value="stock">Stock</option>
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm">
+              Dataset
+              <select
+                className={selectClass}
+                aria-label="Dataset"
+                value={dataset}
+                onChange={(e) => {
+                  setDataset(e.target.value);
+                  setSelection(null);
+                }}
+              >
+                {[
+                  [
+                    "default",
+                    variant === "stock"
+                      ? "Illustrative portfolio"
+                      : "Weekly activity",
+                  ],
+                  ["missing", "Missing observations"],
+                  ["zero", "All zero"],
+                  ["signed", "Signed values"],
+                  ["single", "Single column"],
+                  ["long", "Long labels"],
+                  ["invalid", "Invalid value"],
+                  ["duplicate", "Duplicate coordinates"],
+                  ...(variant === "stock"
+                    ? [
+                        ["dense", "Diversified portfolio · 24 assets"],
+                        ["zero-weight", "Some zero weights"],
+                        ["all-zero-weight", "All zero weights"],
+                      ]
+                    : []),
+                ].map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm">
+              State
+              <select
+                className={selectClass}
+                aria-label="State"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+              >
+                {[
+                  ["ready", "Ready"],
+                  ["loading", "Refreshing"],
+                  ["initial-loading", "Initial loading"],
+                  ["empty", "Empty"],
+                  ["error", "Error"],
+                ].map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {variant !== "stock" && (
+              <label className="grid gap-2 text-sm">
+                Palette
+                <select
+                  className={selectClass}
+                  aria-label="Palette"
+                  value={scheme}
+                  onChange={(e) => setScheme(e.target.value as ColorScheme)}
+                >
+                  {["blue", "green", "amber", "purple", "diverging"].map(
+                    (key) => (
+                      <option key={key}>{key}</option>
+                    ),
+                  )}
+                </select>
+              </label>
+            )}
+            <label className="grid gap-2 text-sm">
+              Custom colors
+              <select
+                className={selectClass}
+                aria-label="Custom colors"
+                value={colors}
+                onChange={(e) => setColors(e.target.value)}
+              >
+                <option value="default">Palette defaults</option>
+                <option value="css">CSS variables</option>
+                <option value="rgb">RGB colors</option>
+              </select>
+            </label>
+            {variant !== "radial" && (
+              <label className="grid gap-2 text-sm">
+                Corner radius · {radius}px
+                <input
+                  aria-label="Corner radius"
+                  type="range"
+                  min={0}
+                  max={12}
+                  value={radius}
+                  onChange={(e) => setRadius(Number(e.target.value))}
+                />
+              </label>
+            )}
+            <div className="space-y-3">
+              {[
+                ["Labels", showLabels, setLabels],
+                ["Legend", showLegend, setLegend],
+                ["Animation", animation, setAnimation],
+                ["Fixed color domain", fixed, setFixed],
+                ...(variant === "stock"
+                  ? [["Weighted areas", weighted, setWeighted] as const]
+                  : []),
+              ].map(([label, checked, setter]) => (
+                <label
+                  key={String(label)}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  {String(label)}
+                  <input
+                    type="checkbox"
+                    checked={Boolean(checked)}
+                    onChange={(e) =>
+                      (setter as (v: boolean) => void)(e.target.checked)
+                    }
+                  />
+                </label>
+              ))}
             </div>
-          }
-          code={`import { HeatmapChart } from '@/components/charts/heatmap';
-
-const stockData = [
-  { name: "Apple",   change:  3.21, marketCap: 2780 },
-  { name: "Nvidia",  change:  6.44, marketCap: 1820 },
-  { name: "Amazon",  change: -2.10, marketCap: 1750 },
-  { name: "Tesla",   change: -5.67, marketCap:  780 },
-  // ...
-];
-
-<HeatmapChart
-  data={stockData}
-  x="name"
-  y="name"
-  value="change"
-  weight="marketCap"
-  variant="stock"
-  showLegend
-  height={360}
-/>`}
-        />
-
-        {/* Example 3: Radial */}
-        <ExampleShowcase
-          title="Radial / Polar Clock — Hourly Traffic"
-          description="Cyclical patterns rendered as concentric rings. Each angle = hour, each ring = day of week."
-          preview={
-            <div style={{ height: 380 }}>
-              <HeatmapChart
-                key={`radial-${chartKey}`}
-                data={trafficData}
-                x="hour"
-                y="day"
-                value="traffic"
-                variant="radial"
-                colorScheme="blue"
-                showLegend
-                height={380}
-                animation={showAnimation}
-              />
-            </div>
-          }
-          code={`import { HeatmapChart } from '@/components/charts/heatmap';
-
-// x = angular segments (hours), y = concentric rings (days)
-<HeatmapChart
-  data={trafficData}
-  x="hour"
-  y="day"
-  value="traffic"
-  variant="radial"
-  colorScheme="blue"
-  showLegend
-  height={380}
-/>`}
-        />
-
-        {/* Example 4: Grid cross-highlight */}
-        <ExampleShowcase
-          title="Grid — Cross-Highlight on Hover"
-          description="Hover any cell to see its entire row and column dim — a crosshair effect not found in standard chart libraries."
-          preview={
-            <div style={{ height: 280 }}>
-              <HeatmapChart
-                key={`grid-${chartKey}`}
-                data={temperatureData}
-                x="hour"
-                y="day"
-                value="temp"
-                variant="grid"
-                colorScheme="amber"
-                showLegend
-                height={280}
-                animation={showAnimation}
-              />
-            </div>
-          }
-          code={`import { HeatmapChart } from '@/components/charts/heatmap';
-
-// Hover any cell → row + column dim to 30% opacity (crosshair effect)
-<HeatmapChart
-  data={temperatureData}
-  x="hour"
-  y="day"
-  value="temp"
-  variant="grid"
-  colorScheme="amber"
-  showLegend
-/>`}
-        />
-
-        {/* States */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-3">Loading State</h3>
-            <div className="h-56">
-              <HeatmapChart data={temperatureData} x="hour" y="day" value="temp" loading height={210} />
-            </div>
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded border px-3 py-2 text-xs hover:bg-muted"
+              onClick={() => setReplay((v) => v + 1)}
+            >
+              <RotateCcw size={14} />
+              Replay animation
+            </button>
           </div>
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-3">Error State</h3>
-            <div className="h-56">
-              <HeatmapChart data={temperatureData} x="hour" y="day" value="temp" error="Failed to load data" height={210} />
+          <div
+            className="min-w-0 p-4 sm:p-6"
+            style={
+              {
+                "--heat-low": "#fef3c7",
+                "--heat-high": "#9a3412",
+              } as React.CSSProperties
+            }
+          >
+            <div className="mb-6">
+              <h3 className="font-medium">
+                {variant === "stock"
+                  ? "Portfolio movement"
+                  : "Activity throughout the week"}
+              </h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {variant === "stock"
+                  ? "Illustrative data · color shows change, area shows weight"
+                  : variant === "radial"
+                    ? "Hours clockwise · days from outer to inner rings"
+                    : "Days × hours · intensity shows activity"}
+              </p>
             </div>
-          </div>
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-3">Empty State</h3>
-            <div className="h-56">
-              <HeatmapChart data={[]} x="hour" y="day" value="temp" height={210} />
-            </div>
+            <HeatmapChart
+              key={replay}
+              data={data}
+              x="hour"
+              y="day"
+              value="amount"
+              {...(variant === "stock" && weighted
+                ? { weight: "weight" as const }
+                : {})}
+              variant={variant}
+              colorScheme={scheme}
+              {...(colors === "css"
+                ? { colorFrom: "var(--heat-low)", colorTo: "var(--heat-high)" }
+                : colors === "rgb"
+                  ? { colorFrom: "rgb(224 231 255)", colorTo: "rgb(67 56 202)" }
+                  : {})}
+              {...(fixed
+                ? {
+                    domain: (variant === "stock" || scheme === "diverging"
+                      ? [-100, 100]
+                      : [-10, 100]) as readonly [number, number],
+                  }
+                : {})}
+              cellRadius={radius}
+              height={360}
+              showLabels={showLabels}
+              showLegend={showLegend}
+              animation={animation}
+              loading={state === "loading" || state === "initial-loading"}
+              error={
+                state === "error"
+                  ? "Unable to load observations. Try again."
+                  : null
+              }
+              ariaLabel="Current heatmap"
+              onClick={(row, col, day) =>
+                setSelection(
+                  `${day ? `${day} / ` : ""}${col}: ${row.amount ?? "No data"}`,
+                )
+              }
+            />
+            <p className="mt-5 text-xs leading-5 text-muted-foreground">
+              Hover, tap, or focus a cell to inspect. Use arrow keys to move,
+              Home/End to jump, Enter to select, and Escape to dismiss.
+            </p>
+            <p
+              role="status"
+              className="mt-3 min-h-5 text-xs text-muted-foreground"
+            >
+              {selection
+                ? `Selected ${selection}`
+                : "Select an observation to see its original value."}
+            </p>
           </div>
         </div>
-      </div>
-
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold tracking-tight">Usage</h2>
+        <CodeBlock code={example} language="tsx" />
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold tracking-tight">
+          Reading the heatmap
+        </h2>
+        <div className="max-w-3xl space-y-3 text-sm leading-6 text-muted-foreground">
+          <p>
+            Zero is a measurement. Hatched cells mean no observation: either the
+            pair is absent or its value is null, undefined, or blank. Duplicate
+            grid/radial pairs require aggregation before rendering. The matrix
+            is limited to 10,000 combinations, including missing ones.
+          </p>
+          <p>
+            Sequential colors run from the observed minimum to maximum.
+            Diverging colors use a neutral midpoint, zero by default, with a
+            symmetric automatic range. Set domain when comparing multiple charts
+            so the same value means the same color. The legend and inspection
+            use that exact scale.
+          </p>
+          <p>
+            Radial columns run clockwise from the top, with the first row on the
+            outer ring. Outer cells occupy more area, so compare their colors.
+            Stock allocates area from weight; omitting weight gives equal
+            allocation. Zero weights have no area, and small cells may have no
+            visible label. All observations remain in the accessible source
+            table.
+          </p>
+          <p>
+            Custom inspection receives the original data and index. Both are
+            null for absent combinations; value and normalizedValue are null for
+            any missing measurement. Handle these explicitly when migrating an
+            existing tooltip. Stock defaults to percentage formatting; provide
+            valueFormatter when displaying other units.
+          </p>
+        </div>
+      </section>
       <APIReference
-        title="API Reference"
-        description="Complete TypeScript interface with all available props and configurations."
-        props={heatmapProps}
+        props={props}
+        description="Typed props for layout, colors, area weights and inspection."
       />
     </div>
   );

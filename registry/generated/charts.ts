@@ -62,7 +62,7 @@ export const REGISTRY_CHARTS: readonly RegistryChartSummary[] = [
   {
     name: "heatmap",
     title: "Heatmap Chart",
-    description: "A heatmap chart component with configurable color schemes, animated cells, interactive tooltips, row/column labels, and multiple layout variants",
+    description: "A grid, radial and stock heatmap with explicit missing values, faithful color scales, weighted areas, and keyboard and touch inspection",
     docsPath: "/docs/components/heatmap",
     registryUrl: "https://mariocharts.com/r/heatmap.json",
   },

@@ -171,7 +171,7 @@
       "name": "heatmap",
       "type": "registry:component",
       "title": "Heatmap Chart",
-      "description": "A heatmap chart component with configurable color schemes, animated cells, interactive tooltips, row/column labels, and multiple layout variants",
+      "description": "A grid, radial and stock heatmap with explicit missing values, faithful color scales, weighted areas, and keyboard and touch inspection",
       "categories": [
         "charts",
         "dashboard"
@@ -179,6 +179,22 @@
       "files": [
         {
           "path": "heatmap/index.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "heatmap/model.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "heatmap/colors.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "heatmap/geometry.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "heatmap/stock-label.tsx",
           "type": "registry:component"
         }
       ]
