@@ -11,6 +11,7 @@ type ChartKind =
   | "scatter"
   | "heatmap"
   | "funnel"
+  | "sankey"
   | "gauge";
 
 interface ChartEntry {
@@ -65,6 +66,7 @@ const groups: readonly ChartGroup[] = [
     description: "Communicate movement through stages or toward a target.",
     charts: [
       { name: "Funnel Chart", href: "/docs/components/funnel-chart", description: "Show stage-by-stage conversion and drop-off.", meta: "Conversion", kind: "funnel" },
+      { name: "Sankey Chart", href: "/docs/components/sankey-chart", description: "Follow alternative paths that split and converge.", meta: "Flow", kind: "sankey" },
       { name: "Gauge Chart", href: "/docs/components/gauge-chart", description: "Measure a current value against a defined target.", meta: "Target", kind: "gauge" },
     ],
   },
@@ -99,6 +101,17 @@ function ChartThumbnail({ kind }: { kind: ChartKind }) {
 
   if (kind === "funnel") {
     return <div className="flex h-full flex-col items-center justify-center gap-2">{[86,68,50,34].map((width, index) => <span key={width} className="h-6 rounded-[2px]" style={{ width: `${width}%`, background: `var(--chart-${["blue","green","amber","coral"][index]})` }} />)}</div>;
+  }
+
+  if (kind === "sankey") {
+    return <svg aria-hidden="true" viewBox="0 0 320 160" className="h-full w-full p-5">
+      <path d="M34 72 C88 72 96 48 150 48 M162 48 C220 48 234 72 290 72" fill="none" stroke="var(--chart-violet)" strokeWidth="16" opacity=".4" />
+      <path d="M34 88 C88 88 96 112 150 112 M162 112 C220 112 234 88 290 88" fill="none" stroke="var(--chart-blue)" strokeWidth="16" opacity=".4" />
+      <rect x="22" y="64" width="12" height="32" rx="2" fill="var(--chart-blue)" />
+      <rect x="150" y="40" width="12" height="16" rx="2" fill="var(--chart-violet)" />
+      <rect x="150" y="104" width="12" height="16" rx="2" fill="var(--chart-blue)" />
+      <rect x="290" y="64" width="12" height="32" rx="2" fill="var(--chart-green)" />
+    </svg>;
   }
 
   if (kind === "gauge") {

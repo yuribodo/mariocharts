@@ -49,11 +49,16 @@ export interface StackedBarChartTooltipData<T extends ChartDataItem> {
 }
 
 export interface FunnelChartTooltipData<T extends ChartDataItem> {
+  readonly data: T;
+  readonly index: number;
   readonly label: string;
   readonly value: number;
   readonly rawValue: unknown;
-  readonly percentage: number;
-  readonly conversionRate: number;
+  readonly formattedValue: string;
+  readonly percentage: number | null;
+  readonly conversionRate: number | null;
+  readonly previousValue: number | null;
+  readonly change: number | null;
   readonly color: string;
 }
 

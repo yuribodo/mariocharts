@@ -69,9 +69,16 @@ export const REGISTRY_CHARTS: readonly RegistryChartSummary[] = [
   {
     name: "funnel-chart",
     title: "Funnel Chart",
-    description: "A funnel chart component with vertical trapezoid and horizontal diminishing bar variants, animated segments, conversion rates, and interactive tooltips",
+    description: "A five-variant funnel with faithful stage values, conversion and drop-off metrics, growing geometry, and keyboard and touch inspection",
     docsPath: "/docs/components/funnel-chart",
     registryUrl: "https://mariocharts.com/r/funnel-chart.json",
+  },
+  {
+    name: "sankey-chart",
+    title: "Sankey Chart",
+    description: "A Sankey chart for branching and converging flows with proportional ribbons, reachable-path highlighting, keyboard and touch inspection, and a left-to-right reveal",
+    docsPath: "/docs/components/sankey-chart",
+    registryUrl: "https://mariocharts.com/r/sankey-chart.json",
   },
   {
     name: "treemap-chart",

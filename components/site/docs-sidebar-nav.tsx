@@ -74,6 +74,10 @@ const sidebarNavItems: SidebarNavItem[] = [
         href: "/docs/components/funnel-chart"
       },
       {
+        title: "Sankey Chart",
+        href: "/docs/components/sankey-chart"
+      },
+      {
         title: "TreeMap",
         href: "/docs/components/treemap"
       },

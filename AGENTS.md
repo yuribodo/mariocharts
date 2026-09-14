@@ -117,13 +117,14 @@ mariocharts/
 │       │   ├── line-chart/
 │       │   ├── pie-chart/
 │       │   ├── radar-chart/
+│       │   ├── sankey-chart/
 │       │   ├── scatter-plot/
 │       │   ├── stacked-bar-chart/
 │       │   ├── treemap-chart/
 │       │   └── waterfall-chart/
 │       └── ui/
 ├── registry/                    # Build pipeline for everything published
-│   ├── manifest.js              # SINGLE SOURCE OF TRUTH — the 11 charts
+│   ├── manifest.js              # SINGLE SOURCE OF TRUTH — the 12 charts
 │   ├── build.js                 # Runs every emitter, prunes orphans
 │   ├── extract-props.js
 │   ├── verify-links.js
@@ -150,7 +151,7 @@ regeneration would change anything.
 
 ### Core Components
 
-The 11 charts below are the source of truth in `registry/manifest.js`; every
+The 12 charts below are the source of truth in `registry/manifest.js`; every
 generated artifact (CLI fallback, `public/r/*.json`, `llms.txt`, the sitemap,
 the markdown docs) derives from that list.
 
@@ -166,6 +167,7 @@ the markdown docs) derives from that list.
 10. **TreeMapChart** - Hierarchical treemaps (note the capital M — the
     directory is `treemap-chart`, the export is `TreeMapChart`)
 11. **WaterfallChart** - Cumulative increases/decreases and running totals
+12. **SankeyChart** - Proportional branching and converging flows
 
 ### Code Standards & Performance
 
@@ -793,10 +795,10 @@ from `registry/manifest.js`:
 
 ```
 public/r/
-├── registry.json          # Index — the 11 charts, without file contents
+├── registry.json          # Index — the 12 charts, without file contents
 ├── bar-chart.json         # One document per chart
 ├── line-chart.json
-├── ...                    # (11 charts total)
+├── ...                    # (12 charts total)
 ├── chart-shared.json      # Support items, pulled in via registryDependencies
 ├── lib-utils.json
 └── lib-hooks.json

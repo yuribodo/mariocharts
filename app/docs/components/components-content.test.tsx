@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { ComponentsContent } from "./components-content";
 
 describe("ComponentsContent", () => {
-  it("organizes every shipped chart by analytical purpose", () => {
+  it("organizes chart previews by analytical purpose", () => {
     render(<ComponentsContent />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Charts" })).toBeInTheDocument();
@@ -13,7 +13,7 @@ describe("ComponentsContent", () => {
     expect(screen.getByRole("heading", { name: "Find relationships" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Monitor progress" })).toBeInTheDocument();
 
-    expect(screen.getAllByRole("link")).toHaveLength(10);
+    expect(screen.getAllByRole("link")).toHaveLength(11);
   });
 
   it("links previews to their documentation", () => {
@@ -27,6 +27,7 @@ describe("ComponentsContent", () => {
       "href",
       "/docs/components/line-chart",
     );
+    expect(screen.getByRole("link", { name: /sankey chart/i })).toHaveAttribute("href", "/docs/components/sankey-chart");
     expect(screen.getByRole("link", { name: /treemap/i })).toHaveAttribute(
       "href",
       "/docs/components/treemap",

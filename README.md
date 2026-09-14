@@ -134,7 +134,7 @@ export function Dashboard() {
 
 ## 📚 Components
 
-All eleven charts below are shipped. The canonical list lives in
+All twelve charts below are shipped. The canonical list lives in
 [`registry/manifest.js`](registry/manifest.js) — every published artifact
 (`/r/*.json`, `llms.txt`, the docs pages, the sitemap) is generated from it, and
 CI fails if this file falls out of step with a regenerated build.
@@ -147,7 +147,8 @@ CI fails if this file falls out of step with a regenerated build.
 - **ScatterPlot** - Scatter and bubble charts with trend lines
 - **Heatmap** - Heatmaps with configurable color schemes
 - **RadarChart** - Multi-axis comparison charts
-- **FunnelChart** - Conversion and drop-off charts
+- **FunnelChart** - Five layouts for stage conversion and drop-off
+- **SankeyChart** - Proportional flows that branch and converge
 - **TreeMapChart** - Squarified treemaps for hierarchical data
 - **WaterfallChart** - Cumulative increases, decreases, and running totals
 

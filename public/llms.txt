@@ -134,11 +134,19 @@ A grid, radial and stock heatmap with explicit missing values, faithful color sc
 
 ### Funnel Chart (`funnel-chart`)
 
-A funnel chart component with vertical trapezoid and horizontal diminishing bar variants, animated segments, conversion rates, and interactive tooltips
+A five-variant funnel with faithful stage values, conversion and drop-off metrics, growing geometry, and keyboard and touch inspection
 
 - Install: `npx shadcn@latest add https://mariocharts.com/r/funnel-chart.json`
 - Docs: https://mariocharts.com/docs/components/funnel-chart.md
 - Registry item: https://mariocharts.com/r/funnel-chart.json
+
+### Sankey Chart (`sankey-chart`)
+
+A Sankey chart for branching and converging flows with proportional ribbons, reachable-path highlighting, keyboard and touch inspection, and a left-to-right reveal
+
+- Install: `npx shadcn@latest add https://mariocharts.com/r/sankey-chart.json`
+- Docs: https://mariocharts.com/docs/components/sankey-chart.md
+- Registry item: https://mariocharts.com/r/sankey-chart.json
 
 ### Treemap Chart (`treemap-chart`)
 

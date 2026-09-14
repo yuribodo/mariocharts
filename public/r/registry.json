@@ -203,7 +203,7 @@
       "name": "funnel-chart",
       "type": "registry:component",
       "title": "Funnel Chart",
-      "description": "A funnel chart component with vertical trapezoid and horizontal diminishing bar variants, animated segments, conversion rates, and interactive tooltips",
+      "description": "A five-variant funnel with faithful stage values, conversion and drop-off metrics, growing geometry, and keyboard and touch inspection",
       "categories": [
         "charts",
         "dashboard"
@@ -211,6 +211,42 @@
       "files": [
         {
           "path": "funnel-chart/index.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "funnel-chart/model.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "funnel-chart/geometry.ts",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "sankey-chart",
+      "type": "registry:component",
+      "title": "Sankey Chart",
+      "description": "A Sankey chart for branching and converging flows with proportional ribbons, reachable-path highlighting, keyboard and touch inspection, and a left-to-right reveal",
+      "categories": [
+        "charts",
+        "dashboard"
+      ],
+      "files": [
+        {
+          "path": "sankey-chart/index.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "sankey-chart/types.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "sankey-chart/model.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "sankey-chart/geometry.ts",
           "type": "registry:component"
         }
       ]

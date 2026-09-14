@@ -3,7 +3,7 @@ const fs = require('fs');
 const { CHARTS, buildAllItems } = require('./manifest');
 
 describe('registry manifest', () => {
-  it('declares all 11 shipped charts', () => {
+  it('declares all 12 shipped charts', () => {
     expect(CHARTS.map((c) => c.name).sort()).toEqual([
       'bar-chart',
       'funnel-chart',
@@ -12,6 +12,7 @@ describe('registry manifest', () => {
       'line-chart',
       'pie-chart',
       'radar-chart',
+      'sankey-chart',
       'scatter-plot',
       'stacked-bar-chart',
       'treemap-chart',
@@ -29,10 +30,10 @@ describe('registry manifest', () => {
     expect(CHARTS.map((c) => c.name).sort()).toEqual(onDisk);
   });
 
-  it('builds 14 items: 11 charts plus 3 support items', () => {
+  it('builds 15 items: 12 charts plus 3 support items', () => {
     const items = buildAllItems();
-    expect(items).toHaveLength(14);
-    expect(items.filter((i) => i.kind === 'chart')).toHaveLength(11);
+    expect(items).toHaveLength(15);
+    expect(items.filter((i) => i.kind === 'chart')).toHaveLength(12);
     expect(items.map((i) => i.name)).toEqual(
       expect.arrayContaining(['lib-utils', 'lib-hooks', 'chart-shared'])
     );
@@ -87,7 +88,7 @@ describe('site data emitter', () => {
     const [output] = emitSiteData(buildAllItems());
     expect(output.path.endsWith('registry/generated/charts.ts')).toBe(true);
     const names = [...output.content.matchAll(/name: "([^"]+)"/g)].map((m) => m[1]);
-    expect(names).toHaveLength(11);
+    expect(names).toHaveLength(12);
     expect(names).toContain('waterfall-chart');
     expect(names).not.toContain('chart-shared');
   });

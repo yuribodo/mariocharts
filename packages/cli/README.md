@@ -71,7 +71,7 @@ Options:
 
 ## Available Charts
 
-`bar-chart`, `line-chart`, `pie-chart`, `radar-chart`, `scatter-plot`, `stacked-bar-chart`, `gauge-chart`, `heatmap`, `funnel-chart`, `treemap-chart`, `waterfall-chart`
+`bar-chart`, `line-chart`, `pie-chart`, `radar-chart`, `scatter-plot`, `stacked-bar-chart`, `gauge-chart`, `heatmap`, `funnel-chart`, `sankey-chart`, `treemap-chart`, `waterfall-chart`
 
 ## Requirements
 
