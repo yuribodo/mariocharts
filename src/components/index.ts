@@ -18,3 +18,12 @@ export type {
   SankeyLink,
   SankeyInspection,
 } from "./charts/sankey-chart";
+
+export { WaterfallChart } from "./charts/waterfall-chart";
+export type {
+  WaterfallChartProps,
+  WaterfallColors,
+  WaterfallBar,
+  WaterfallType,
+  WaterfallVariant,
+} from "./charts/waterfall-chart";

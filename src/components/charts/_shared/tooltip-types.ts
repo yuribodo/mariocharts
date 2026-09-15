@@ -131,11 +131,16 @@ export interface GaugeChartTooltipData {
 
 export interface WaterfallChartTooltipData<T extends ChartDataItem> {
   readonly label: string;
-  readonly type: "increase" | "decrease" | "total";
+  readonly type: "increase" | "decrease" | "total" | "sum" | "subtotal";
   /** Signed delta for increase/decrease bars; the absolute value for totals. */
   readonly value: number;
   /** Running total after this step. */
   readonly cumulative: number;
+  readonly previous: number;
+  readonly start: number;
+  readonly end: number;
+  readonly formattedValue: string;
+  readonly formattedCumulative: string;
   readonly color: string;
   readonly index: number;
   readonly data: T;

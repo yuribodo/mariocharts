@@ -158,7 +158,7 @@ A treemap with three proportional layouts, nested or flat views, group navigatio
 
 ### Waterfall Chart (`waterfall-chart`)
 
-A waterfall chart component visualizing cumulative increases, decreases, and running totals with animated floating bars and connectors
+A waterfall chart with absolute balances, computed sums and period subtotals, vertical and horizontal layouts, filled or outline bars, growth animations, and keyboard and touch inspection
 
 - Install: `npx shadcn@latest add https://mariocharts.com/r/waterfall-chart.json`
 - Docs: https://mariocharts.com/docs/components/waterfall-chart.md

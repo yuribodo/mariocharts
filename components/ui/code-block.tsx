@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { createHighlighter } from "shiki";
 
 import { cn } from "@/lib/utils";
+import { useIsomorphicLayoutEffect } from "@/lib/hooks";
 
 interface CodeBlockProps {
   code: string;
@@ -70,6 +71,8 @@ export function CodeBlock({
   highlightedLines,
 }: CodeBlockProps) {
   const { resolvedTheme } = useTheme();
+  const [hydrated, setHydrated] = useState(false);
+  useIsomorphicLayoutEffect(() => setHydrated(true), []);
   const [copyState, setCopyState] = useState<CopyState>("idle");
   const [highlightedCode, setHighlightedCode] = useState<HighlightedCode | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -146,7 +149,7 @@ export function CodeBlock({
       : copyState === "error"
         ? "Unable to copy code"
         : "";
-  const targetTheme: CodeTheme = resolvedTheme === "dark" ? "dracula" : "github-light";
+  const targetTheme: CodeTheme = hydrated && resolvedTheme === "dark" ? "dracula" : "github-light";
   const displayTheme = highlightedCode?.theme ?? targetTheme;
   const isDarkCode = displayTheme === "dracula";
 

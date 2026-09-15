@@ -31,6 +31,7 @@
       "scatter-plot",
       "radar-chart",
       "funnel-chart",
+      "sankey-chart",
       "gauge-chart",
       "heatmap",
       "stacked-bar-chart",

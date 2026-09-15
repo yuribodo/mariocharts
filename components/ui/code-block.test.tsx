@@ -1,4 +1,6 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { renderToString } from "react-dom/server.node";
+import { hydrateRoot } from "react-dom/client";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import { CodeBlock } from "./code-block";
 
@@ -167,4 +169,23 @@ describe("CodeBlock", () => {
       "[&>pre]:bg-[#f6f8fa]",
     );
   });
+});
+
+it("hydrates with a stable fallback before applying the browser theme", async () => {
+  mockResolvedTheme = "";
+  const container = document.createElement("div");
+  container.innerHTML = renderToString(<CodeBlock code="const value = 1;" />);
+  document.body.append(container);
+  mockResolvedTheme = "dark";
+  const errors = jest.spyOn(console, "error").mockImplementation(() => {});
+  let root: ReturnType<typeof hydrateRoot>;
+  try {
+    await act(async () => { root = hydrateRoot(container, <CodeBlock code="const value = 1;" />); });
+    expect(errors).not.toHaveBeenCalled();
+    expect(container.firstElementChild).toHaveClass("border-[#44475a]");
+  } finally {
+    act(() => root!.unmount());
+    container.remove();
+    errors.mockRestore();
+  }
 });

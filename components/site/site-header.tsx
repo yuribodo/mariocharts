@@ -40,6 +40,10 @@ const itemVariants: Variants = {
     transition: { duration: 0.48, ease: ENTER_EASE },
   },
 };
+const reducedItemVariants: Variants = {
+  hidden: { opacity: 1, y: 0 },
+  shown: { opacity: 1, y: 0, transition: { duration: 0 } },
+};
 
 function isNavActive(pathname: string | null, href: string): boolean {
   if (!pathname) return false;
@@ -54,7 +58,7 @@ function isNavActive(pathname: string | null, href: string): boolean {
  * attribute instead of reading entrance context.
  */
 function useHeaderEntrance(pathname: string | null, reduceMotion: boolean) {
-  const [shown, setShown] = useState(reduceMotion);
+  const [shown, setShown] = useState(false);
 
   useLayoutEffect(() => {
     if (reduceMotion) {
@@ -109,7 +113,11 @@ function useHeaderEntrance(pathname: string | null, reduceMotion: boolean) {
 export function SiteHeader() {
   const pathname = usePathname();
   const isDocsPage = pathname?.startsWith("/docs");
-  const shouldReduceMotion = useReducedMotion();
+  const preferredReducedMotion = useReducedMotion();
+  const [shouldReduceMotion, setShouldReduceMotion] = useState(false);
+  useLayoutEffect(() => {
+    setShouldReduceMotion(Boolean(preferredReducedMotion));
+  }, [preferredReducedMotion]);
   const [scrolled, setScrolled] = useState(false);
   const shown = useHeaderEntrance(pathname, Boolean(shouldReduceMotion));
 
@@ -138,7 +146,7 @@ export function SiteHeader() {
     >
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6">
         <motion.div
-          {...(shouldReduceMotion ? {} : { variants: itemVariants })}
+          variants={shouldReduceMotion ? reducedItemVariants : itemVariants}
           className="hidden items-center md:flex"
         >
           <Link
@@ -202,7 +210,7 @@ export function SiteHeader() {
         </motion.div>
 
         <motion.div
-          {...(shouldReduceMotion ? {} : { variants: itemVariants })}
+          variants={shouldReduceMotion ? reducedItemVariants : itemVariants}
           className="flex min-w-0 items-center gap-2 md:hidden"
         >
           {isDocsPage ? (
@@ -223,7 +231,7 @@ export function SiteHeader() {
         </motion.div>
 
         <motion.div
-          {...(shouldReduceMotion ? {} : { variants: itemVariants })}
+          variants={shouldReduceMotion ? reducedItemVariants : itemVariants}
           className="ml-auto flex items-center gap-0.5 sm:gap-1"
         >
           <ThemeToggle />

@@ -150,7 +150,7 @@ CI fails if this file falls out of step with a regenerated build.
 - **FunnelChart** - Five layouts for stage conversion and drop-off
 - **SankeyChart** - Proportional flows that branch and converge
 - **TreeMapChart** - Three area layouts with nested groups, flat leaves and group navigation
-- **WaterfallChart** - Cumulative increases, decreases, and running totals
+- **WaterfallChart** - Balance bridges with computed sums, period subtotals, vertical/horizontal layouts, and filled/outline bars
 
 ## 🎨 Design System
 

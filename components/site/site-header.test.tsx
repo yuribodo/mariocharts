@@ -1,7 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { renderToString } from "react-dom/server.node";
+import { hydrateRoot } from "react-dom/client";
+import { act, render, screen } from "@testing-library/react";
 
 import { SiteHeader } from "./site-header";
 
+let mockReduceMotion = true;
 const mockUsePathname = jest.fn(() => "/docs/components/bar-chart");
 
 jest.mock("next/navigation", () => ({
@@ -49,7 +52,7 @@ jest.mock("framer-motion", () => {
     LayoutGroup: ({ children }: { children: React.ReactNode }) => (
       <>{children}</>
     ),
-    useReducedMotion: () => true,
+    useReducedMotion: () => mockReduceMotion,
     AnimatePresence: ({ children }: { children: React.ReactNode }) => (
       <>{children}</>
     ),
@@ -117,4 +120,23 @@ describe("SiteHeader", () => {
       "aria-current",
     );
   });
+});
+
+it("hydrates without a mismatch when reduced motion is only known in the browser", async () => {
+  mockReduceMotion = false;
+  const container = document.createElement("div");
+  container.innerHTML = renderToString(<SiteHeader />);
+  document.body.append(container);
+  mockReduceMotion = true;
+  const errors = jest.spyOn(console, "error").mockImplementation(() => {});
+  let root: ReturnType<typeof hydrateRoot>;
+  try {
+    await act(async () => { root = hydrateRoot(container, <SiteHeader />); });
+    expect(errors).not.toHaveBeenCalled();
+    expect(container.querySelector("header")).toHaveAttribute("data-revealed");
+  } finally {
+    act(() => root!.unmount());
+    container.remove();
+    errors.mockRestore();
+  }
 });

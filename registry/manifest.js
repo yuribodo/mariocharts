@@ -152,7 +152,7 @@ const CHARTS = [
     name: 'waterfall-chart',
     docsSlug: 'waterfall-chart',
     title: 'Waterfall Chart',
-    description: 'A waterfall chart component visualizing cumulative increases, decreases, and running totals with animated floating bars and connectors',
+    description: 'A waterfall chart with absolute balances, computed sums and period subtotals, vertical and horizontal layouts, filled or outline bars, growth animations, and keyboard and touch inspection',
     importName: 'WaterfallChart',
     exportName: 'WaterfallChart',
     siblingFiles: ['utils.ts'],

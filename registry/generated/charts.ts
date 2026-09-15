@@ -90,7 +90,7 @@ export const REGISTRY_CHARTS: readonly RegistryChartSummary[] = [
   {
     name: "waterfall-chart",
     title: "Waterfall Chart",
-    description: "A waterfall chart component visualizing cumulative increases, decreases, and running totals with animated floating bars and connectors",
+    description: "A waterfall chart with absolute balances, computed sums and period subtotals, vertical and horizontal layouts, filled or outline bars, growth animations, and keyboard and touch inspection",
     docsPath: "/docs/components/waterfall-chart",
     registryUrl: "https://mariocharts.com/r/waterfall-chart.json",
   },

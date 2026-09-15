@@ -1,533 +1,645 @@
 "use client";
+import { useMemo, useState } from "react";
+import { RotateCcw } from "lucide-react";
+import {
+  WaterfallChart,
+  type WaterfallVariant,
+} from "@/src/components/charts/waterfall-chart";
+import { APIReference } from "@/components/ui/api-reference";
+import { CodeBlock } from "@/components/ui/code-block";
+import { CommandSnippet } from "@/components/ui/command-snippet";
 
-import { useState } from "react";
-import { Breadcrumbs } from "../../../../components/site/breadcrumbs";
-import { WaterfallChart } from "@/src/components/charts/waterfall-chart";
-import { ExampleShowcase } from "../../../../components/ui/example-showcase";
-import { APIReference } from "../../../../components/ui/api-reference";
-import { InstallationGuide } from "../../../../components/ui/installation-guide";
-import { ChartBar } from "@phosphor-icons/react";
-import { StyledSelect } from "../../../../components/ui/styled-select";
-import { AnimatedCheckbox } from "../../../../components/ui/animated-checkbox";
+const cash = [
+  { label: "Opening", value: 100000, type: "total" },
+  { label: "Sales", value: 45000 },
+  { label: "Services", value: 22000 },
+  { label: "Refunds", value: -12000 },
+  { label: "Operations", value: -28000 },
+  { label: "Taxes", value: -9000 },
+  { label: "Closing", type: "sum" },
+];
+function fixture(name: string): readonly Record<string, unknown>[] {
+  if (name === "profit")
+    return [
+      { label: "Revenue", value: 180000, type: "total" },
+      { label: "Cost of sales", value: -62000 },
+      { label: "Gross profit", type: "sum" },
+      { label: "Payroll", value: -42000 },
+      { label: "Marketing", value: -18000 },
+      { label: "Operating profit", type: "sum" },
+      { label: "Taxes", value: -12000 },
+      { label: "Net profit", type: "sum" },
+    ];
+  if (name === "revenue")
+    return [
+      { label: "Starting MRR", value: 82000, type: "total" },
+      { label: "New customers", value: 24000 },
+      { label: "Expansion", value: 12000 },
+      { label: "Reactivation", value: 4000 },
+      { label: "Contraction", value: -6000 },
+      { label: "Churn", value: -14000 },
+      { label: "Ending MRR", type: "sum" },
+    ];
+  if (name === "periods")
+    return [
+      { label: "Opening", value: 50000, type: "total" },
+      { label: "Jan", value: 20000 },
+      { label: "Feb", value: -8000 },
+      { label: "Mar", value: 15000 },
+      { label: "Q1 change", type: "subtotal" },
+      { label: "Apr", value: 10000 },
+      { label: "May", value: -18000 },
+      { label: "Q2 change", type: "subtotal" },
+      { label: "Closing", type: "sum" },
+    ];
+  if (name === "negative")
+    return [
+      { label: "Opening", value: 40000, type: "total" },
+      { label: "Costs", value: -70000 },
+      { label: "Recovery", value: 15000 },
+      { label: "Closing", type: "sum" },
+    ];
+  if (name === "reset")
+    return [
+      { label: "Opening", value: 100000, type: "total" },
+      { label: "Growth", value: 20000 },
+      { label: "Rebased", value: 90000, type: "total" },
+      { label: "Costs", value: -15000 },
+      { label: "Closing", type: "sum" },
+    ];
+  if (name === "zero")
+    return [
+      { label: "No sales", value: 0 },
+      { label: "No costs", value: 0 },
+      { label: "Balance", type: "sum" },
+    ];
+  if (name === "tiny")
+    return [
+      { label: "Opening", value: 1000000, type: "total" },
+      { label: "Small gain", value: 1 },
+      { label: "No change", value: 0 },
+      { label: "Small loss", value: -1 },
+      { label: "Closing", type: "sum" },
+    ];
+  if (name === "many")
+    return [
+      { label: "Opening", value: 100000, type: "total" },
+      ...Array.from({ length: 60 }, (_, i) => ({
+        label: `Week ${i + 1}`,
+        value: i % 3 === 0 ? -2000 : 3000,
+      })),
+      { label: "Closing", type: "sum" },
+    ];
+  if (name === "long")
+    return cash.map((item) => ({
+      ...item,
+      label: `${item.label} from international business operations`,
+    }));
+  if (name === "missing") return [{ label: "Unknown revenue", value: null }];
+  if (name === "single")
+    return [{ label: "Balance", value: -42000, type: "total" }];
+  return cash;
+}
+const example = `import { WaterfallChart } from "@/components/charts/waterfall-chart";
 
-const quarterlyCashFlow = [
-  { label: "Starting", value: 100000, type: "total" },
-  { label: "Sales", value: 45000, type: "increase" },
-  { label: "Services", value: 22000, type: "increase" },
-  { label: "Refunds", value: -12000, type: "decrease" },
-  { label: "Op. Costs", value: -28000, type: "decrease" },
-  { label: "Taxes", value: -9000, type: "decrease" },
-  { label: "Net", value: 118000, type: "total" },
+const steps = [
+  { label: "Opening", value: 100000, type: "total" },
+  { label: "Sales", value: 45000 },
+  { label: "Costs", value: -28000 },
+  { label: "Closing", type: "sum" },
 ] as const;
 
-const budgetBreakdown = [
-  { label: "Budget", value: 50000, type: "total" },
-  { label: "Marketing", value: -12000, type: "decrease" },
-  { label: "Engineering", value: -18000, type: "decrease" },
-  { label: "Design", value: -6000, type: "decrease" },
-  { label: "Remaining", value: 14000, type: "total" },
-] as const;
-
-const productMix = [
-  { label: "Q1", value: 32000, type: "total" },
-  { label: "New", value: 18000, type: "increase" },
-  { label: "Upsell", value: 9000, type: "increase" },
-  { label: "Churn", value: -14000, type: "decrease" },
-  { label: "Q2", value: 45000, type: "total" },
-] as const;
-
-const waterfallChartProps = [
+export function CashFlow() {
+  return <WaterfallChart data={steps} height={360}
+    showValues showLegend showGrid
+    valueFormatter={value => new Intl.NumberFormat("en-US", {
+      style: "currency", currency: "USD", notation: "compact",
+    }).format(value)} />;
+}`;
+const props = [
   {
     name: "data",
     type: "readonly T[]",
-    description: "Array of step objects (label, value, and optional type) to display",
     required: true,
-  },
-  {
-    name: "x",
-    type: "keyof T",
-    default: "'label'",
-    description: "Key from each object to use for the step label",
-  },
-  {
-    name: "y",
-    type: "keyof T",
-    default: "'value'",
-    description: "Key from each object holding the numeric value",
-  },
-  {
-    name: "type",
-    type: "keyof T",
-    default: "'type'",
     description:
-      "Key holding each step's type ('increase' | 'decrease' | 'total'). When absent, the type is inferred from the sign of the value",
+      "Ordered steps with a label, finite numeric value and optional type. Order determines the running balance; rows are never sorted or silently removed.",
   },
   {
-    name: "colors",
-    type: "{ increase?: string; decrease?: string; total?: string }",
-    default: "{ increase: '#10b981', decrease: '#ef4444', total: '#3b82f6' }",
-    description: "Override the color used for each bar type",
+    name: "x / y / type",
+    type: "keyof T",
+    default: "'label' / 'value' / 'type'",
+    description:
+      "Keys for labels, values and step types. Missing type infers increase or decrease from the sign.",
+  },
+  {
+    name: "initialValue",
+    type: "number",
+    default: "0",
+    description:
+      "Balance before the first step. Use an opening total row when the initial balance should also have a visible bar.",
   },
   {
     name: "orientation",
     type: "'vertical' | 'horizontal'",
     default: "'vertical'",
-    description: "Layout direction of the bars",
+    description:
+      "Horizontal gives long labels more space. Dense sequences scroll inside the fixed frame; keyboard navigation keeps the active step visible.",
   },
   {
-    name: "showConnectors",
-    type: "boolean",
-    default: "true",
-    description: "Draw the connector lines that link each step's running total to the next",
+    name: "variant",
+    type: "'filled' | 'outline'",
+    default: "'filled'",
+    description:
+      "Filled bars emphasize contributions; outlines provide a lighter presentation without changing the calculations.",
   },
   {
-    name: "showValues",
+    name: "borderRadius / barWidth",
+    type: "number",
+    default: "3 / 0.65",
+    description:
+      "Corner radius 0–24px and category-slot width 0.2–0.9. Radius is capped to fit the actual bar.",
+  },
+  {
+    name: "colors",
+    type: "WaterfallColors",
+    description:
+      "CSS colors for increase, decrease, total, subtotal and neutral. Sums use the total color. Colors describe direction, not whether a business outcome is good or bad.",
+  },
+  {
+    name: "showConnectors / connectorStyle",
+    type: "boolean / 'solid' | 'dashed' | 'dotted'",
+    default: "true / 'dashed'",
+    description:
+      "Connect the previous balance to the next step. An absolute reset to a different balance breaks the connector and is explained in inspection.",
+  },
+  {
+    name: "showValues / showLegend / showGrid",
     type: "boolean",
     default: "false",
-    description: "Render the signed delta (or absolute total) on each bar",
-  },
-  {
-    name: "showLegend",
-    type: "boolean",
-    default: "false",
-    description: "Show the increase / decrease / total legend below the chart",
-  },
-  {
-    name: "showGrid",
-    type: "boolean",
-    default: "false",
-    description: "Show value grid lines and axis tick labels",
+    description:
+      "Signed value labels, a legend of present roles, and subtle value grid lines. Labels that cannot fit remain available in inspection and View data.",
   },
   {
     name: "gridStyle",
     type: "'solid' | 'dashed' | 'dotted'",
     default: "'dashed'",
-    description: "Style of the grid lines when showGrid is enabled",
+    description: "Style of grid lines. The zero baseline is always visible.",
+  },
+  {
+    name: "valueFormatter",
+    type: "(value: number) => string",
+    description:
+      "Shared formatter for axes, labels, tooltips and data table. Changes get a + prefix; totals show the formatted absolute balance.",
   },
   {
     name: "height",
     type: "number",
     default: "300",
-    description: "Height of the chart in pixels",
-  },
-  {
-    name: "loading",
-    type: "boolean",
-    default: "false",
-    description: "Show loading state with animated skeleton",
-  },
-  {
-    name: "error",
-    type: "string | null",
-    default: "null",
-    description: "Error message to display",
+    description:
+      "Fixed outer height of at least 180px, including legend and footer.",
   },
   {
     name: "animation",
     type: "boolean",
     default: "true",
-    description: "Enable entrance animations (respects prefers-reduced-motion)",
+    description:
+      "Bars grow from their true starting balance, including negative totals. Respects reduced motion; inspection immediately completes the reveal.",
+  },
+  {
+    name: "loading / error",
+    type: "boolean / string | null",
+    description:
+      "Loading preserves data geometry or shows a waterfall skeleton. All states retain the same root and dimensions.",
   },
   {
     name: "onBarClick",
     type: "(data: T, index: number) => void",
-    description: "Callback fired when a bar is clicked",
+    description:
+      "Original observation and input index, from pointer, touch, keyboard or View data.",
   },
   {
     name: "tooltipRenderer",
-    type: "(data: WaterfallChartTooltipData<T>) => React.ReactNode",
-    description: "Custom tooltip render function for full control over tooltip content",
+    type: "(data: WaterfallChartTooltipData<T>) => ReactNode",
+    description:
+      "Original data, index, label, type, signed/computed value, previous balance, geometry start/end, cumulative balance, formatted values and color.",
   },
   {
-    name: "className",
+    name: "ariaLabel / description / className",
     type: "string",
-    description: "Additional CSS classes to apply to the container",
+    description: "Accessible chart name, data context and root styling.",
   },
 ];
-
-const installationSteps = [
-  {
-    title: "Initialize Mario Charts (first time only)",
-    description: "Set up Mario Charts in your React project. This configures paths and dependencies.",
-    code: `# Initialize the project (run once)
-npx mario-charts@latest init
-
-# Or initialize with components
-npx mario-charts@latest init --components waterfall-chart`,
-    language: "bash",
-  },
-  {
-    title: "Add the WaterfallChart component",
-    description: "Install the WaterfallChart component using the CLI. This automatically handles dependencies.",
-    code: `# Add WaterfallChart component
-npx mario-charts@latest add waterfall-chart
-
-# Add multiple chart components at once
-npx mario-charts@latest add waterfall-chart bar-chart line-chart`,
-    language: "bash",
-  },
-  {
-    title: "Start using the component",
-    description: "Import and use the WaterfallChart in your React components.",
-    code: `import { WaterfallChart } from "@/components/charts/waterfall-chart";
-
-const data = [
-  { label: "Starting", value: 100000, type: "total" },
-  { label: "Sales", value: 45000, type: "increase" },
-  { label: "Refunds", value: -12000, type: "decrease" },
-  { label: "Expenses", value: -28000, type: "decrease" },
-  { label: "Net", value: 105000, type: "total" },
-];
-
-<WaterfallChart data={data} showConnectors showValues />`,
-    language: "tsx",
-  },
-];
-
 export function WaterfallChartContent() {
-  const [selectedStep, setSelectedStep] = useState<Record<string, unknown> | null>(null);
-  const [showAnimation, setShowAnimation] = useState(true);
-  const [chartKey, setChartKey] = useState(0);
-  const [orientation, setOrientation] = useState<"vertical" | "horizontal">("vertical");
-  const [showConnectors, setShowConnectors] = useState(true);
-  const [showValues, setShowValues] = useState(true);
-  const [showLegend, setShowLegend] = useState(true);
-
-  const replayAnimation = () => {
-    setChartKey((prev) => prev + 1);
-  };
-
-  return (
-    <div className="max-w-none space-y-12">
-      {/* Breadcrumbs */}
-      <Breadcrumbs />
-
-      {/* Hero Section */}
-      <div className="flex flex-col space-y-4 pb-8 pt-6">
-        <div className="flex items-center space-x-3">
-          <ChartBar size={24} weight="duotone" className="text-primary" />
-          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
-            Waterfall Chart
-          </h1>
-        </div>
-        <p className="text-xl text-muted-foreground leading-7 max-w-3xl">
-          Show how an initial value is affected by a sequence of positive and negative changes.
-          Waterfall charts are a staple of financial dashboards for cash flow, budgets, and
-          variance analysis — with running totals, connector lines, and color-coded steps.
-        </p>
-
-        {/* Features */}
-        <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2 text-sm text-muted-foreground">
-          {[
-            "CLI Installation",
-            "Increase / Decrease / Total",
-            "Running Totals",
-            "Connector Lines",
-            "Horizontal & Vertical",
-            "Interactive Tooltips",
-            "Keyboard Accessible",
-            "Performance Optimized",
-            "TypeScript",
-            "Zero Dependencies",
-          ].map((feature) => (
-            <div key={feature} className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-              {feature}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Quick Start Example */}
-      <ExampleShowcase
-        title="Basic Example"
-        description="A quarterly cash-flow waterfall — a starting total, a series of gains and losses, and a closing total"
-        preview={
-          <div className="space-y-4">
-            <div className="h-80">
-              <WaterfallChart
-                key={chartKey}
-                data={quarterlyCashFlow}
-                orientation={orientation}
-                showConnectors={showConnectors}
-                showValues={showValues}
-                showLegend={showLegend}
-                showGrid
-                animation={showAnimation}
-                onBarClick={(data) => {
-                  setSelectedStep(data as unknown as Record<string, unknown>);
-                }}
-              />
-            </div>
-
-            {/* Interactive feedback */}
-            <div className="p-3 bg-muted/50 rounded-lg border text-sm">
-              <div className="font-medium">
-                Selected:{" "}
-                {selectedStep
-                  ? `${selectedStep.label} — ${Number(selectedStep.value).toLocaleString()}`
-                  : "Click a bar to select"}
-              </div>
-            </div>
-
-            {/* Controls */}
-            <div className="space-y-3 pt-2 border-t">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center space-x-6 flex-wrap gap-y-2">
-                  <AnimatedCheckbox
-                    checked={showAnimation}
-                    onChange={setShowAnimation}
-                    label="Animations"
-                    id="wf-animations"
-                  />
-                  <AnimatedCheckbox
-                    checked={showConnectors}
-                    onChange={setShowConnectors}
-                    label="Connectors"
-                    id="wf-connectors"
-                  />
-                  <AnimatedCheckbox
-                    checked={showValues}
-                    onChange={setShowValues}
-                    label="Values"
-                    id="wf-values"
-                  />
-                  <AnimatedCheckbox
-                    checked={showLegend}
-                    onChange={setShowLegend}
-                    label="Legend"
-                    id="wf-legend"
-                  />
-
-                  <div className="flex items-center space-x-2 text-sm">
-                    <span>Orientation:</span>
-                    <StyledSelect
-                      value={orientation}
-                      onValueChange={(value) =>
-                        setOrientation(value as "vertical" | "horizontal")
-                      }
-                      options={[
-                        { value: "vertical", label: "Vertical" },
-                        { value: "horizontal", label: "Horizontal" },
-                      ]}
-                    />
-                  </div>
-                </div>
-
-                <button
-                  onClick={replayAnimation}
-                  disabled={!showAnimation}
-                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-                >
-                  <svg
-                    className="w-4 h-4 mr-1.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                  Replay Animation
-                </button>
-              </div>
-            </div>
-          </div>
-        }
-        code={`import { WaterfallChart } from '@/components/charts/waterfall-chart';
-
-const quarterlyCashFlow = [
-  { label: "Starting", value: 100000, type: "total" },
-  { label: "Sales", value: 45000, type: "increase" },
-  { label: "Services", value: 22000, type: "increase" },
-  { label: "Refunds", value: -12000, type: "decrease" },
-  { label: "Op. Costs", value: -28000, type: "decrease" },
-  { label: "Taxes", value: -9000, type: "decrease" },
-  { label: "Net", value: 118000, type: "total" },
-];
-
-export function CashFlowChart() {
-  return (
-    <WaterfallChart
-      data={quarterlyCashFlow}
-      showConnectors
-      showValues
-      showLegend
-      showGrid
-      onBarClick={(data, index) => {
-        console.log('Clicked:', data, index);
-      }}
-    />
+  const [dataset, setDataset] = useState("cash"),
+    [state, setState] = useState("ready"),
+    [palette, setPalette] = useState("default");
+  const [orientation, setOrientation] = useState<"vertical" | "horizontal">(
+    "vertical",
   );
-}`}
-      />
-
-      {/* Installation */}
-      <InstallationGuide
-        title="Installation"
-        description="Get started with the WaterfallChart component in just a few steps."
-        cliCommand="npx mario-charts@latest add waterfall-chart"
-        steps={installationSteps}
-        copyPasteCode={`// Complete WaterfallChart component code available after CLI installation`}
-      />
-
-      {/* Advanced Examples */}
-      <div className="space-y-8">
+  const [variant, setVariant] = useState<WaterfallVariant>("filled"),
+    [connector, setConnector] = useState<"solid" | "dashed" | "dotted">(
+      "dashed",
+    );
+  const [radius, setRadius] = useState(3),
+    [barWidth, setBarWidth] = useState(0.65),
+    [values, setValues] = useState(true),
+    [legend, setLegend] = useState(true),
+    [grid, setGrid] = useState(true),
+    [connectors, setConnectors] = useState(true),
+    [animation, setAnimation] = useState(true),
+    [replay, setReplay] = useState(0),
+    [selected, setSelected] = useState("");
+  const data = useMemo(() => fixture(dataset), [dataset]);
+  const formatter = useMemo(
+    () =>
+      new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        notation: "compact",
+        maximumFractionDigits: 1,
+      }),
+    [],
+  );
+  const colors =
+    palette === "accessible"
+      ? {
+          increase: "#3b82f6",
+          decrease: "#f97316",
+          total: "#64748b",
+          subtotal: "#a855f7",
+        }
+      : palette === "mono"
+        ? {
+            increase: "var(--primary)",
+            decrease: "var(--primary)",
+            total: "var(--primary)",
+            subtotal: "var(--primary)",
+          }
+        : palette === "css"
+          ? {
+              increase: "mediumseagreen",
+              decrease: "coral",
+              total: "var(--primary)",
+              subtotal: "rebeccapurple",
+            }
+          : undefined;
+  const selectClass =
+    "h-10 w-full rounded-md border bg-background px-2 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-xs";
+  return (
+    <div className="min-w-0 space-y-10">
+      <header className="space-y-4">
+        <p className="text-xs uppercase tracking-wider text-muted-foreground">
+          Components
+        </p>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          Waterfall Chart
+        </h1>
+        <p className="max-w-2xl text-muted-foreground">
+          From opening balance to final result. Show what increased, what
+          decreased, and where the changes leave you.
+        </p>
+        <CommandSnippet command="npx mario-charts@latest add waterfall-chart" />
+      </header>
+      <section aria-labelledby="waterfall-playground" className="space-y-5">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight mb-2">Examples</h2>
-          <p className="text-muted-foreground">
-            Explore different configurations and use cases for the WaterfallChart component.
+          <h2 id="waterfall-playground" className="text-xl font-semibold">
+            Playground
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Explore balances, period subtotals and the steps between them.
           </p>
         </div>
-
-        {/* Type inference */}
-        <ExampleShowcase
-          title="Automatic Type Inference"
-          description="Omit the type field and the chart infers increases and decreases from the sign of each value — only totals need to be marked explicitly"
-          preview={
-            <div className="h-80">
-              <WaterfallChart
-                key={`infer-${chartKey}`}
-                data={productMix}
-                showValues
-                showGrid
-                animation={showAnimation}
+        <div className="overflow-hidden rounded-md border bg-card">
+          <div className="grid grid-cols-2 gap-4 border-b p-4 md:grid-cols-4">
+            <label className="grid gap-2 text-xs">
+              Dataset
+              <select
+                aria-label="Dataset"
+                className={selectClass}
+                value={dataset}
+                onChange={(event) => {
+                  setDataset(event.target.value);
+                  setSelected("");
+                }}
+              >
+                {[
+                  ["cash", "Cash flow"],
+                  ["profit", "Profit and loss"],
+                  ["revenue", "MRR bridge"],
+                  ["periods", "Period subtotals"],
+                  ["negative", "Crossing zero"],
+                  ["reset", "Absolute reset"],
+                  ["zero", "All zero"],
+                  ["tiny", "Tiny changes"],
+                  ["many", "62 steps"],
+                  ["long", "Long labels"],
+                  ["missing", "Missing value"],
+                  ["single", "Single negative total"],
+                ].map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-2 text-xs">
+              Orientation
+              <select
+                aria-label="Orientation"
+                className={selectClass}
+                value={orientation}
+                onChange={(event) =>
+                  setOrientation(event.target.value as typeof orientation)
+                }
+              >
+                <option value="vertical">Vertical</option>
+                <option value="horizontal">Horizontal</option>
+              </select>
+            </label>
+            <label className="grid gap-2 text-xs">
+              Variant
+              <select
+                aria-label="Variant"
+                className={selectClass}
+                value={variant}
+                onChange={(event) =>
+                  setVariant(event.target.value as WaterfallVariant)
+                }
+              >
+                <option value="filled">Filled</option>
+                <option value="outline">Outline</option>
+              </select>
+            </label>
+            <label className="grid gap-2 text-xs">
+              Palette
+              <select
+                aria-label="Palette"
+                className={selectClass}
+                value={palette}
+                onChange={(event) => setPalette(event.target.value)}
+              >
+                <option value="default">Classic</option>
+                <option value="accessible">Blue and orange</option>
+                <option value="mono">Monochrome</option>
+                <option value="css">CSS colors</option>
+              </select>
+            </label>
+            <label className="grid gap-2 text-xs">
+              Connectors
+              <select
+                aria-label="Connectors"
+                className={selectClass}
+                value={connector}
+                onChange={(event) =>
+                  setConnector(event.target.value as typeof connector)
+                }
+              >
+                <option value="dashed">Dashed</option>
+                <option value="solid">Solid</option>
+                <option value="dotted">Dotted</option>
+              </select>
+            </label>
+            <label className="grid gap-2 text-xs">
+              State
+              <select
+                aria-label="State"
+                className={selectClass}
+                value={state}
+                onChange={(event) => setState(event.target.value)}
+              >
+                {[
+                  ["ready", "Ready"],
+                  ["loading", "Refreshing"],
+                  ["initial-loading", "Initial loading"],
+                  ["empty", "Empty"],
+                  ["error", "Error"],
+                ].map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-2 text-xs">
+              Corners · {radius}px
+              <input
+                className="w-full accent-primary"
+                type="range"
+                min={0}
+                max={16}
+                value={radius}
+                onChange={(event) => setRadius(Number(event.target.value))}
               />
-            </div>
-          }
-          code={`import { WaterfallChart } from '@/components/charts/waterfall-chart';
-
-const productMix = [
-  { label: "Q1", value: 32000, type: "total" },
-  { label: "New", value: 18000 },      // inferred: increase
-  { label: "Upsell", value: 9000 },    // inferred: increase
-  { label: "Churn", value: -14000 },   // inferred: decrease
-  { label: "Q2", value: 45000, type: "total" },
-];
-
-export function ProductMixChart() {
-  return <WaterfallChart data={productMix} showValues showGrid />;
-}`}
-        />
-
-        {/* Horizontal orientation */}
-        <ExampleShowcase
-          title="Horizontal Orientation"
-          description="A horizontal budget breakdown — useful when step labels are long or you have many steps"
-          preview={
-            <div className="h-80">
-              <WaterfallChart
-                key={`horizontal-${chartKey}`}
-                data={budgetBreakdown}
-                orientation="horizontal"
-                showConnectors
-                showValues
-                showGrid
-                animation={showAnimation}
+            </label>
+            <label className="grid gap-2 text-xs">
+              Bar width · {Math.round(barWidth * 100)}%
+              <input
+                className="w-full accent-primary"
+                type="range"
+                min={0.2}
+                max={0.9}
+                step={0.05}
+                value={barWidth}
+                onChange={(event) => setBarWidth(Number(event.target.value))}
               />
-            </div>
-          }
-          code={`import { WaterfallChart } from '@/components/charts/waterfall-chart';
-
-export function BudgetBreakdown() {
-  return (
-    <WaterfallChart
-      data={budgetBreakdown}
-      orientation="horizontal"
-      showConnectors
-      showValues
-      showGrid
-    />
-  );
-}`}
-        />
-
-        {/* Custom colors */}
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-1">Custom Colors</h3>
-            <p className="text-sm text-muted-foreground">
-              Override any of the three bar types via the <code className="bg-muted px-1.5 py-0.5 rounded">colors</code> prop
-            </p>
+            </label>
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
-              <p className="text-sm font-medium mb-1">Default</p>
-              <p className="text-xs text-muted-foreground mb-2">green / red / blue</p>
-              <div className="h-64">
-                <WaterfallChart
-                  key={`colors-default-${chartKey}`}
-                  data={budgetBreakdown}
-                  height={256}
-                  showValues
-                  animation={showAnimation}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-b px-4 py-2">
+            {[
+              ["Values", values, setValues],
+              ["Legend", legend, setLegend],
+              ["Grid", grid, setGrid],
+              ["Show connectors", connectors, setConnectors],
+              ["Animation", animation, setAnimation],
+            ].map(([label, checked, setter]) => (
+              <label
+                key={String(label)}
+                className="flex min-h-9 cursor-pointer items-center gap-2 text-xs"
+              >
+                <input
+                  type="checkbox"
+                  className="accent-primary"
+                  checked={checked as boolean}
+                  onChange={(event) =>
+                    (setter as (value: boolean) => void)(event.target.checked)
+                  }
                 />
+                {label as string}
+              </label>
+            ))}
+            <button
+              type="button"
+              className="ml-auto flex min-h-9 items-center gap-2 rounded px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              onClick={() => setReplay(replay + 1)}
+            >
+              <RotateCcw size={13} />
+              Replay
+            </button>
+          </div>
+          <div className="p-3 sm:p-6">
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <p className="font-medium">
+                  {dataset === "profit"
+                    ? "Profit and loss"
+                    : dataset === "revenue"
+                      ? "Monthly recurring revenue"
+                      : dataset === "periods"
+                        ? "Quarterly movements"
+                        : "Cash movement"}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Illustrative data · USD
+                </p>
               </div>
-            </div>
-            <div>
-              <p className="text-sm font-medium mb-1">Custom</p>
-              <p className="text-xs text-muted-foreground mb-2">
-                <code className="bg-muted px-1.5 py-0.5 rounded">{`colors={{ increase: '#8b5cf6', decrease: '#f59e0b', total: '#0ea5e9' }}`}</code>
+              <p className="text-xs text-muted-foreground">
+                {orientation === "vertical" ? "Left to right" : "Top to bottom"}
               </p>
-              <div className="h-64">
-                <WaterfallChart
-                  key={`colors-custom-${chartKey}`}
-                  data={budgetBreakdown}
-                  colors={{ increase: "#8b5cf6", decrease: "#f59e0b", total: "#0ea5e9" }}
-                  height={256}
-                  showValues
-                  animation={showAnimation}
-                />
-              </div>
             </div>
+            <WaterfallChart
+              key={replay}
+              data={
+                state === "empty" || state === "initial-loading" ? [] : data
+              }
+              height={400}
+              orientation={orientation}
+              variant={variant}
+              borderRadius={radius}
+              barWidth={barWidth}
+              {...(colors ? { colors } : {})}
+              connectorStyle={connector}
+              showConnectors={connectors}
+              showValues={values}
+              showGrid={grid}
+              showLegend={legend}
+              animation={animation}
+              valueFormatter={(value) => formatter.format(value)}
+              loading={state === "loading" || state === "initial-loading"}
+              error={
+                state === "error"
+                  ? "Unable to load this period. Try refreshing your data."
+                  : null
+              }
+              ariaLabel="Cash movement waterfall"
+              onBarClick={(row, index) =>
+                setSelected(`${index + 1}. ${String(row.label)}`)
+              }
+            />
           </div>
         </div>
-
-        {/* Chart States */}
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-1">Chart States</h3>
-            <p className="text-sm text-muted-foreground">
-              Built-in loading, error, and empty states
-            </p>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div>
-              <p className="text-sm font-medium mb-3">Loading</p>
-              <div className="h-64">
-                <WaterfallChart key={`loading-${chartKey}`} data={quarterlyCashFlow} height={256} loading />
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-medium mb-3">Error</p>
-              <div className="h-64">
-                <WaterfallChart
-                  key={`error-${chartKey}`}
-                  data={quarterlyCashFlow}
-                  error="Network connection failed"
-                />
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-medium mb-3">Empty</p>
-              <div className="h-64">
-                <WaterfallChart key={`empty-${chartKey}`} data={[]} />
-              </div>
-            </div>
-          </div>
+        <p role="status" className="min-h-5 text-xs text-muted-foreground">
+          {selected
+            ? `Selected ${selected}`
+            : "Hover or tap a step to inspect it. Use arrow keys to move, Enter to select, and View data for exact values."}
+        </p>
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Quick start</h2>
+        <CodeBlock code={example} language="tsx" />
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Choose the right step</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="p-3">Type</th>
+                <th className="p-3">Meaning</th>
+                <th className="p-3">Example</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                [
+                  "increase / decrease",
+                  "Adds or subtracts the magnitude. Omit type to use the value’s sign.",
+                  '{ label: "Sales", value: 45000 }',
+                ],
+                [
+                  "total",
+                  "An absolute balance drawn from zero. Resets the running balance and period checkpoint.",
+                  '{ label: "Opening", value: 100000, type: "total" }',
+                ],
+                [
+                  "sum",
+                  "Current running balance drawn from zero. Starts a new period checkpoint without changing the balance.",
+                  '{ label: "Closing", type: "sum" }',
+                ],
+                [
+                  "subtotal",
+                  "Change since the last total, sum or subtotal. Floats from that checkpoint to the current balance.",
+                  '{ label: "Q1 change", type: "subtotal" }',
+                ],
+              ].map(([type, meaning, code]) => (
+                <tr key={type} className="border-b align-top">
+                  <td className="p-3 font-medium">{type}</td>
+                  <td className="p-3 text-muted-foreground">{meaning}</td>
+                  <td className="p-3">
+                    <code className="text-xs">{code}</code>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </div>
-
-      {/* API Reference */}
-      <APIReference
-        title="API Reference"
-        description="Complete TypeScript interface with all available props and configurations."
-        props={waterfallChartProps}
-      />
+        <p className="text-sm text-muted-foreground">
+          For gross profit or an ending balance, use sum. For the movement
+          within a period, use subtotal. Computed rows omit value; giving one is
+          an actionable error. Explicit totals keep the original API’s reset
+          behavior.
+        </p>
+      </section>
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold">Reading the chart</h2>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Floating bars start at the previous balance. The zero line stays
+          visible even when the balance becomes negative. Zero changes use a
+          thin marker; tiny changes retain their true size and remain accessible
+          through larger invisible targets and View data. Long sequences scroll
+          within the chart. No rows are hidden or reordered.
+        </p>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Green and red indicate increases and decreases. For costs or other
+          metrics where lower is better, choose colors that suit your context.
+          Signed labels, step types and inspection carry the meaning alongside
+          color.
+        </p>
+      </section>
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold">Compatibility</h2>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Existing numeric increase, decrease and total rows keep their
+          behavior. Numeric strings, missing values and unknown types now show
+          an error instead of silently changing the balance. Custom tooltips can
+          also receive sum and subtotal types and now include the previous
+          balance, geometric start/end and formatted values.
+        </p>
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">API reference</h2>
+        <APIReference props={props} />
+      </section>
+      <p className="text-xs text-muted-foreground">
+        References:{" "}
+        <a
+          className="underline underline-offset-4"
+          href="https://www.highcharts.com/docs/chart-and-series-types/waterfall-series"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Highcharts’ computed sums
+        </a>{" "}
+        and{" "}
+        <a
+          className="underline underline-offset-4"
+          href="https://plotly.com/javascript/waterfall-charts/"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Plotly’s financial and horizontal examples
+        </a>
+        .
+      </p>
     </div>
   );
 }
