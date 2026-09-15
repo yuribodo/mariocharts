@@ -477,13 +477,6 @@ export function SankeyChartContent() {
           >
             Funnel Chart
           </Link>
-          . This branched view takes inspiration from{" "}
-          <a
-            href="https://posthog.com/docs/product-analytics/paths"
-            className="text-foreground underline underline-offset-4"
-          >
-            PostHog User paths
-          </a>
           .
         </p>
       </section>

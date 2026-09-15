@@ -557,15 +557,7 @@ export function TreeMapContent() {
           Nested mode allocates area to groups first, then reserves headers and
           padding for their children. Compare siblings within a group. For
           direct area comparison across all leaves, choose Flat and set gap and
-          corners to zero. The approaches follow the layout distinctions
-          documented by{" "}
-          <a
-            className="text-foreground underline underline-offset-4"
-            href="https://d3js.org/d3-hierarchy/treemap"
-          >
-            D3
-          </a>
-          .
+          corners to zero.
         </p>
       </section>
       <section className="space-y-4">

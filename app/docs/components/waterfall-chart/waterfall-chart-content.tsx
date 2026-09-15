@@ -619,27 +619,6 @@ export function WaterfallChartContent() {
         <h2 className="text-xl font-semibold">API reference</h2>
         <APIReference props={props} />
       </section>
-      <p className="text-xs text-muted-foreground">
-        References:{" "}
-        <a
-          className="underline underline-offset-4"
-          href="https://www.highcharts.com/docs/chart-and-series-types/waterfall-series"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Highcharts’ computed sums
-        </a>{" "}
-        and{" "}
-        <a
-          className="underline underline-offset-4"
-          href="https://plotly.com/javascript/waterfall-charts/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Plotly’s financial and horizontal examples
-        </a>
-        .
-      </p>
     </div>
   );
 }
