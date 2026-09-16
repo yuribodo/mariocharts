@@ -2,6 +2,8 @@
 
 Research date: September 12, 2026. Repository baseline: `f5320be`.
 
+[PR #70 review fixes](pr-review-fixes.md) records the subsequent theme compatibility, Sankey viewport inspection and LineChart focus corrections.
+
 Implementation follow-up: [BarChart v1](bar-chart-v1.md) records the subsequent, user-approved first implementation, its compatibility notes, screenshots, and validation. Findings below describe the original research baseline.
 
 The subsequent [LineChart v1](line-chart-v1.md) records its implementation and validation. [AreaChart retirement](area-chart-v1.md) records the decision to remove the standalone component and use LineChart fills. [PieChart v1](pie-chart-v1.md) records the pie, donut, and semicircle pass. [RadarChart v1](radar-chart-v1.md) records the scale, animation, and inspection pass. [ScatterPlot v1](scatter-plot-v1.md) records the bubble, viewport, trend, and inspection pass. [StackedBarChart v1](stacked-bar-chart-v1.md) records the signed-stack, growth, and segment-inspection pass. [GaugeChart v1](gauge-chart-v1.md) records the range, zone, and live-arc pass. [Heatmap v1](heatmap-v1.md) records the missing-value, color-scale, weighted-area and inspection pass. [Heatmap stock v2](heatmap-stock-v2.md) records the subsequent label, palette, and layout correction. [FunnelChart and SankeyChart v1](funnel-sankey-v1.md) records the conversion layouts and the new branching-flow component. [TreeMapChart v1](treemap-v1.md) records the layout, hierarchy, navigation and label pass. [WaterfallChart v1](waterfall-v1.md) records the balance, checkpoint, growth and inspection pass, completing the twelve-chart sequence.
@@ -388,3 +390,5 @@ flowchart TD
 | What would justify a complete rewrite? | Measured inability to meet required semantics, interaction, or customization within a maintainable structure | Gives the team a concrete threshold for changing direction |
 
 The next implementation proposal should be narrower than this research: define Stage 1's exact contracts and fixtures, preserve the established appearance, and make the resulting behavior reviewable before expanding the public API.
+
+- [Navigation animation and layout stability](./navigation-fixes.md)

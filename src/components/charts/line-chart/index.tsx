@@ -125,10 +125,6 @@ function LineChartComponent<T extends ChartDataItem>({
     index: number;
     seriesIndex: number;
   } | null>(null);
-  useEffect(() => {
-    setInspection(null);
-    setFocus(null);
-  }, [loading, error, data, x]);
   const keys = useMemo<readonly (keyof T)[]>(
     () => (Array.isArray(y) ? y : [y as keyof T]),
     [y],
@@ -270,6 +266,32 @@ function LineChartComponent<T extends ChartDataItem>({
     knownValues.length > 0 &&
     plotWidth > 0 &&
     plotHeight > 0;
+  useEffect(() => {
+    const index = ready
+      ? refs.current.findIndex(
+          (element) => element !== null && element === document.activeElement,
+        )
+      : -1;
+    if (index < 0) {
+      setInspection(null);
+      setFocus(null);
+      return;
+    }
+    setTabIndex(index);
+    setInspection({ data, index });
+    setFocus((previous) => ({
+      data,
+      index,
+      seriesIndex:
+        series.find(
+          (item) =>
+            item.seriesIndex === previous?.seriesIndex &&
+            item.points[index]?.defined,
+        )?.seriesIndex ??
+        series.find((item) => item.points[index]?.defined)?.seriesIndex ??
+        0,
+    }));
+  }, [ready, data, x, series]);
   const activeIndex =
     ready && inspection?.data === data ? inspection.index : null;
   const focusIndex = ready && focus?.data === data ? focus.index : null;
@@ -580,8 +602,8 @@ function LineChartComponent<T extends ChartDataItem>({
                             data-line-marker={`${item.seriesIndex}-${point.index}`}
                             d={`M ${point.x} ${point.y - 6} L ${point.x - 5.196} ${point.y + 3} L ${point.x + 5.196} ${point.y + 3} Z`}
                             fill={loading ? "currentColor" : item.color}
-                            stroke="var(--background)"
                             strokeWidth={2}
+                            className="stroke-background"
                           />
                         ))}
                     </g>
@@ -612,8 +634,8 @@ function LineChartComponent<T extends ChartDataItem>({
                           : 5
                       }
                       fill={item.color}
-                      stroke="var(--background)"
                       strokeWidth={2}
+                      className="stroke-background"
                     />
                   ))}
                 </g>

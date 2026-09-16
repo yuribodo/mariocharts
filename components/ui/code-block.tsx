@@ -74,7 +74,8 @@ export function CodeBlock({
   const [hydrated, setHydrated] = useState(false);
   useIsomorphicLayoutEffect(() => setHydrated(true), []);
   const [copyState, setCopyState] = useState<CopyState>("idle");
-  const [highlightedCode, setHighlightedCode] = useState<HighlightedCode | null>(null);
+  const [highlightedCode, setHighlightedCode] =
+    useState<HighlightedCode | null>(null);
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // `highlightedLines` is an array prop, so a caller re-rendering with a fresh
@@ -89,8 +90,10 @@ export function CodeBlock({
         const highlighter = await getHighlighter();
         if (cancelled) return;
 
-        const lines = highlightKey === "" ? [] : highlightKey.split(",").map(Number);
-        const theme: CodeTheme = resolvedTheme === "dark" ? "dracula" : "github-light";
+        const lines =
+          highlightKey === "" ? [] : highlightKey.split(",").map(Number);
+        const theme: CodeTheme =
+          resolvedTheme === "dark" ? "dracula" : "github-light";
         const html = highlighter.codeToHtml(code, {
           lang: language,
           theme,
@@ -149,7 +152,8 @@ export function CodeBlock({
       : copyState === "error"
         ? "Unable to copy code"
         : "";
-  const targetTheme: CodeTheme = hydrated && resolvedTheme === "dark" ? "dracula" : "github-light";
+  const targetTheme: CodeTheme =
+    hydrated && resolvedTheme === "dark" ? "dracula" : "github-light";
   const displayTheme = highlightedCode?.theme ?? targetTheme;
   const isDarkCode = displayTheme === "dracula";
 
@@ -161,14 +165,20 @@ export function CodeBlock({
         className,
       )}
     >
-      <div className={cn(
-        "flex min-h-11 items-center justify-between border-b px-3",
-        isDarkCode ? "border-[#44475a] bg-[#21222c]" : "border-[#d0d7de] bg-[#eef1f4]",
-      )}>
-        <span className={cn(
-          "font-mono text-xs font-medium",
-          isDarkCode ? "text-[#bd93f9]" : "text-[#57606a]",
-        )}>
+      <div
+        className={cn(
+          "flex min-h-11 items-center justify-between border-b px-3",
+          isDarkCode
+            ? "border-[#44475a] bg-[#21222c]"
+            : "border-[#d0d7de] bg-[#eef1f4]",
+        )}
+      >
+        <span
+          className={cn(
+            "font-mono text-xs font-medium",
+            isDarkCode ? "text-[#bd93f9]" : "text-[#57606a]",
+          )}
+        >
           {languageLabels[language] ?? language}
         </span>
         <button
@@ -193,7 +203,9 @@ export function CodeBlock({
         <div
           className={cn(
             "[&>pre]:m-0 [&>pre]:overflow-x-auto [&>pre]:border-none [&>pre]:p-5 [&>pre]:text-sm [&_code]:font-mono",
-            "[&_.line]:-mx-5 [&_.line]:block [&_.line]:px-5 [&_.line]:transition-colors [&_.line]:duration-200 [&_.line]:ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:[&_.line]:transition-none",
+            // Shiki already separates lines with newlines. Block spans add
+            // extra line boxes and change the height after highlighting loads.
+            "[&_.line]:-mx-5 [&_.line]:inline-block [&_.line]:min-w-[calc(100%+2.5rem)] [&_.line]:px-5 [&_.line]:transition-colors [&_.line]:duration-200 [&_.line]:ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:[&_.line]:transition-none",
             isDarkCode
               ? "[&>pre]:bg-[#282a36] [&_.line[data-highlighted]]:bg-[#44475a]"
               : "[&>pre]:bg-[#f6f8fa] [&_.line[data-highlighted]]:bg-[#e7edf3]",
@@ -201,14 +213,20 @@ export function CodeBlock({
           dangerouslySetInnerHTML={{ __html: highlightedCode.html }}
         />
       ) : (
-        <pre className={cn(
-          "m-0 overflow-x-auto border-none p-5 text-sm",
-          isDarkCode ? "bg-[#282a36]" : "bg-[#f6f8fa]",
-        )}>
-          <code className={cn(
-            "font-mono",
-            isDarkCode ? "text-[#f8f8f2]" : "text-[#24292f]",
-          )}>{code}</code>
+        <pre
+          className={cn(
+            "m-0 overflow-x-auto border-none p-5 text-sm",
+            isDarkCode ? "bg-[#282a36]" : "bg-[#f6f8fa]",
+          )}
+        >
+          <code
+            className={cn(
+              "font-mono",
+              isDarkCode ? "text-[#f8f8f2]" : "text-[#24292f]",
+            )}
+          >
+            {code}
+          </code>
         </pre>
       )}
       <span className="sr-only" role="status" aria-live="polite">

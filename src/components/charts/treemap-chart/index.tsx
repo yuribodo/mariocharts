@@ -442,8 +442,8 @@ function TreeMapChartComponent({
             width={width}
             height={plotHeight}
             rx={validRadius ? borderRadius : 4}
-            fill="var(--muted)"
             aria-hidden="true"
+            className="fill-muted"
           />
           <g
             className={cn(
@@ -478,8 +478,8 @@ function TreeMapChartComponent({
                       width={tile.width}
                       height={tile.height}
                       rx={radius}
-                      fill="var(--muted)"
                       data-tree-group={loading ? undefined : entry.key}
+                      className="fill-muted"
                     />
                   ) : (
                     <Growth
@@ -514,11 +514,9 @@ function TreeMapChartComponent({
                       {tile.expanded ? (
                         <div className="flex h-full min-w-0 items-center gap-2 px-2 text-xs text-foreground">
                           <span
-                            className="size-2 shrink-0 rounded-sm"
+                            className="size-2 shrink-0 rounded-sm bg-muted-foreground"
                             style={{
-                              background: loading
-                                ? "var(--muted-foreground)"
-                                : entry.color,
+                              background: loading ? undefined : entry.color,
                             }}
                           />
                           <span className="min-w-0 flex-1 truncate font-medium">
@@ -596,12 +594,13 @@ function TreeMapChartComponent({
                       stroke={
                         inspection === entry.key || focus === entry.key
                           ? tile.expanded
-                            ? "var(--foreground)"
+                            ? "currentColor"
                             : ink
                           : "transparent"
                       }
                       strokeWidth={1.5}
                       className={cn(
+                        "text-foreground",
                         "outline-none touch-manipulation",
                         onClick || (drillDown && tile.group)
                           ? "cursor-pointer"

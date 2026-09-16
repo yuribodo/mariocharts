@@ -27,15 +27,17 @@ jest.mock("framer-motion", () => {
       layoutId?: unknown;
       whileHover?: unknown;
     }) {
-      const {
-        variants: _variants,
-        initial: _initial,
-        animate: _animate,
-        transition: _transition,
-        layoutId: _layoutId,
-        whileHover: _whileHover,
-        ...rest
-      } = props;
+      const rest = { ...props };
+      for (const key of [
+        "variants",
+        "initial",
+        "animate",
+        "transition",
+        "layoutId",
+        "whileHover",
+      ] as const) {
+        delete rest[key];
+      }
       return React.createElement(Tag, rest, children);
     }
     MotionPassthrough.displayName = `MotionPassthrough(${Tag})`;
@@ -80,6 +82,7 @@ jest.mock("./mario-star", () => ({
 
 describe("SiteHeader", () => {
   beforeEach(() => {
+    mockReduceMotion = true;
     mockUsePathname.mockReturnValue("/docs/components/bar-chart");
     document.documentElement.removeAttribute("data-world-entering");
   });
@@ -108,15 +111,40 @@ describe("SiteHeader", () => {
     );
   });
 
-  it("treats Docs as active only on the docs index", () => {
-    mockUsePathname.mockReturnValue("/docs");
-    render(<SiteHeader />);
+  it.each(["/docs", "/docs/", "/docs/installation", "/docs/ai-agents"])(
+    "marks Docs active on %s",
+    (pathname) => {
+      mockUsePathname.mockReturnValue(pathname);
+      render(<SiteHeader />);
 
+      expect(screen.getByRole("link", { name: "Docs" })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      expect(screen.getByRole("link", { name: "Charts" })).not.toHaveAttribute(
+        "aria-current",
+      );
+    },
+  );
+
+  it("moves the active section when navigating between documentation pages", () => {
+    const { rerender } = render(<SiteHeader />);
+    mockUsePathname.mockReturnValue("/docs/installation");
+    rerender(<SiteHeader />);
     expect(screen.getByRole("link", { name: "Docs" })).toHaveAttribute(
       "aria-current",
       "page",
     );
     expect(screen.getByRole("link", { name: "Charts" })).not.toHaveAttribute(
+      "aria-current",
+    );
+    mockUsePathname.mockReturnValue("/examples/dashboards/sales");
+    rerender(<SiteHeader />);
+    expect(screen.getByRole("link", { name: "Examples" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByRole("link", { name: "Docs" })).not.toHaveAttribute(
       "aria-current",
     );
   });
@@ -131,7 +159,9 @@ it("hydrates without a mismatch when reduced motion is only known in the browser
   const errors = jest.spyOn(console, "error").mockImplementation(() => {});
   let root: ReturnType<typeof hydrateRoot>;
   try {
-    await act(async () => { root = hydrateRoot(container, <SiteHeader />); });
+    await act(async () => {
+      root = hydrateRoot(container, <SiteHeader />);
+    });
     expect(errors).not.toHaveBeenCalled();
     expect(container.querySelector("header")).toHaveAttribute("data-revealed");
   } finally {

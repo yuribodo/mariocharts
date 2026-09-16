@@ -169,7 +169,8 @@ it("leaves gaps unclassified instead of extending the previous zone", () => {
   expect(document.querySelector("[data-gauge-status]")).toHaveTextContent(
     "Unzoned",
   );
-  expect(progress()).toHaveAttribute("stroke", "var(--muted-foreground)");
+  expect(progress()).toHaveAttribute("stroke", "currentColor");
+  expect(progress()).toHaveClass("text-muted-foreground");
 });
 it("keeps repeated-color zone identity in custom inspection", () => {
   const renderer = jest.fn((item: GaugeChartTooltipData) => (

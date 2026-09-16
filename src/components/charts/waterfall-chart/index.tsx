@@ -626,8 +626,9 @@ function WaterfallChartComponent<T extends ChartDataItem>({
                             y1={vertical ? a : cross}
                             x2={vertical ? cross + thickness : a}
                             y2={vertical ? a : cross + thickness}
-                            stroke={loading ? "var(--muted)" : color}
+                            stroke={loading ? "currentColor" : color}
                             strokeWidth={2}
+                            className={cn(loading && "text-muted")}
                           />
                         ) : (
                           <rect
@@ -636,18 +637,19 @@ function WaterfallChartComponent<T extends ChartDataItem>({
                             rx={radius}
                             fill={
                               loading
-                                ? "var(--muted)"
+                                ? "currentColor"
                                 : variant === "outline"
                                   ? "none"
                                   : color
                             }
-                            stroke={loading ? "var(--muted)" : color}
+                            stroke={loading ? "currentColor" : color}
                             strokeWidth={variant === "outline" ? 1.5 : 0}
-                            className={
+                            className={cn(
+                              loading && "text-muted",
                               loading
                                 ? "animate-pulse motion-reduce:animate-none"
-                                : undefined
-                            }
+                                : undefined,
+                            )}
                           />
                         )}
                       </GrowingMark>
@@ -695,11 +697,11 @@ function WaterfallChartComponent<T extends ChartDataItem>({
                           stroke={
                             active === bar.index ||
                             (hasFocus && focus === bar.index)
-                              ? "var(--foreground)"
+                              ? "currentColor"
                               : "transparent"
                           }
                           strokeWidth={1.5}
-                          className="touch-manipulation outline-none"
+                          className="touch-manipulation outline-none text-foreground"
                           style={{ cursor: onBarClick ? "pointer" : "default" }}
                           tabIndex={focus === bar.index ? 0 : -1}
                           role="graphics-symbol"

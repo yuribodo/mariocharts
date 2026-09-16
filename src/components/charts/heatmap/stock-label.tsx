@@ -15,7 +15,7 @@ export function StockLabel({
   height: number;
   title: string;
   value: string;
-  fill: string;
+  fill: string | null;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [label, setLabel] = useState({
@@ -101,8 +101,8 @@ export function StockLabel({
     <div
       ref={ref}
       data-stock-label=""
-      className="flex h-full min-w-0 items-center justify-center px-1.5"
-      style={{ color: fill, transition: "none" }}
+      className="flex h-full min-w-0 items-center justify-center px-1.5 text-muted"
+      style={{ color: fill ?? undefined, transition: "none" }}
     >
       <div
         className="min-w-0 max-w-full text-center"

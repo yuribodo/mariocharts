@@ -55,6 +55,43 @@ const node = (i: number) =>
   document.querySelector<SVGPathElement>(`[data-sankey-node-target="${i}"]`)!;
 const link = (i: number) =>
   document.querySelector<SVGPathElement>(`[data-sankey-link-target="${i}"]`)!;
+it("keeps long-link inspection visible in a narrow scrolled viewport", () => {
+  jest.mocked(Element.prototype.getBoundingClientRect).mockReturnValue({
+    width: 320,
+    height: 400,
+    top: 0,
+    left: 0,
+    bottom: 400,
+    right: 320,
+    x: 0,
+    y: 0,
+    toJSON: () => {},
+  });
+  const flowNodes = ["a", "b", "c", "d"].map((id) => ({ id, label: id }));
+  const flowLinks = [
+    { source: "a", target: "b", value: 10 },
+    { source: "b", target: "c", value: 10 },
+    { source: "c", target: "d", value: 10 },
+    { source: "a", target: "d", value: 5 },
+  ];
+  const { container } = mount(
+    <SankeyChart nodes={flowNodes} links={flowLinks} animation={false} />,
+  );
+  fireEvent.mouseEnter(link(3));
+  expect(screen.getByRole("tooltip")).toHaveTextContent("a → d");
+  expect(screen.getByRole("tooltip")).toHaveStyle({ left: "8px" });
+  fireEvent.scroll(container.querySelector(".overflow-auto")!, {
+    target: { scrollLeft: 500 },
+  });
+  expect(screen.getByRole("tooltip")).toHaveTextContent("a → d");
+  expect(screen.getByRole("tooltip")).toHaveStyle({ left: "8px" });
+  act(() => node(0).focus());
+  fireEvent.keyDown(node(0), { key: "End" });
+  expect(link(3)).toHaveFocus();
+  expect(screen.getByRole("tooltip")).toHaveTextContent("a → d");
+  fireEvent.keyDown(link(3), { key: "Escape" });
+  expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+});
 it("navigates nodes and connections with one tab stop and activates original data", () => {
   const onNodeClick = jest.fn(),
     onLinkClick = jest.fn();

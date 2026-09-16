@@ -159,8 +159,7 @@ function GaugeChartComponent({
       : model.rangeStatus === "below"
         ? model.zones.find((zone) => zone.from === min)
         : undefined;
-  const indicatorColor =
-    (activeZone ?? boundaryZone)?.color ?? "var(--muted-foreground)";
+  const indicatorColor = (activeZone ?? boundaryZone)?.color;
   const statusText =
     model.rangeStatus === "above"
       ? "Above range"
@@ -341,9 +340,10 @@ function GaugeChartComponent({
                 data-gauge-track=""
                 d={trackPath}
                 fill="none"
-                stroke={loading ? "currentColor" : "var(--muted)"}
+                stroke="currentColor"
                 strokeWidth={stroke}
                 strokeLinecap={strokeLinecap}
+                className="text-muted"
               />
               {arcs.map((zone, index) => (
                 <path
@@ -374,7 +374,12 @@ function GaugeChartComponent({
                 data-loading-progress={loading ? "" : undefined}
                 d={progressPath}
                 fill="none"
-                stroke={loading ? "currentColor" : indicatorColor}
+                stroke={
+                  loading ? "currentColor" : (indicatorColor ?? "currentColor")
+                }
+                className={cn(
+                  !loading && !indicatorColor && "text-muted-foreground",
+                )}
                 strokeWidth={stroke}
                 strokeLinecap={strokeLinecap}
               />
@@ -448,7 +453,7 @@ function GaugeChartComponent({
                       {statusText && (
                         <p
                           data-gauge-status=""
-                          className="mt-1 truncate text-xs font-medium"
+                          className="mt-1 truncate text-xs font-medium text-muted-foreground"
                           style={{
                             color: indicatorColor,
                           }}

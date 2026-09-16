@@ -77,7 +77,8 @@ it.each(["vertical", "horizontal"] as const)(
     expect(click).toHaveBeenLastCalledWith(data[4], 4);
     fireEvent.keyDown(target(4), { key: "Escape" });
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
-    expect(target(4)).toHaveAttribute("stroke", "var(--foreground)");
+    expect(target(4)).toHaveAttribute("stroke", "currentColor");
+    expect(target(4)).toHaveClass("text-foreground");
     fireEvent.keyDown(target(4), { key: "Home" });
     expect(target(0)).toHaveFocus();
   },

@@ -471,7 +471,7 @@ function RadarChartComponent<T extends ChartDataItem>({
                     y1={cy}
                     x2={axis.x}
                     y2={axis.y}
-                    stroke="var(--border)"
+                    className="stroke-border"
                   />
                 )}
                 {!loading && onAxisClick && (
@@ -590,9 +590,8 @@ function RadarChartComponent<T extends ChartDataItem>({
                             cy={point.y}
                             r={isActive || isFocused ? 5 : 3.5}
                             fill={loading ? "currentColor" : item.color}
-                            stroke="var(--background)"
                             strokeWidth={2}
-                            className="pointer-events-none"
+                            className="pointer-events-none stroke-background"
                             aria-hidden="true"
                           />
                         )}
@@ -606,13 +605,12 @@ function RadarChartComponent<T extends ChartDataItem>({
                             cy={point.y}
                             r={12}
                             fill="transparent"
-                            stroke={
-                              isFocused ? "var(--foreground)" : "transparent"
-                            }
+                            stroke={isFocused ? "currentColor" : "transparent"}
                             strokeWidth={2}
                             vectorEffect="non-scaling-stroke"
                             className={cn(
-                            "outline-none touch-manipulation focus-visible:stroke-foreground",
+                              "text-foreground",
+                              "outline-none touch-manipulation focus-visible:stroke-foreground",
                               onSeriesClick
                                 ? "cursor-pointer"
                                 : "cursor-default",

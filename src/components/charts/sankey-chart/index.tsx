@@ -436,12 +436,13 @@ function SankeyChartComponent<N extends SankeyNode, L extends SankeyLink>({
                     fill="none"
                     stroke={
                       focus === nodes.length + i
-                        ? "var(--foreground)"
+                        ? "currentColor"
                         : "transparent"
                     }
                     strokeWidth={Math.max(10, geometry.links[i]!.width)}
                     strokeOpacity={0}
                     className={cn(
+                      "text-foreground",
                       "outline-none touch-manipulation",
                       onLinkClick ? "cursor-pointer" : "cursor-default",
                     )}
@@ -457,10 +458,10 @@ function SankeyChartComponent<N extends SankeyNode, L extends SankeyLink>({
                   <path
                     d={geometry.links[focus - nodes.length]!.centerPath}
                     fill="none"
-                    stroke="var(--foreground)"
                     strokeWidth={2}
                     pointerEvents="none"
                     aria-hidden="true"
+                    className="stroke-foreground"
                   />
                 )}
               {source.nodes.map((node, i) => {
@@ -506,10 +507,10 @@ function SankeyChartComponent<N extends SankeyNode, L extends SankeyLink>({
                         height={Math.max(16, g.height + 8)}
                         rx={4}
                         fill="none"
-                        stroke="var(--foreground)"
                         strokeWidth={1.5}
                         pointerEvents="none"
                         aria-hidden="true"
+                        className="stroke-foreground"
                       />
                     )}
                     {ready && (
@@ -555,57 +556,53 @@ function SankeyChartComponent<N extends SankeyNode, L extends SankeyLink>({
               </tbody>
             </table>
           )}
-          {tip &&
-            tipX >= 0 &&
-            tipX <= width &&
-            tipY >= 0 &&
-            tipY <= frameHeight && (
-              <InspectionTooltip
-                id={`${id}-tooltip`}
-                x={tipX}
-                y={tipY}
-                width={width}
-                height={frameHeight}
-              >
-                {tooltipRenderer ? (
-                  tooltipRenderer(tip)
-                ) : (
-                  <>
-                    <p className="mb-2 border-b border-border pb-2 text-xs font-medium text-muted-foreground">
-                      {tip.kind === "node"
-                        ? tip.data.label
-                        : `${tip.source.label} → ${tip.target.label}`}
-                    </p>
-                    <div className="flex items-center justify-between gap-6 text-sm font-semibold">
-                      <span
-                        className="size-2.5 rounded-sm"
-                        style={{ background: tip.color }}
-                      />
-                      <span>{valueFormatter(tip.value)}</span>
-                    </div>
-                    {tip.kind === "node" ? (
-                      <>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {valueFormatter(tip.incoming)} incoming
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {valueFormatter(tip.outgoing)} outgoing
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {percent(tip.sourcePercentage)} of source outgoing
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {percent(tip.targetPercentage)} of target incoming
-                        </p>
-                      </>
-                    )}
-                  </>
-                )}
-              </InspectionTooltip>
-            )}
+          {tip && (
+            <InspectionTooltip
+              id={`${id}-tooltip`}
+              x={tipX}
+              y={tipY}
+              width={width}
+              height={frameHeight}
+            >
+              {tooltipRenderer ? (
+                tooltipRenderer(tip)
+              ) : (
+                <>
+                  <p className="mb-2 border-b border-border pb-2 text-xs font-medium text-muted-foreground">
+                    {tip.kind === "node"
+                      ? tip.data.label
+                      : `${tip.source.label} → ${tip.target.label}`}
+                  </p>
+                  <div className="flex items-center justify-between gap-6 text-sm font-semibold">
+                    <span
+                      className="size-2.5 rounded-sm"
+                      style={{ background: tip.color }}
+                    />
+                    <span>{valueFormatter(tip.value)}</span>
+                  </div>
+                  {tip.kind === "node" ? (
+                    <>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {valueFormatter(tip.incoming)} incoming
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {valueFormatter(tip.outgoing)} outgoing
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {percent(tip.sourcePercentage)} of source outgoing
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {percent(tip.targetPercentage)} of target incoming
+                      </p>
+                    </>
+                  )}
+                </>
+              )}
+            </InspectionTooltip>
+          )}
         </>
       )}
     </div>

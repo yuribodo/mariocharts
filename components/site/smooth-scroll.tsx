@@ -21,9 +21,9 @@ const LENIS_OPTIONS = {
 } as const;
 
 /**
- * Site-wide smooth scrolling via Lenis. Mounts only when the visitor has not
- * asked for reduced motion — under that preference the tree is unchanged and
- * the browser scrolls normally.
+ * Site-wide smooth scrolling via Lenis. Only the scroll controller mounts
+ * when motion is enabled; page content keeps the same React tree during
+ * hydration and when the visitor changes their motion preference.
  *
  * `root` binds Lenis to the document scroller (not a nested overflow box),
  * which is what the marketing site and docs both use.
@@ -39,11 +39,10 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
     return () => motionQuery.removeEventListener("change", update);
   }, []);
 
-  if (!enabled) return children;
-
   return (
-    <ReactLenis root options={LENIS_OPTIONS}>
+    <>
+      {enabled && <ReactLenis root options={LENIS_OPTIONS} />}
       {children}
-    </ReactLenis>
+    </>
   );
 }

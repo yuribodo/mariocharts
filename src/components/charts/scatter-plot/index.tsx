@@ -106,9 +106,9 @@ function PointCloud({
           r={point.radius * progress.get()}
           fill={loading ? "currentColor" : point.color}
           fillOpacity={loading ? 0.6 : 0.8}
-          stroke="var(--background)"
           strokeWidth={1.5}
           aria-hidden="true"
+          className="stroke-background"
         />
       ))}
       {children}
@@ -506,8 +506,8 @@ function ScatterPlotComponent<T extends ChartDataItem>({
             <g aria-hidden="true">
               {showGrid && (
                 <g
-                  stroke="var(--border)"
                   strokeDasharray={getGridDasharray(gridStyle)}
+                  className="stroke-border"
                 >
                   {xTicks.map((tick, index) => (
                     <line
@@ -543,7 +543,7 @@ function ScatterPlotComponent<T extends ChartDataItem>({
                 data-scatter-axis=""
                 d={`M ${plot.left} ${plot.top} V ${plot.top + plot.height} H ${plot.left + plot.width}`}
                 fill="none"
-                stroke="var(--border)"
+                className="stroke-border"
               />
               {xTicks.map((tick, index) => {
                 const cx =
@@ -688,11 +688,12 @@ function ScatterPlotComponent<T extends ChartDataItem>({
                       fill="transparent"
                       stroke={
                         active?.index === point.index || focused === point.index
-                          ? "var(--foreground)"
+                          ? "currentColor"
                           : "transparent"
                       }
                       strokeWidth={1.5}
                       className={cn(
+                        "text-foreground",
                         "outline-none touch-manipulation focus-visible:stroke-foreground",
                         onPointClick ? "cursor-pointer" : "cursor-default",
                       )}

@@ -396,15 +396,13 @@ function PieChartComponent<T extends ChartDataItem>({
                     }}
                     d={slice.path}
                     fill={loading ? "currentColor" : slice.color}
-                    stroke={
-                      focused === slice.index
-                        ? "var(--foreground)"
-                        : "var(--background)"
-                    }
                     strokeWidth={focused === slice.index ? 3 : 2}
                     strokeLinejoin="round"
                     className={cn(
                       "outline-none touch-manipulation",
+                      focused === slice.index
+                        ? "stroke-foreground"
+                        : "stroke-background",
                       !loading &&
                         (onSliceClick ? "cursor-pointer" : "cursor-default"),
                     )}

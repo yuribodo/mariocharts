@@ -359,10 +359,11 @@ function FunnelChartComponent<T extends ChartDataItem>({
                           d={shape.connector}
                           fill={
                             loading
-                              ? "var(--muted)"
+                              ? "currentColor"
                               : source.stages[index]!.color
                           }
                           fillOpacity={0.14}
+                          className={cn(loading && "text-muted")}
                         />
                       ),
                   )}
@@ -501,11 +502,12 @@ function FunnelChartComponent<T extends ChartDataItem>({
                           rx={4}
                           stroke={
                             inspection === index || focus === index
-                              ? "var(--foreground)"
+                              ? "currentColor"
                               : "transparent"
                           }
                           strokeWidth={1.5}
                           className={cn(
+                            "text-foreground",
                             "outline-none touch-manipulation focus-visible:stroke-foreground",
                             onClick ? "cursor-pointer" : "cursor-default",
                           )}

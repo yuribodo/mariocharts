@@ -81,6 +81,18 @@ export const Narrow: Story = {
     ),
   ],
 };
+export const NarrowDirectPath: Story = {
+  ...Narrow,
+  args: {
+    nodes: ["a", "b", "c", "d"].map((id) => ({ id, label: id })),
+    links: [
+      { source: "a", target: "b", value: 10 },
+      { source: "b", target: "c", value: 10 },
+      { source: "c", target: "d", value: 10 },
+      { source: "a", target: "d", value: 5 },
+    ],
+  },
+};
 export const CssColors: Story = { args: { colors: ["var(--primary)"] } };
 export const InitialLoading: Story = {
   args: { nodes: [], links: [], loading: true },

@@ -292,6 +292,73 @@ it("reports malformed data and clears stale inspection after a replacement", () 
     '"sales" must contain a finite number or null',
   );
 });
+it("keeps keyboard focus and the selected series when observations refresh", () => {
+  const onPointClick = jest.fn();
+  const keys = ["sales", "profit"] as const;
+  const { container, rerender } = renderAndFlush(
+    <LineChart
+      data={sampleData}
+      x="month"
+      y={keys}
+      animation={false}
+      onPointClick={onPointClick}
+    />,
+  );
+  const target = screen.getAllByRole("button")[0]!;
+  act(() => target.focus());
+  fireEvent.keyDown(target, { key: "ArrowDown" });
+  const updated = sampleData.map((row) => ({ ...row, profit: row.profit + 1 }));
+  rerender(
+    <LineChart
+      data={updated}
+      x="month"
+      y={keys}
+      animation={false}
+      onPointClick={onPointClick}
+    />,
+  );
+  expect(target).toHaveFocus();
+  expect(
+    container.querySelector('rect[stroke-dasharray="3 3"]'),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("tooltip")).toHaveTextContent("31");
+  fireEvent.keyDown(target, { key: "Enter" });
+  expect(onPointClick).toHaveBeenLastCalledWith(updated[0], 0, "profit");
+  act(() => target.blur());
+  expect(
+    container.querySelector('rect[stroke-dasharray="3 3"]'),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+});
+it("selects an available series when the focused observation becomes missing", () => {
+  const onPointClick = jest.fn();
+  const keys = ["sales", "profit"] as const;
+  const { rerender } = renderAndFlush(
+    <LineChart
+      data={sampleData}
+      x="month"
+      y={keys}
+      animation={false}
+      onPointClick={onPointClick}
+    />,
+  );
+  const target = screen.getAllByRole("button")[0]!;
+  act(() => target.focus());
+  fireEvent.keyDown(target, { key: "ArrowDown" });
+  const updated = sampleData.map((row) => ({ ...row, profit: null }));
+  rerender(
+    <LineChart
+      data={updated}
+      x="month"
+      y={keys}
+      animation={false}
+      onPointClick={onPointClick}
+    />,
+  );
+  expect(target).toHaveFocus();
+  fireEvent.keyDown(target, { key: "Enter" });
+  expect(onPointClick).toHaveBeenLastCalledWith(updated[0], 0, "sales");
+});
 it("keeps gradient, clip, description, and tooltip IDs unique across charts", () => {
   const { container } = renderAndFlush(
     <>

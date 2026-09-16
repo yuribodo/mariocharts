@@ -281,7 +281,7 @@ it("supports roving arrow navigation, wrapping, activation and Escape", () => {
   expect(onSliceClick).toHaveBeenCalledWith(sampleData[1], 1);
   fireEvent.keyDown(targets[1]!, { key: "Escape" });
   expect(screen.queryByRole("tooltip")).toBeNull();
-  expect(targets[1]).toHaveAttribute("stroke", "var(--foreground)");
+  expect(targets[1]).toHaveClass("stroke-foreground");
 });
 it("provides the original value field to custom tooltips and formats accessible labels", () => {
   const tooltip = jest.fn(() => <span>Custom</span>);

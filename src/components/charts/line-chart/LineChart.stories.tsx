@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { LineChart } from "./index";
 const data = [
@@ -83,3 +83,29 @@ function States() {
   );
 }
 export const StateTransitions: Story = { render: () => <States /> };
+function LiveObservations() {
+  const [observations, setObservations] = useState(data);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setObservations((rows) =>
+        rows.map((row) => ({
+          ...row,
+          costs: row.costs >= 120 ? 60 : row.costs + 5,
+        })),
+      );
+    }, 2000);
+    return () => clearInterval(timer);
+  }, []);
+  return (
+    <LineChart
+      data={observations}
+      x="month"
+      y={keys}
+      showLegend
+      animation={false}
+    />
+  );
+}
+export const LiveKeyboardInspection: Story = {
+  render: () => <LiveObservations />,
+};

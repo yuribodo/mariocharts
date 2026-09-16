@@ -440,15 +440,15 @@ function StackedBarChartComponent<T extends ChartDataItem>({
                         x2={vertical ? plot.width : pixel}
                         y1={vertical ? plot.height - pixel : 0}
                         y2={vertical ? plot.height - pixel : plot.height}
-                        stroke="var(--border)"
                         strokeDasharray={getGridDasharray(gridStyle)}
+                        className="stroke-border"
                       />
                     );
                   })}
                 <path
                   d={`M 0 0 V ${plot.height} H ${plot.width}`}
                   fill="none"
-                  stroke="var(--border)"
+                  className="stroke-border"
                 />
                 <line
                   data-stack-baseline=""
@@ -456,8 +456,8 @@ function StackedBarChartComponent<T extends ChartDataItem>({
                   x2={vertical ? plot.width : zero}
                   y1={vertical ? zero : 0}
                   y2={vertical ? zero : plot.height}
-                  stroke="var(--muted-foreground)"
                   strokeOpacity={0.6}
+                  className="stroke-muted-foreground"
                 />
                 {ticks.map((tick, index) => {
                   const pixel = scaleStackValue(
@@ -641,11 +641,12 @@ function StackedBarChartComponent<T extends ChartDataItem>({
                           fill="transparent"
                           stroke={
                             activeHere || focusedHere
-                              ? "var(--foreground)"
+                              ? "currentColor"
                               : "transparent"
                           }
                           strokeWidth={1.5}
                           className={cn(
+                            "text-foreground",
                             "outline-none touch-manipulation focus-visible:stroke-foreground",
                             onSegmentClick
                               ? "cursor-pointer"

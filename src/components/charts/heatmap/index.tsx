@@ -387,9 +387,10 @@ function HeatmapChartComponent<T extends ChartDataItem>({
     active?.cell.value != null && !scale.error
       ? scale.normalize(active.cell.value)
       : null;
+  // The root resolves flat and DEFAULT theme colors into the same CSS paint.
   const activeColor =
     normalized === null
-      ? "var(--muted)"
+      ? "var(--chart-missing-color)"
       : getHeatColor(normalized, palette, diverging);
   const tipData: HeatmapChartTooltipData<T> | null = active
     ? {
@@ -430,7 +431,10 @@ function HeatmapChartComponent<T extends ChartDataItem>({
   return (
     <div
       ref={containerRef}
-      className={cn("relative w-full", className)}
+      className={cn(
+        "relative w-full [--chart-missing-color:theme(colors.muted.DEFAULT,theme(colors.muted))]",
+        className,
+      )}
       style={{ height: frameHeight }}
       aria-busy={loading}
       onPointerLeave={(event) => {
@@ -496,11 +500,11 @@ function HeatmapChartComponent<T extends ChartDataItem>({
                 width={6}
                 height={6}
               >
-                <rect width={6} height={6} fill="var(--muted)" />
+                <rect width={6} height={6} className="fill-muted" />
                 <path
                   d="M -1 1 L 1 -1 M 0 6 L 6 0 M 5 7 L 7 5"
-                  stroke="var(--muted-foreground)"
                   strokeOpacity={0.4}
+                  className="stroke-muted-foreground"
                 />
               </pattern>
             </defs>
@@ -659,9 +663,7 @@ function HeatmapChartComponent<T extends ChartDataItem>({
                                 ? "No data"
                                 : fmt(shape.cell.value)
                             }
-                            fill={
-                              shape.cell.value === null ? "var(--muted)" : fill
-                            }
+                            fill={shape.cell.value === null ? null : fill}
                           />
                         </foreignObject>
                       )}
@@ -684,11 +686,12 @@ function HeatmapChartComponent<T extends ChartDataItem>({
                       fill="transparent"
                       stroke={
                         inspection === index || focus === index
-                          ? "var(--foreground)"
+                          ? "currentColor"
                           : "transparent"
                       }
                       strokeWidth={2}
                       className={cn(
+                        "text-foreground",
                         "outline-none touch-manipulation focus-visible:stroke-foreground",
                         onClick && shape.cell.index !== null
                           ? "cursor-pointer"
@@ -803,7 +806,8 @@ function HeatmapChartComponent<T extends ChartDataItem>({
                     width={legendWidth}
                     height={8}
                     rx={3}
-                    fill={loading ? "var(--muted)" : `url(#${id}-legend)`}
+                    fill={loading ? "currentColor" : `url(#${id}-legend)`}
+                    className="text-muted"
                   />
                   {(constant
                     ? [{ value: scale.min, position: 0.5 }]

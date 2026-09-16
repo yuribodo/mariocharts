@@ -2,13 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useLayoutEffect, useState } from "react";
-import {
-  LayoutGroup,
-  motion,
-  useReducedMotion,
-  type Variants,
-} from "framer-motion";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { cn } from "../../lib/utils";
 import { ThemeToggle } from "./theme-toggle";
 import { LogoAnimated } from "./logo-animated";
@@ -47,8 +42,106 @@ const reducedItemVariants: Variants = {
 
 function isNavActive(pathname: string | null, href: string): boolean {
   if (!pathname) return false;
-  if (href === "/docs") return pathname === "/docs" || pathname === "/docs/";
-  return pathname.startsWith(href);
+  const matches = (section: string) =>
+    pathname === section || pathname.startsWith(`${section}/`);
+  if (href === "/docs") return matches("/docs") && !matches("/docs/components");
+  return matches(href);
+}
+
+/** Keep indicator coordinates local to the nav, independent of document scroll. */
+function PrimaryNavigation({ pathname }: { pathname: string | null }) {
+  const navRef = useRef<HTMLElement>(null);
+  const keyboardNavigation = useRef(false);
+  const [indicator, setIndicator] = useState<{
+    left: number;
+    width: number;
+    animate: boolean;
+  } | null>(null);
+
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+
+    const measure = (animate = false) => {
+      const active = nav.querySelector<HTMLAnchorElement>(
+        '[aria-current="page"]',
+      );
+      if (!active || nav.offsetWidth === 0) {
+        setIndicator(null);
+        return;
+      }
+      const style = getComputedStyle(active);
+      const leftPadding = parseFloat(style.paddingLeft);
+      const rightPadding = parseFloat(style.paddingRight);
+      const left = active.offsetLeft + leftPadding;
+      const width = active.offsetWidth - leftPadding - rightPadding;
+      setIndicator((previous) => {
+        if (previous?.left === left && previous.width === width)
+          return previous;
+        return {
+          left,
+          width,
+          animate: animate && previous !== null && !keyboardNavigation.current,
+        };
+      });
+    };
+
+    measure(true);
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [pathname]);
+
+  return (
+    <nav
+      ref={navRef}
+      aria-label="Primary navigation"
+      className="relative flex items-center gap-0.5"
+      onPointerDown={() => {
+        keyboardNavigation.current = false;
+      }}
+      onKeyDown={() => {
+        keyboardNavigation.current = true;
+      }}
+    >
+      {navigation.map((item) => {
+        const active = isNavActive(pathname, item.href);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "site-nav-link relative px-3 py-2 text-sm font-medium",
+              "transition-colors duration-200 ease-out",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              active
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {item.name}
+          </Link>
+        );
+      })}
+      <span
+        data-nav-indicator
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute -bottom-px left-0 h-[1.5px] w-px origin-left bg-foreground",
+          indicator?.animate
+            ? "transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+            : "transition-none",
+        )}
+        style={{
+          opacity: indicator ? 1 : 0,
+          transform: indicator
+            ? `translateX(${indicator.left}px) scaleX(${indicator.width})`
+            : "none",
+        }}
+      />
+    </nav>
+  );
 }
 
 /**
@@ -159,54 +252,7 @@ export function SiteHeader() {
             </span>
           </Link>
 
-          <LayoutGroup id="site-nav">
-            <nav
-              aria-label="Primary navigation"
-              className="flex items-center gap-0.5"
-            >
-              {navigation.map((item) => {
-                const active = isNavActive(pathname, item.href);
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "site-nav-link relative px-3 py-2 text-sm font-medium",
-                      "transition-colors duration-200 ease-out",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                      active
-                        ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {item.name}
-                    {active ? (
-                      shouldReduceMotion ? (
-                        <span
-                          aria-hidden="true"
-                          className="absolute inset-x-3 -bottom-px h-[1.5px] rounded-full bg-foreground"
-                        />
-                      ) : (
-                        <motion.span
-                          layoutId="site-nav-indicator"
-                          aria-hidden="true"
-                          className="absolute inset-x-3 -bottom-px h-[1.5px] rounded-full bg-foreground"
-                          transition={{
-                            type: "spring",
-                            stiffness: 420,
-                            damping: 34,
-                            mass: 0.7,
-                          }}
-                        />
-                      )
-                    ) : null}
-                  </Link>
-                );
-              })}
-            </nav>
-          </LayoutGroup>
+          <PrimaryNavigation pathname={pathname} />
         </motion.div>
 
         <motion.div

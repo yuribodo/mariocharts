@@ -30,10 +30,11 @@ export function useTreeInk(
           context.fillStyle = getComputedStyle(ancestor).backgroundColor;
           context.fillRect(0, 0, 1, 1);
         }
-        probe.style.color = "var(--muted)";
+        probe.style.color = "";
+        probe.className = "text-muted";
         context.fillStyle = getComputedStyle(probe).color;
         context.fillRect(0, 0, 1, 1);
-        probe.style.color = "";
+        probe.className = "";
         probe.style.color = color;
         context.fillStyle = getComputedStyle(probe).color;
         context.fillRect(0, 0, 1, 1);
