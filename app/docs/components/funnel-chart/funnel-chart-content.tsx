@@ -1,357 +1,552 @@
 "use client";
-
-import { useState } from "react";
-import { Breadcrumbs } from "../../../../components/site/breadcrumbs";
-import { FunnelChart } from "@/src/components/charts/funnel-chart";
-import { ExampleShowcase } from "../../../../components/ui/example-showcase";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { RotateCcw } from "lucide-react";
+import {
+  FunnelChart,
+  type FunnelVariant,
+} from "@/src/components/charts/funnel-chart";
 import { APIReference } from "../../../../components/ui/api-reference";
-import { InstallationGuide } from "../../../../components/ui/installation-guide";
-import { FunnelSimple } from "@phosphor-icons/react";
-import { StyledSelect } from "../../../../components/ui/styled-select";
-import { AnimatedCheckbox } from "../../../../components/ui/animated-checkbox";
-
-// Dataset 1: E-commerce funnel
-const ecommerceFunnel = [
-  { stage: "Visitors", users: 50000 },
-  { stage: "Product View", users: 28000 },
-  { stage: "Add to Cart", users: 12000 },
-  { stage: "Checkout", users: 5500 },
-  { stage: "Purchase", users: 2800 },
-] as const;
-
-// Dataset 2: SaaS onboarding
-const onboardingFunnel = [
-  { stage: "Sign Up", users: 10000 },
-  { stage: "Email Verified", users: 7200 },
-  { stage: "Profile Set Up", users: 5100 },
-  { stage: "First Action", users: 3400 },
-  { stage: "Retained (30d)", users: 1800 },
-  { stage: "Advocate", users: 620 },
-] as const;
-
-// Dataset 3: Sales pipeline (horizontal)
-const salesPipeline = [
-  { stage: "Leads", value: 480000 },
-  { stage: "Qualified", value: 320000 },
-  { stage: "Proposal", value: 190000 },
-  { stage: "Negotiation", value: 120000 },
-  { stage: "Closed Won", value: 72000 },
-] as const;
-
-// API Reference
-const funnelProps = [
-  { name: "data", type: "readonly T[]", description: "Array of data objects for each funnel stage", required: true },
-  { name: "label", type: "keyof T", description: "Key for stage label text", required: true },
-  { name: "value", type: "keyof T", description: "Key for numeric stage value", required: true },
+import { CodeBlock } from "../../../../components/ui/code-block";
+import { CommandSnippet } from "../../../../components/ui/command-snippet";
+type Stage = { stage: string; count: number | string | null };
+const ecommerce: Stage[] = [
+  { stage: "Visitors", count: 50000 },
+  { stage: "Product views", count: 28000 },
+  { stage: "Added to cart", count: 12000 },
+  { stage: "Checkout", count: 5500 },
+  { stage: "Purchase", count: 2800 },
+];
+const onboarding: Stage[] = [
+  { stage: "Signed up", count: 10000 },
+  { stage: "Email verified", count: 7200 },
+  { stage: "Profile completed", count: 5100 },
+  { stage: "First action", count: 3400 },
+  { stage: "Retained · 30 days", count: 1800 },
+  { stage: "Advocate", count: 620 },
+];
+const variants: readonly {
+  value: FunnelVariant;
+  name: string;
+  description: string;
+}[] = [
   {
-    name: "colors",
-    type: "readonly string[]",
-    default: "DEFAULT_COLORS",
-    description: "Array of colors, one per stage (cycles if fewer than stages)",
+    value: "tapered",
+    name: "Tapered",
+    description:
+      "Each stage narrows toward the next. Read the entry width and exact values.",
+  },
+  {
+    value: "straight",
+    name: "Straight",
+    description: "Centered rectangles make stage widths directly comparable.",
+  },
+  {
+    value: "smooth",
+    name: "Smooth",
+    description: "Curved transitions connect the same measured stage widths.",
+  },
+  {
+    value: "horizontal",
+    name: "Horizontal",
+    description:
+      "A common left baseline makes small values and differences easier to compare.",
+  },
+  {
+    value: "columns",
+    name: "Columns",
+    description:
+      "Stages read left to right; column height represents the measured count.",
+  },
+];
+const example = `import { FunnelChart } from "@/components/charts/funnel-chart";
+
+const stages = [
+  { stage: "Visitors", count: 50000 },
+  { stage: "Product views", count: 28000 },
+  { stage: "Added to cart", count: 12000 },
+  { stage: "Checkout", count: 5500 },
+  { stage: "Purchase", count: 2800 },
+];
+
+export function Conversion() {
+  return <FunnelChart data={stages} label="stage" value="count"
+    variant="tapered" showConversionRates height={400}
+    ariaLabel="Purchase conversion" />;
+}`;
+const props = [
+  {
+    name: "data",
+    type: "readonly T[]",
+    required: true,
+    description:
+      "Stages in process order. Never sorted or aggregated. Values must be finite and nonnegative; numeric strings work. Missing, malformed or negative values produce an actionable error.",
+  },
+  {
+    name: "label / value",
+    type: "keyof T",
+    required: true,
+    description:
+      "Stage name and measured value keys. Repeated labels retain separate original rows and indices.",
   },
   {
     name: "variant",
-    type: "'tapered' | 'straight' | 'horizontal'",
+    type: "'tapered' | 'straight' | 'smooth' | 'horizontal' | 'columns'",
     default: "'tapered'",
-    description: "Tapered shrinks by value ratio; straight uses uniform width; horizontal renders left-to-right chevrons",
+    description:
+      "Tapered/smooth transition from each stage's width to the next. Straight/horizontal encode value by width; columns by height. All use the largest stage as the visual maximum.",
   },
-  { name: "showValues", type: "boolean", default: "true", description: "Show numeric values inside stages" },
-  { name: "showPercentages", type: "boolean", default: "true", description: "Show % of total inside stages" },
+  {
+    name: "colors",
+    type: "readonly string[]",
+    description:
+      "CSS colors in stage order. Defaults to blue/purple; an empty array uses that palette. Named colors and inherited variables work.",
+  },
+  {
+    name: "showValues / showPercentages",
+    type: "boolean",
+    default: "true / true",
+    description:
+      "Display counts and percentages of the first stage. Stages are repeated observations of a process, so their sum is not the denominator.",
+  },
   {
     name: "showConversionRates",
     type: "boolean",
     default: "false",
-    description: "Show conversion rate badge between each stage",
+    description:
+      "Show the current / previous stage ratio before the current stage. An increase can exceed 100%. Zero denominators produce an undefined rate, displayed as a dash.",
   },
-  { name: "height", type: "number", default: "400", description: "Height of the chart in pixels" },
-  { name: "loading", type: "boolean", default: "false", description: "Show loading skeleton state" },
-  { name: "error", type: "string | null", default: "null", description: "Error message to display" },
-  { name: "animation", type: "boolean", default: "true", description: "Enable stagger entrance animation" },
+  {
+    name: "showDropOff",
+    type: "boolean",
+    default: "false",
+    description:
+      "Show signed change from the preceding stage: counts lost, counts gained or no change. Exact values and rates are always available in inspection.",
+  },
+  {
+    name: "showConnectors",
+    type: "boolean",
+    default: "true",
+    description:
+      "Subtle links between centered slices or columns. Horizontal bars retain a common baseline and have no connectors.",
+  },
+  {
+    name: "gap",
+    type: "number",
+    default: "12",
+    description:
+      "Requested nonnegative gap. Row layouts reserve at least 26px for rate/change annotations. Columns reserve spacing for readable stage labels.",
+  },
+  {
+    name: "borderRadius",
+    type: "number",
+    default: "4",
+    description:
+      "Nonnegative corner radius for straight, horizontal and columns, bounded by the measured shape. Use zero for flat corners.",
+  },
+  {
+    name: "height / className",
+    type: "number / string",
+    default: "400",
+    description:
+      "Positive stable frame height and outer styles. Crowded rows scroll vertically; columns scroll horizontally to retain readable labels.",
+  },
+  {
+    name: "loading / error",
+    type: "boolean / string | null",
+    default: "false / null",
+    description:
+      "Retain data during loading for identical geometry. Missing initial data uses a matching neutral placeholder. Loading, empty and error states keep the same frame.",
+  },
+  {
+    name: "animation",
+    type: "boolean",
+    default: "true",
+    description:
+      "Staggered growth from the center, left baseline or bottom baseline. No entrance fade. Focus completes growth; reduced motion is respected.",
+  },
+  {
+    name: "valueFormatter",
+    type: "(value: number) => string",
+    description:
+      "Format stage values and change magnitudes. Percentages are formatted independently.",
+  },
+  {
+    name: "ariaLabel / description",
+    type: "string",
+    default: "'Funnel chart'",
+    description:
+      "Accessible name and context. One roving tab stop, arrow navigation, Home/End, Escape, and Enter/Space activation. The source table includes zero stages.",
+  },
   {
     name: "onClick",
     type: "(item: T, index: number) => void",
-    description: "Callback when a stage is clicked",
-  },
-  { name: "className", type: "string", description: "Additional CSS classes for the container" },
-];
-
-const installationSteps = [
-  {
-    title: "Initialize Mario Charts (first time only)",
-    description: "Set up Mario Charts in your React project.",
-    code: `npx mario-charts@latest init`,
-    language: "bash",
+    description:
+      "Original row and original index on mouse, touch or keyboard activation, including zero-valued stages.",
   },
   {
-    title: "Add the FunnelChart component",
-    description: "Install the FunnelChart component using the CLI.",
-    code: `npx mario-charts@latest add funnel-chart`,
-    language: "bash",
-  },
-  {
-    title: "Start using the component",
-    description: "Import and use the FunnelChart in your React components.",
-    code: `import { FunnelChart } from "@/components/charts/funnel-chart";
-
-<FunnelChart
-  data={funnelData}
-  label="stage"
-  value="users"
-  showConversionRates
-/>`,
-    language: "tsx",
+    name: "tooltipRenderer",
+    type: "TooltipRenderer<FunnelChartTooltipData<T>>",
+    description:
+      "Original data/index/rawValue plus parsed value, formattedValue, percentage, conversionRate, previousValue, signed change and color. Rates may be null when undefined or numerically unrepresentable.",
   },
 ];
-
 export function FunnelChartContent() {
-  const [variant, setVariant] = useState<"tapered" | "straight" | "horizontal">("tapered");
-  const [showConversionRates, setShowConversionRates] = useState(false);
-  const [showValues, setShowValues] = useState(true);
-  const [showPercentages, setShowPercentages] = useState(true);
-  const [showAnimation, setShowAnimation] = useState(true);
-  const [chartKey, setChartKey] = useState(0);
-
-  const replay = () => setChartKey(prev => prev + 1);
-
+  const [variant, setVariant] = useState<FunnelVariant>("tapered"),
+    [dataset, setDataset] = useState("ecommerce"),
+    [state, setState] = useState("ready"),
+    [palette, setPalette] = useState("default");
+  const [showValues, setValues] = useState(true),
+    [showPercentages, setPercentages] = useState(true),
+    [showConversionRates, setRates] = useState(true),
+    [showDropOff, setDropOff] = useState(false),
+    [showConnectors, setConnectors] = useState(true),
+    [animation, setAnimation] = useState(true);
+  const [gap, setGap] = useState(12),
+    [radius, setRadius] = useState(4),
+    [replay, setReplay] = useState(0),
+    [selected, setSelected] = useState<string | null>(null);
+  const data = useMemo(() => {
+    let rows = dataset === "onboarding" ? onboarding : ecommerce;
+    if (dataset === "zero")
+      rows = rows.map((row, i) => ({ ...row, count: i >= 3 ? 0 : row.count }));
+    if (dataset === "all-zero")
+      rows = rows.map((row) => ({ ...row, count: 0 }));
+    if (dataset === "zero-first")
+      rows = rows.map((row, i) => ({ ...row, count: i === 0 ? 0 : row.count }));
+    if (dataset === "increase")
+      rows = [
+        { stage: "Initial cohort", count: 100 },
+        { stage: "Additional entrants", count: 160 },
+        { stage: "Qualified", count: 120 },
+        { stage: "Activated", count: 60 },
+      ];
+    if (dataset === "equal")
+      rows = rows.map((row) => ({ ...row, count: 1000 }));
+    if (dataset === "tiny")
+      rows = rows.map((row, i) => ({
+        ...row,
+        count: [10000, 1000, 100, 10, 1][i]!,
+      }));
+    if (dataset === "single") rows = [rows[0]!];
+    if (dataset === "long")
+      rows = rows.map((row) => ({
+        ...row,
+        stage: `${row.stage} · North America enterprise acquisition`,
+      }));
+    if (dataset === "many")
+      rows = Array.from({ length: 14 }, (_, i) => ({
+        stage: `Step ${i + 1}`,
+        count: 10000 - i * 600,
+      }));
+    if (dataset === "invalid") rows = [{ stage: "Visitors", count: "12px" }];
+    if (dataset === "negative") rows = [{ stage: "Visitors", count: -10 }];
+    if (dataset === "missing") rows = [{ stage: "Visitors", count: null }];
+    return state === "empty" || state === "initial-loading" ? [] : rows;
+  }, [dataset, state]);
+  const colors =
+    palette === "mono"
+      ? ["#3b82f6"]
+      : palette === "multi"
+        ? ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"]
+        : palette === "css"
+          ? ["var(--primary)"]
+          : undefined;
+  const selectClass = "h-9 w-full rounded border bg-background px-2 text-sm";
   return (
-    <div className="max-w-none space-y-12">
-      <Breadcrumbs />
-
-      {/* Hero */}
-      <div className="flex flex-col space-y-4 pb-8 pt-6">
-        <div className="flex items-center space-x-3">
-          <FunnelSimple size={24} weight="duotone" className="text-primary" />
-          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
-            Funnel Chart
-          </h1>
-        </div>
-        <p className="text-xl text-muted-foreground leading-7 max-w-3xl">
-          A production-ready funnel chart for visualizing conversion pipelines and stage-by-stage drop-off.
-          Three variants — tapered, straight, and horizontal chevron — for any dashboard layout.
+    <div className="space-y-12">
+      <header className="space-y-4">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Components
         </p>
-        <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2 text-sm text-muted-foreground">
-          {[
-            "Tapered, Straight & Horizontal",
-            "Conversion Rate Badges",
-            "Stagger Animation",
-            "Hover Tooltip",
-            "Responsive",
-            "TypeScript",
-            "Keyboard Accessible",
-            "Reduced Motion",
-          ].map(f => (
-            <div key={f} className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 bg-foreground rounded-full" />
-              {f}
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          Funnel Chart
+        </h1>
+        <p className="max-w-2xl text-base leading-7 text-muted-foreground">
+          Follow a journey from first contact to conversion. Compare the size of
+          each stage, find drop-offs, and keep the exact numbers in view.
+        </p>
+        <CommandSnippet command="npx mario-charts@latest add funnel-chart" />
+      </header>
+      <section aria-labelledby="playground-title" className="space-y-5">
+        <div>
+          <h2
+            id="playground-title"
+            className="text-xl font-semibold tracking-tight"
+          >
+            Playground
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Five ways to read the same journey.
+          </p>
+        </div>
+        <div className="grid overflow-hidden rounded-md border bg-card lg:grid-cols-[240px_minmax(0,1fr)]">
+          <div className="space-y-5 border-b p-4 lg:border-b-0 lg:border-r">
+            <h3 className="text-sm font-medium">Settings</h3>
+            <label className="grid gap-2 text-sm">
+              Variant
+              <select
+                aria-label="Variant"
+                className={selectClass}
+                value={variant}
+                onChange={(e) => setVariant(e.target.value as FunnelVariant)}
+              >
+                {variants.map((v) => (
+                  <option key={v.value} value={v.value}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm">
+              Dataset
+              <select
+                aria-label="Dataset"
+                className={selectClass}
+                value={dataset}
+                onChange={(e) => {
+                  setDataset(e.target.value);
+                  setSelected(null);
+                }}
+              >
+                {[
+                  ["ecommerce", "Purchase journey"],
+                  ["onboarding", "SaaS onboarding"],
+                  ["increase", "Increasing stage"],
+                  ["zero", "Zero final stages"],
+                  ["zero-first", "Zero first stage"],
+                  ["all-zero", "All zero"],
+                  ["equal", "Equal counts"],
+                  ["tiny", "Very small conversion"],
+                  ["single", "Single stage"],
+                  ["long", "Long labels"],
+                  ["many", "14 stages"],
+                  ["invalid", "Invalid count"],
+                  ["negative", "Negative count"],
+                  ["missing", "Missing count"],
+                ].map(([key, title]) => (
+                  <option key={key} value={key}>
+                    {title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm">
+              State
+              <select
+                aria-label="State"
+                className={selectClass}
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+              >
+                {[
+                  ["ready", "Ready"],
+                  ["loading", "Refreshing"],
+                  ["initial-loading", "Initial loading"],
+                  ["empty", "Empty"],
+                  ["error", "Error"],
+                ].map(([key, title]) => (
+                  <option key={key} value={key}>
+                    {title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm">
+              Palette
+              <select
+                aria-label="Palette"
+                className={selectClass}
+                value={palette}
+                onChange={(e) => setPalette(e.target.value)}
+              >
+                <option value="default">Blue to purple</option>
+                <option value="mono">Single color</option>
+                <option value="multi">Multicolor</option>
+                <option value="css">Theme color</option>
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm">
+              Gap · {gap}px
+              <input
+                aria-label="Gap"
+                type="range"
+                min={0}
+                max={32}
+                value={gap}
+                onChange={(e) => setGap(Number(e.target.value))}
+              />
+            </label>
+            {["straight", "horizontal", "columns"].includes(variant) && (
+              <label className="grid gap-2 text-sm">
+                Corner radius · {radius}px
+                <input
+                  aria-label="Corner radius"
+                  type="range"
+                  min={0}
+                  max={16}
+                  value={radius}
+                  onChange={(e) => setRadius(Number(e.target.value))}
+                />
+              </label>
+            )}
+            <div className="space-y-3">
+              {(
+                [
+                  ["Values", showValues, setValues],
+                  ["Percent of first", showPercentages, setPercentages],
+                  ["Step conversion", showConversionRates, setRates],
+                  ["Drop-off / gain", showDropOff, setDropOff],
+                  ["Connectors", showConnectors, setConnectors],
+                  ["Animation", animation, setAnimation],
+                ] as const
+              ).map(([title, checked, setter]) => (
+                <label
+                  key={title}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  {title}
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) => setter(e.target.checked)}
+                  />
+                </label>
+              ))}
             </div>
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded border px-3 py-2 text-xs hover:bg-muted"
+              onClick={() => setReplay((v) => v + 1)}
+            >
+              <RotateCcw size={14} />
+              Replay animation
+            </button>
+          </div>
+          <div className="min-w-0 p-4 sm:p-6">
+            <div className="mb-6">
+              <h3 className="font-medium">Conversion journey</h3>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                {variants.find((v) => v.value === variant)!.description}
+              </p>
+            </div>
+            <FunnelChart
+              key={replay}
+              data={data}
+              label="stage"
+              value="count"
+              variant={variant}
+              {...(colors ? { colors } : {})}
+              height={400}
+              gap={gap}
+              borderRadius={radius}
+              showValues={showValues}
+              showPercentages={showPercentages}
+              showConversionRates={showConversionRates}
+              showDropOff={showDropOff}
+              showConnectors={showConnectors}
+              animation={animation}
+              loading={state === "loading" || state === "initial-loading"}
+              error={
+                state === "error"
+                  ? "Unable to load journey data. Try again."
+                  : null
+              }
+              ariaLabel="Current funnel"
+              onClick={(row, index) =>
+                setSelected(`${index + 1}. ${row.stage}: ${row.count}`)
+              }
+            />
+            <p className="mt-5 text-xs leading-5 text-muted-foreground">
+              Hover, tap, or focus a stage to inspect. Use arrows to move,
+              Home/End to jump, Enter to select, and Escape to dismiss. Scroll
+              to reach crowded stages.
+            </p>
+            <p
+              role="status"
+              className="mt-3 min-h-5 text-xs text-muted-foreground"
+            >
+              {selected
+                ? `Selected ${selected}`
+                : "Select a stage to see its original observation."}
+            </p>
+          </div>
+        </div>
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold tracking-tight">Choose a shape</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {variants.map((v) => (
+            <button
+              type="button"
+              key={v.value}
+              aria-pressed={v.value === variant}
+              onClick={() => {
+                setVariant(v.value);
+                document
+                  .getElementById("playground-title")
+                  ?.scrollIntoView({ block: "start", behavior: "instant" });
+              }}
+              className="rounded-md border p-4 text-left hover:bg-muted/40"
+            >
+              <span className="text-sm font-medium">{v.name}</span>
+              <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                {v.description}
+              </span>
+            </button>
           ))}
         </div>
-      </div>
-
-      {/* Example 1: E-commerce with controls */}
-      <ExampleShowcase
-        title="E-commerce Conversion Funnel"
-        description="Classic conversion funnel from visitors to purchase — try all three variants and toggle conversion rate badges"
-        preview={
-          <div className="space-y-4">
-            <div style={{ height: variant === "horizontal" ? 280 : 360 }}>
-              <FunnelChart
-                key={chartKey}
-                data={ecommerceFunnel}
-                label="stage"
-                value="users"
-                variant={variant}
-                showValues={showValues}
-                showPercentages={showPercentages}
-                showConversionRates={showConversionRates}
-                animation={showAnimation}
-                height={variant === "horizontal" ? 280 : 360}
-                colors={["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4"]}
-              />
-            </div>
-            <div className="space-y-3 pt-2 border-t">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center gap-6 flex-wrap">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span>Variant:</span>
-                    <StyledSelect
-                      value={variant}
-                      onValueChange={v => setVariant(v as "tapered" | "straight" | "horizontal")}
-                      options={[
-                        { value: "tapered", label: "Tapered" },
-                        { value: "straight", label: "Straight" },
-                        { value: "horizontal", label: "Horizontal" },
-                      ]}
-                    />
-                  </div>
-                  <AnimatedCheckbox checked={showValues} onChange={setShowValues} label="Values" id="funnel-values" />
-                  <AnimatedCheckbox checked={showPercentages} onChange={setShowPercentages} label="Percentages" id="funnel-pct" />
-                  <AnimatedCheckbox checked={showConversionRates} onChange={setShowConversionRates} label="Conversion Rates" id="funnel-conv" />
-                  <AnimatedCheckbox checked={showAnimation} onChange={setShowAnimation} label="Animation" id="funnel-anim" />
-                </div>
-                <button
-                  onClick={replay}
-                  disabled={!showAnimation}
-                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-                >
-                  Replay Animation
-                </button>
-              </div>
-            </div>
-          </div>
-        }
-        code={`import { FunnelChart } from '@/components/charts/funnel-chart';
-
-const ecommerceFunnel = [
-  { stage: "Visitors", users: 50000 },
-  { stage: "Product View", users: 28000 },
-  { stage: "Add to Cart", users: 12000 },
-  { stage: "Checkout", users: 5500 },
-  { stage: "Purchase", users: 2800 },
-];
-
-export function EcommerceFunnel() {
-  return (
-    <FunnelChart
-      data={ecommerceFunnel}
-      label="stage"
-      value="users"
-      showConversionRates
-      colors={["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4"]}
-    />
-  );
-}`}
-      />
-
-      <InstallationGuide
-        title="Installation"
-        description="Get started with the FunnelChart component in just a few steps."
-        cliCommand="npx mario-charts@latest add funnel-chart"
-        steps={installationSteps}
-        copyPasteCode="// Complete FunnelChart component code available after CLI installation"
-      />
-
-      <div className="space-y-8">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight mb-2">Examples</h2>
-          <p className="text-muted-foreground">Different use cases and configurations for the FunnelChart component.</p>
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold tracking-tight">Usage</h2>
+        <CodeBlock code={example} language="tsx" />
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold tracking-tight">
+          Reading conversion
+        </h2>
+        <div className="max-w-3xl space-y-3 text-sm leading-6 text-muted-foreground">
+          <p>
+            50,000 visitors followed by 28,000 product views means 56% step
+            conversion and 22,000 lost between those observations. The final
+            2,800 purchases are 5.6% of the first stage. Adding stage counts
+            would count the same journey more than once.
+          </p>
+          <p>
+            The largest observed stage sets the visual scale. Input order is
+            preserved, so stages can widen when additional people enter a
+            process. The chart reports an increase and a rate above 100%;
+            whether that matches your funnel definition depends on your data.
+          </p>
+          <p>
+            Tapered and smooth shapes transition from each stage&apos;s entry
+            width to the next stage&apos;s width. Their areas mix both values.
+            Choose straight, horizontal, or columns for direct size comparison.
+            Zero counts have no painted area, while labels and inspection remain
+            available.
+          </p>
+          <p>
+            A zero first stage has no defined overall percentage; a zero
+            preceding stage has no defined step rate. Missing counts are errors,
+            not zero. Tooltip rates are nullable, and rawValue preserves the
+            original input. Use data and index to access the original stage when
+            migrating custom inspection.
+          </p>
         </div>
-
-        {/* Example 2: Horizontal bar pipeline */}
-        <ExampleShowcase
-          title="Sales Pipeline — Horizontal Variant"
-          description="Stage-by-stage pipeline as diminishing horizontal bars — labels on the left, bars extending right"
-          preview={
-            <div style={{ height: 280 }}>
-              <FunnelChart
-                key={`pipeline-${chartKey}`}
-                data={salesPipeline}
-                label="stage"
-                value="value"
-                variant="horizontal"
-                showValues
-                showPercentages
-                showConversionRates
-                animation={showAnimation}
-                height={280}
-                colors={["#6366f1", "#8b5cf6", "#a855f7", "#c084fc", "#d8b4fe"]}
-              />
-            </div>
-          }
-          code={`import { FunnelChart } from '@/components/charts/funnel-chart';
-
-const salesPipeline = [
-  { stage: "Leads", value: 480000 },
-  { stage: "Qualified", value: 320000 },
-  { stage: "Proposal", value: 190000 },
-  { stage: "Negotiation", value: 120000 },
-  { stage: "Closed Won", value: 72000 },
-];
-
-export function SalesPipeline() {
-  return (
-    <FunnelChart
-      data={salesPipeline}
-      label="stage"
-      value="value"
-      variant="horizontal"
-      showConversionRates
-    />
-  );
-}`}
-        />
-
-        {/* Example 3: SaaS onboarding */}
-        <ExampleShowcase
-          title="SaaS Onboarding Flow"
-          description="6-stage onboarding funnel with conversion rate badges between each step"
-          preview={
-            <div style={{ height: 440 }}>
-              <FunnelChart
-                key={`onboard-${chartKey}`}
-                data={onboardingFunnel}
-                label="stage"
-                value="users"
-                variant="tapered"
-                showValues
-                showPercentages
-                showConversionRates
-                animation={showAnimation}
-                height={440}
-                colors={["#6366f1", "#8b5cf6", "#a855f7", "#c084fc", "#d8b4fe", "#e9d5ff"]}
-              />
-            </div>
-          }
-          code={`import { FunnelChart } from '@/components/charts/funnel-chart';
-
-const onboardingFunnel = [
-  { stage: "Sign Up", users: 10000 },
-  { stage: "Email Verified", users: 7200 },
-  { stage: "Profile Set Up", users: 5100 },
-  { stage: "First Action", users: 3400 },
-  { stage: "Retained (30d)", users: 1800 },
-  { stage: "Advocate", users: 620 },
-];
-
-export function OnboardingFunnel() {
-  return (
-    <FunnelChart
-      data={onboardingFunnel}
-      label="stage"
-      value="users"
-      showConversionRates
-    />
-  );
-}`}
-        />
-
-        {/* States */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-3">Loading State</h3>
-            <div className="h-64">
-              <FunnelChart data={ecommerceFunnel} label="stage" value="users" loading height={240} />
-            </div>
-          </div>
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-3">Error State</h3>
-            <div className="h-64">
-              <FunnelChart data={ecommerceFunnel} label="stage" value="users" error="Failed to load data" height={240} />
-            </div>
-          </div>
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-3">Empty State</h3>
-            <div className="h-64">
-              <FunnelChart data={[]} label="stage" value="users" height={240} />
-            </div>
-          </div>
-        </div>
-      </div>
-
+      </section>
+      <p className="text-sm text-muted-foreground">
+        For a journey that splits into alternative paths and rejoins, use the{" "}
+        <Link
+          href="/docs/components/sankey-chart"
+          className="text-foreground underline underline-offset-4"
+        >
+          Sankey Chart
+        </Link>{" "}
+        with measured connections between nodes.
+      </p>
       <APIReference
-        title="API Reference"
-        description="Complete TypeScript interface with all available props and configurations."
-        props={funnelProps}
+        props={props}
+        description="Typed props for stage values, shapes, conversion, and inspection."
       />
     </div>
   );

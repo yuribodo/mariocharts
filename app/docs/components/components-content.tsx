@@ -6,12 +6,12 @@ type ChartKind =
   | "stacked"
   | "radar"
   | "line"
-  | "area"
   | "pie"
   | "treemap"
   | "scatter"
   | "heatmap"
   | "funnel"
+  | "sankey"
   | "gauge";
 
 interface ChartEntry {
@@ -42,8 +42,7 @@ const groups: readonly ChartGroup[] = [
     title: "Track change",
     description: "Follow a value across time or another continuous dimension.",
     charts: [
-      { name: "Line Chart", href: "/docs/components/line-chart", description: "Reveal trends, variation, and turning points over time.", meta: "Time series", kind: "line" },
-      { name: "Area Chart", href: "/docs/components/area-chart", description: "Emphasize magnitude and cumulative change over time.", meta: "Cumulative", kind: "area" },
+      { name: "Line Chart", href: "/docs/components/line-chart", description: "Reveal trends with lines or optional gradient area fills.", meta: "Time series", kind: "line" },
     ],
   },
   {
@@ -67,6 +66,7 @@ const groups: readonly ChartGroup[] = [
     description: "Communicate movement through stages or toward a target.",
     charts: [
       { name: "Funnel Chart", href: "/docs/components/funnel-chart", description: "Show stage-by-stage conversion and drop-off.", meta: "Conversion", kind: "funnel" },
+      { name: "Sankey Chart", href: "/docs/components/sankey-chart", description: "Follow alternative paths that split and converge.", meta: "Flow", kind: "sankey" },
       { name: "Gauge Chart", href: "/docs/components/gauge-chart", description: "Measure a current value against a defined target.", meta: "Target", kind: "gauge" },
     ],
   },
@@ -103,6 +103,17 @@ function ChartThumbnail({ kind }: { kind: ChartKind }) {
     return <div className="flex h-full flex-col items-center justify-center gap-2">{[86,68,50,34].map((width, index) => <span key={width} className="h-6 rounded-[2px]" style={{ width: `${width}%`, background: `var(--chart-${["blue","green","amber","coral"][index]})` }} />)}</div>;
   }
 
+  if (kind === "sankey") {
+    return <svg aria-hidden="true" viewBox="0 0 320 160" className="h-full w-full p-5">
+      <path d="M34 72 C88 72 96 48 150 48 M162 48 C220 48 234 72 290 72" fill="none" stroke="var(--chart-violet)" strokeWidth="16" opacity=".4" />
+      <path d="M34 88 C88 88 96 112 150 112 M162 112 C220 112 234 88 290 88" fill="none" stroke="var(--chart-blue)" strokeWidth="16" opacity=".4" />
+      <rect x="22" y="64" width="12" height="32" rx="2" fill="var(--chart-blue)" />
+      <rect x="150" y="40" width="12" height="16" rx="2" fill="var(--chart-violet)" />
+      <rect x="150" y="104" width="12" height="16" rx="2" fill="var(--chart-blue)" />
+      <rect x="290" y="64" width="12" height="32" rx="2" fill="var(--chart-green)" />
+    </svg>;
+  }
+
   if (kind === "gauge") {
     return <div className="grid h-full place-items-center"><div className="relative h-16 w-32 overflow-hidden"><div className="absolute inset-0 rounded-t-full border-[16px] border-b-0 border-muted" /><div className="absolute inset-0 rounded-t-full border-[16px] border-b-0 border-[var(--chart-green)] [clip-path:polygon(0_0,72%_0,50%_100%,0_100%)]" /></div></div>;
   }
@@ -111,10 +122,9 @@ function ChartThumbnail({ kind }: { kind: ChartKind }) {
     return <div className="grid h-full place-items-center"><div className="size-28 bg-[color-mix(in_srgb,var(--chart-violet)_28%,transparent)] outline outline-1 outline-[var(--chart-violet)] [clip-path:polygon(50%_0,93%_25%,82%_78%,50%_100%,10%_72%,7%_25%)]" /></div>;
   }
 
-  const isArea = kind === "area";
   return (
     <svg aria-hidden="true" viewBox="0 0 320 160" className="h-full w-full p-5">
-      {isArea && <path d="M15 132 L56 98 L94 112 L132 64 L171 82 L215 36 L258 61 L305 22 L305 145 L15 145 Z" fill="color-mix(in srgb, var(--chart-blue) 22%, transparent)" />}
+      <path d="M15 132 L56 98 L94 112 L132 64 L171 82 L215 36 L258 61 L305 22 L305 145 L15 145 Z" fill="color-mix(in srgb, var(--chart-blue) 22%, transparent)" />
       <path d="M15 132 L56 98 L94 112 L132 64 L171 82 L215 36 L258 61 L305 22" fill="none" stroke="var(--chart-blue)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );

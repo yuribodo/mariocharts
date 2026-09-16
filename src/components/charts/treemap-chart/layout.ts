@@ -1,261 +1,297 @@
-/**
- * Squarified treemap layout algorithm.
- * Based on Bruls, Huizing, van Wijk (2000).
- * Pure functions — no side effects, fully testable.
- */
-
+import { buildTreeModel, type TreeEntry } from "./model";
 export interface TreeMapNode {
   readonly name: string;
+  /** Leaves use this value; a group derives its total from children. */
   readonly value?: number;
   readonly children?: readonly TreeMapNode[];
+  readonly color?: string;
 }
-
-export interface LayoutRect {
-  readonly x: number;
-  readonly y: number;
-  readonly width: number;
-  readonly height: number;
+export type TreeMapLayout = "squarified" | "binary" | "slice-dice";
+export type TreeMapVariant = "nested" | "flat";
+export interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+export interface LayoutRect extends Rect {
   readonly node: TreeMapNode;
   readonly depth: number;
   readonly colorIndex: number;
   readonly path: readonly string[];
   readonly percentage: number;
 }
-
-interface Rect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-/**
- * Compute the total value of a node (leaf value or sum of children).
- */
+/** Compatibility helper. Rendering validates the whole hierarchy with actionable errors. */
 export function nodeValue(node: TreeMapNode): number {
-  if (node.children && node.children.length > 0) {
-    return node.children.reduce((sum, child) => sum + nodeValue(child), 0);
-  }
-  return typeof node.value === 'number' && isFinite(node.value) && node.value > 0
-    ? node.value
-    : 0;
+  const model = buildTreeModel([node]);
+  return model.error ? 0 : model.total;
 }
-
-/**
- * Compute the aspect ratio of a rectangle.
- * Closer to 1 = more square-like = better.
- */
-function aspectRatio(width: number, height: number): number {
-  if (width === 0 || height === 0) return Infinity;
-  return Math.max(width / height, height / width);
-}
-
-/**
- * Worst aspect ratio in a row of items laid out along the short side.
- */
-function worstRatio(row: number[], sideLength: number, totalArea: number): number {
-  if (row.length === 0 || sideLength <= 0) return Infinity;
-
-  const rowSum = row.reduce((a, b) => a + b, 0);
-  if (rowSum <= 0) return Infinity;
-
-  const rowWidth = (rowSum / totalArea) * sideLength;
-  let worst = 0;
-
-  for (const area of row) {
-    const itemHeight = area / rowWidth;
-    const ratio = aspectRatio(rowWidth, itemHeight);
-    if (ratio > worst) worst = ratio;
+/** Tile positive values without gutters. Rectangular area is exactly proportional to value. */
+export function tileTree(
+  values: readonly number[],
+  box: Rect,
+  layout: TreeMapLayout = "squarified",
+  depth = 0,
+  sort: "value" | "input" = "value",
+): Rect[] {
+  const result = values.map(() => ({
+    x: box.x,
+    y: box.y,
+    width: 0,
+    height: 0,
+  }));
+  const max = values.reduce((m, v) => Math.max(m, v), 0);
+  if (
+    !(max > 0) ||
+    !Number.isFinite(max) ||
+    !(box.width > 0) ||
+    !(box.height > 0)
+  )
+    return result;
+  const items = values
+    .map((v, index) => ({ index, value: v / max }))
+    .filter((i) => i.value > 0);
+  if (sort === "value")
+    items.sort((a, b) => b.value - a.value || a.index - b.index);
+  const total = items.reduce((sum, item) => sum + item.value, 0);
+  if (layout === "slice-dice") {
+    let cursor = 0;
+    const horizontal = depth % 2 === 0;
+    items.forEach((item, i) => {
+      const side = horizontal ? box.width : box.height;
+      const length =
+        i === items.length - 1 ? side - cursor : (item.value / total) * side;
+      result[item.index] = horizontal
+        ? { x: box.x + cursor, y: box.y, width: length, height: box.height }
+        : { x: box.x, y: box.y + cursor, width: box.width, height: length };
+      cursor += length;
+    });
+    return result;
   }
-
-  return worst;
-}
-
-/**
- * Layout a single row of items within the remaining rect.
- * Returns the rectangles for each item and the remaining rect.
- */
-function layoutRow(
-  row: { area: number; index: number }[],
-  rect: Rect,
-  totalArea: number
-): { rects: { x: number; y: number; width: number; height: number; index: number }[]; remaining: Rect } {
-  const rowSum = row.reduce((sum, item) => sum + item.area, 0);
-  const isHorizontal = rect.width >= rect.height;
-
-  const rects: { x: number; y: number; width: number; height: number; index: number }[] = [];
-
-  if (isHorizontal) {
-    const rowWidth = totalArea > 0 ? (rowSum / totalArea) * rect.width : 0;
-    let y = rect.y;
-
-    for (const item of row) {
-      const itemHeight = rowSum > 0 ? (item.area / rowSum) * rect.height : 0;
-      rects.push({ x: rect.x, y, width: rowWidth, height: itemHeight, index: item.index });
-      y += itemHeight;
-    }
-
-    return {
-      rects,
-      remaining: {
-        x: rect.x + rowWidth,
-        y: rect.y,
-        width: rect.width - rowWidth,
-        height: rect.height,
-      },
-    };
-  } else {
-    const rowHeight = totalArea > 0 ? (rowSum / totalArea) * rect.height : 0;
-    let x = rect.x;
-
-    for (const item of row) {
-      const itemWidth = rowSum > 0 ? (item.area / rowSum) * rect.width : 0;
-      rects.push({ x, y: rect.y, width: itemWidth, height: rowHeight, index: item.index });
-      x += itemWidth;
-    }
-
-    return {
-      rects,
-      remaining: {
-        x: rect.x,
-        y: rect.y + rowHeight,
-        width: rect.width,
-        height: rect.height - rowHeight,
-      },
-    };
-  }
-}
-
-/**
- * Squarified treemap: lay out items to minimize worst aspect ratio.
- */
-function squarify(
-  items: { area: number; index: number }[],
-  rect: Rect,
-  totalArea: number
-): { x: number; y: number; width: number; height: number; index: number }[] {
-  if (items.length === 0 || totalArea <= 0) return [];
-  if (items.length === 1) {
-    const first = items[0]!;
-    return [{ x: rect.x, y: rect.y, width: rect.width, height: rect.height, index: first.index }];
-  }
-
-  const sideLength = Math.min(rect.width, rect.height);
-  const result: { x: number; y: number; width: number; height: number; index: number }[] = [];
-
-  let currentRow: { area: number; index: number }[] = [];
-  let remaining = items.slice();
-
-  while (remaining.length > 0) {
-    const item = remaining[0]!;
-    const testRow = [...currentRow, item];
-
-    const currentWorst = worstRatio(
-      currentRow.map(r => r.area),
-      sideLength,
-      totalArea
+  if (layout === "binary") {
+    const prefix = [0];
+    items.forEach((item) =>
+      prefix.push(prefix[prefix.length - 1]! + item.value),
     );
-    const testWorst = worstRatio(
-      testRow.map(r => r.area),
-      sideLength,
-      totalArea
+    const stack = [{ from: 0, to: items.length, box }];
+    while (stack.length) {
+      const task = stack.pop()!;
+      if (task.to - task.from === 1) {
+        result[items[task.from]!.index] = task.box;
+        continue;
+      }
+      const sum = prefix[task.to]! - prefix[task.from]!,
+        half = prefix[task.from]! + sum / 2;
+      let low = task.from + 1,
+        high = task.to - 1;
+      while (low < high) {
+        const mid = Math.floor((low + high) / 2);
+        if (prefix[mid]! < half) low = mid + 1;
+        else high = mid;
+      }
+      let split = low;
+      if (
+        split > task.from + 1 &&
+        Math.abs(prefix[split - 1]! - half) < Math.abs(prefix[split]! - half)
+      )
+        split--;
+      const ratio = sum
+        ? (prefix[split]! - prefix[task.from]!) / sum
+        : (split - task.from) / (task.to - task.from);
+      const b = task.box,
+        horizontal = b.width >= b.height;
+      const first = horizontal
+        ? { ...b, width: b.width * ratio }
+        : { ...b, height: b.height * ratio };
+      const second = horizontal
+        ? {
+            ...b,
+            x: b.x + first.width,
+            width: Math.max(0, b.width - first.width),
+          }
+        : {
+            ...b,
+            y: b.y + first.height,
+            height: Math.max(0, b.height - first.height),
+          };
+      stack.push(
+        { from: split, to: task.to, box: second },
+        { from: task.from, to: split, box: first },
+      );
+    }
+    return result;
+  }
+  const areas = items.map((item) => ({
+    index: item.index,
+    area: (item.value / total) * box.width * box.height,
+  }));
+  let { x, y, width: w, height: h } = box;
+  let cursor = 0;
+  const worst = (sum: number, low: number, high: number, side: number) =>
+    Math.max(
+      (side * side * high) / (sum * sum),
+      (sum * sum) / (side * side * low),
     );
-
-    if (currentRow.length === 0 || testWorst <= currentWorst) {
-      currentRow.push(item);
-      remaining = remaining.slice(1);
+  while (cursor < areas.length && w > 0 && h > 0) {
+    const start = cursor,
+      side = Math.min(w, h);
+    let sum = areas[cursor]!.area,
+      low = sum,
+      high = sum;
+    cursor++;
+    while (cursor < areas.length) {
+      const a = areas[cursor]!.area;
+      if (
+        worst(sum + a, Math.min(low, a), Math.max(high, a), side) >
+        worst(sum, low, high, side)
+      )
+        break;
+      sum += a;
+      low = Math.min(low, a);
+      high = Math.max(high, a);
+      cursor++;
+    }
+    const vertical = w >= h;
+    const thickness =
+      cursor === areas.length
+        ? vertical
+          ? w
+          : h
+        : Math.min(vertical ? w : h, sum / side);
+    let offset = 0;
+    for (let i = start; i < cursor; i++) {
+      const item = areas[i]!,
+        length =
+          i === cursor - 1
+            ? Math.max(0, side - offset)
+            : Math.min(Math.max(0, side - offset), (item.area / sum) * side);
+      result[item.index] = vertical
+        ? { x, y: y + offset, width: thickness, height: length }
+        : { x: x + offset, y, width: length, height: thickness };
+      offset += length;
+    }
+    if (vertical) {
+      x += thickness;
+      w = Math.max(0, w - thickness);
     } else {
-      const { rects, remaining: newRect } = layoutRow(currentRow, rect, totalArea);
-      result.push(...rects);
-
-      const remainingArea = remaining.reduce((sum, r) => sum + r.area, 0);
-      const innerRects = squarify(remaining, newRect, remainingArea);
-      result.push(...innerRects);
-      return result;
+      y += thickness;
+      h = Math.max(0, h - thickness);
     }
   }
-
-  if (currentRow.length > 0) {
-    const { rects } = layoutRow(currentRow, rect, totalArea);
-    result.push(...rects);
-  }
-
   return result;
 }
-
-const GAP = 1.5;
-
-/**
- * Compute the full treemap layout from hierarchical data.
- */
+export interface TreeTile extends Rect {
+  entry: TreeEntry;
+  group: boolean;
+  expanded: boolean;
+  headerHeight: number;
+  allocation: Rect;
+}
+export function layoutTree(
+  entries: readonly TreeEntry[],
+  width: number,
+  height: number,
+  {
+    layout = "squarified",
+    variant = "nested",
+    sort = "value",
+    gap = 3,
+    maxDepth = 2,
+  }: {
+    layout?: TreeMapLayout;
+    variant?: TreeMapVariant;
+    sort?: "value" | "input";
+    gap?: number;
+    maxDepth?: number;
+  } = {},
+) {
+  const result: TreeTile[] = [];
+  function place(items: readonly TreeEntry[], box: Rect, depth: number) {
+    const boxes = tileTree(
+      items.map((item) => item.value),
+      box,
+      layout,
+      depth,
+      sort,
+    );
+    items.forEach((entry, i) => {
+      const allocation = boxes[i]!;
+      if (allocation.width <= 0 || allocation.height <= 0) return;
+      // Gutters are capped relative to a tile, but do not manufacture a minimum area.
+      const inset = Math.min(
+        gap / 2,
+        allocation.width / 4,
+        allocation.height / 4,
+      );
+      const rect = {
+        x: allocation.x + inset,
+        y: allocation.y + inset,
+        width: Math.max(0, allocation.width - 2 * inset),
+        height: Math.max(0, allocation.height - 2 * inset),
+      };
+      const group = entry.children.length > 0;
+      const expanded =
+        variant === "nested" &&
+        group &&
+        depth + 1 < maxDepth &&
+        rect.width >= 90 &&
+        rect.height >= 80;
+      const headerHeight = expanded ? 28 : 0;
+      result.push({
+        ...rect,
+        entry,
+        group,
+        expanded,
+        headerHeight,
+        allocation,
+      });
+      if (expanded)
+        place(
+          entry.children,
+          {
+            x: rect.x + 3,
+            y: rect.y + headerHeight,
+            width: Math.max(0, rect.width - 6),
+            height: Math.max(0, rect.height - headerHeight - 3),
+          },
+          depth + 1,
+        );
+    });
+  }
+  const leaves = (items: readonly TreeEntry[]): TreeEntry[] =>
+    items.flatMap((entry) =>
+      entry.children.length ? leaves(entry.children) : [entry],
+    );
+  place(
+    variant === "flat" ? leaves(entries) : entries,
+    { x: 0, y: 0, width, height },
+    0,
+  );
+  return result;
+}
+/** Compatibility layout helper: returns visible leaves, with original node/path metadata. */
 export function computeTreeMapLayout(
   data: readonly TreeMapNode[],
   width: number,
   height: number,
 ): readonly LayoutRect[] {
-  if (!data.length || width <= 0 || height <= 0) return [];
-
-  const grandTotal = data.reduce((sum, node) => sum + nodeValue(node), 0);
-  if (grandTotal <= 0) return [];
-
-  const result: LayoutRect[] = [];
-
-  function layoutChildren(
-    nodes: readonly TreeMapNode[],
-    rect: Rect,
-    depth: number,
-    parentColorIndex: number,
-    parentPath: readonly string[],
-  ): void {
-    const values = nodes.map(node => nodeValue(node));
-    const total = values.reduce((a, b) => a + b, 0);
-    if (total <= 0) return;
-
-    // Sort descending for better squarification
-    const indexed: { node: TreeMapNode; value: number; originalIndex: number }[] = nodes.map((node, i) => ({
-      node,
-      value: values[i] ?? 0,
-      originalIndex: i,
+  if (
+    !Number.isFinite(width) ||
+    !Number.isFinite(height) ||
+    width <= 0 ||
+    height <= 0
+  )
+    return [];
+  const model = buildTreeModel(data);
+  if (model.error) return [];
+  return layoutTree(model.roots, width, height, { maxDepth: 64 })
+    .filter((tile) => !tile.expanded)
+    .map((tile) => ({
+      ...tile,
+      node: tile.entry.node,
+      depth: tile.entry.depth,
+      colorIndex: tile.entry.colorIndex,
+      path: tile.entry.path,
+      percentage: tile.entry.percentage ?? 0,
     }));
-    indexed.sort((a, b) => b.value - a.value);
-
-    const items: { area: number; index: number }[] = indexed.map((entry, i) => ({
-      area: entry.value,
-      index: i,
-    }));
-
-    const rects = squarify(items, rect, total);
-
-    for (const r of rects) {
-      const entry = indexed[r.index]!;
-      const colorIdx = depth === 0 ? entry.originalIndex : parentColorIndex;
-      const path = [...parentPath, entry.node.name];
-
-      // Apply gap
-      const gx = Math.min(GAP, r.width / 4);
-      const gy = Math.min(GAP, r.height / 4);
-      const gappedRect = {
-        x: r.x + gx,
-        y: r.y + gy,
-        width: Math.max(0, r.width - gx * 2),
-        height: Math.max(0, r.height - gy * 2),
-      };
-
-      if (entry.node.children && entry.node.children.length > 0 && gappedRect.width > 10 && gappedRect.height > 10) {
-        layoutChildren(entry.node.children, gappedRect, depth + 1, colorIdx, path);
-      } else {
-        result.push({
-          ...gappedRect,
-          node: entry.node,
-          depth,
-          colorIndex: colorIdx,
-          path,
-          percentage: (entry.value / grandTotal) * 100,
-        });
-      }
-    }
-  }
-
-  layoutChildren(data, { x: 0, y: 0, width, height }, 0, 0, []);
-  return result;
 }

@@ -1,145 +1,89 @@
 "use client";
 
-import * as React from "react";
-import { memo, useMemo, useState, useCallback } from "react";
+import {
+  memo,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  useEffect,
+  type KeyboardEvent,
+} from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
-import { formatValue, getNumericValueOrNull, calculateNiceTicks, getGridDasharray, useContainerDimensions, ChartTooltip } from "../_shared";
-import type { ChartDataItem, LineChartTooltipData, TooltipRenderer } from "../_shared";
+import {
+  formatValue,
+  getGridDasharray,
+  useContainerDimensions,
+} from "../_shared";
+import type {
+  ChartDataItem,
+  LineChartTooltipData,
+  TooltipRenderer,
+} from "../_shared";
+import {
+  getLineArea,
+  getLineDomain,
+  getLinePath,
+  getLineSegments,
+  parseLineValue,
+  scaleLineValue,
+} from "./utils";
+import { LineTooltip } from "./tooltip";
 
 interface LineChartProps<T extends ChartDataItem> {
+  /** Rows in display order. Null/undefined values are gaps; malformed numbers display an error. */
   readonly data: readonly T[];
+  /** Equally spaced category labels, including date strings; not a continuous time scale. */
   readonly x: keyof T;
   readonly y: keyof T | readonly (keyof T)[];
   readonly colors?: readonly string[];
   readonly className?: string;
+  /** Total frame height, including the legend, in every state. */
   readonly height?: number;
+  /** Retain data during refresh to preserve the exact line geometry in the skeleton. */
   readonly loading?: boolean;
   readonly error?: string | null;
   readonly animation?: boolean;
   readonly strokeWidth?: number;
-  readonly curve?: 'linear' | 'monotone' | 'natural' | 'step';
+  /** Monotone avoids spurious extrema; natural splines may overshoot between observations. */
+  readonly curve?: "linear" | "monotone" | "natural" | "step";
   readonly showDots?: boolean;
   readonly showArea?: boolean;
+  /** Original indices in y; empty series never shift this mapping. */
   readonly showAreaForSeries?: readonly number[];
   readonly showGrid?: boolean;
-  readonly gridStyle?: 'solid' | 'dashed' | 'dotted';
+  readonly gridStyle?: "solid" | "dashed" | "dotted";
   readonly showLegend?: boolean;
+  /** Opt in to bridging missing observations. Defaults to false. */
   readonly connectNulls?: boolean;
   readonly onPointClick?: (data: T, index: number, series?: string) => void;
   readonly tooltipRenderer?: TooltipRenderer<LineChartTooltipData<T>>;
+  readonly valueFormatter?: (value: number) => string;
+  readonly axisValueFormatter?: (value: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
 }
 
-// Constants
 const DEFAULT_COLORS = [
-  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4',
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#06b6d4",
 ] as const;
-
 const DEFAULT_HEIGHT = 300;
-const MARGIN = { top: 20, right: 20, bottom: 40, left: 50 };
-const ANIMATION_EASING = [0.4, 0, 0.2, 1] as const;
-const HOVER_DURATION = 0.2;
 const LEGEND_HEIGHT = 40;
+const EASING = [0.4, 0, 0.2, 1] as const;
 
-// Path generation utilities
-type PathPoint = { x: number; y: number; hasValue: boolean };
-
-function generatePath(points: PathPoint[], curve: 'linear' | 'monotone' | 'natural' | 'step', connectNulls = true): string {
-  if (!points.length) return '';
-
-  const validPoints = connectNulls ? points : points.filter(p => p?.hasValue);
-  if (!validPoints.length) return '';
-
-  if (curve === 'linear' || curve === 'step' || curve === 'natural' || validPoints.length < 2) {
-    return validPoints.reduce((path, point, i) =>
-      path + (i === 0 ? `M ${point.x} ${point.y}` : ` L ${point.x} ${point.y}`), '');
-  }
-
-  // Monotone curve
-  const firstPoint = validPoints[0];
-  if (!firstPoint) return '';
-
-  let path = `M ${firstPoint.x} ${firstPoint.y}`;
-
-  for (let i = 1; i < validPoints.length; i++) {
-    const prev = validPoints[i - 1];
-    const curr = validPoints[i];
-    const next = validPoints[i + 1];
-
-    if (!prev || !curr) continue;
-
-    const dx = curr.x - prev.x;
-    let cp1y = prev.y, cp2y = curr.y;
-
-    if (next && dx !== 0) {
-      const slope1 = (curr.y - prev.y) / dx;
-      const slope2 = (next.y - curr.y) / (next.x - curr.x);
-      const avgSlope = (slope1 + slope2) / 2;
-
-      cp1y = prev.y + dx * 0.3 * avgSlope;
-      cp2y = curr.y - dx * 0.3 * avgSlope;
-    }
-
-    path += ` C ${prev.x + dx * 0.3} ${cp1y}, ${curr.x - dx * 0.3} ${cp2y}, ${curr.x} ${curr.y}`;
-  }
-
-  return path;
+function shorten(label: string, width: number) {
+  const count = Math.max(1, Math.floor(width / 6.5));
+  return label.length > count
+    ? `${label.slice(0, Math.max(0, count - 1))}…`
+    : label;
 }
 
-// State components
-const states = {
-  Loading: ({ height = DEFAULT_HEIGHT }: { height?: number }) => (
-    <div className="relative w-full flex items-center justify-center" style={{ height }}>
-      <div className="w-full max-w-full p-6">
-        <div className="animate-pulse bg-muted rounded h-4 w-32 mb-4" />
-        <div className="relative border-l border-b border-muted/30"
-             style={{ height: height - 100, margin: `0 ${MARGIN.right}px ${MARGIN.bottom}px ${MARGIN.left}px` }}>
-          <svg width="100%" height="100%" className="absolute inset-0">
-            <defs>
-              <linearGradient id="loadingGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="transparent" />
-                <stop offset="50%" stopColor="currentColor" stopOpacity={0.1} />
-                <stop offset="100%" stopColor="transparent" />
-              </linearGradient>
-            </defs>
-            {[0, 1, 2].map((i) => (
-              <motion.path
-                key={i}
-                d={`M 0 ${60 + i * 30} Q 100 ${40 + i * 30} 200 ${60 + i * 30} T 400 ${60 + i * 30}`}
-                stroke="url(#loadingGradient)"
-                strokeWidth="2"
-                fill="none"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: i * 0.2 }}
-              />
-            ))}
-          </svg>
-        </div>
-      </div>
-    </div>
-  ),
-
-  Error: ({ error }: { error: string }) => (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center space-y-2">
-        <div className="text-destructive font-medium">Chart Error</div>
-        <div className="text-sm text-muted-foreground">{error}</div>
-      </div>
-    </div>
-  ),
-
-  Empty: () => (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center space-y-2">
-        <div className="text-muted-foreground">No Data</div>
-        <div className="text-sm text-muted-foreground">There&apos;s no data to display</div>
-      </div>
-    </div>
-  ),
-};
-
-// Main Component
 function LineChartComponent<T extends ChartDataItem>({
   data,
   x,
@@ -151,469 +95,767 @@ function LineChartComponent<T extends ChartDataItem>({
   error = null,
   animation = true,
   strokeWidth = 2,
-  curve = 'monotone',
+  curve = "monotone",
   showDots = true,
   showArea = false,
   showAreaForSeries,
   showGrid = false,
-  gridStyle = 'dashed',
+  gridStyle = "dashed",
   showLegend = false,
-  connectNulls = true,
+  connectNulls = false,
   onPointClick,
   tooltipRenderer,
+  valueFormatter = formatValue,
+  axisValueFormatter = valueFormatter,
+  ariaLabel,
+  description,
 }: LineChartProps<T>) {
   const [containerRef, containerWidth] = useContainerDimensions();
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
+  const id = useId();
   const reduceMotion = useReducedMotion();
   const shouldAnimate = animation && !reduceMotion;
-
-  const hasLegend = showLegend && Array.isArray(y) && y.length > 1;
-  const svgHeight = hasLegend ? height - LEGEND_HEIGHT : height;
-  const chartWidth = Math.max(0, containerWidth - MARGIN.left - MARGIN.right);
-  const chartHeight = svgHeight - MARGIN.top - MARGIN.bottom;
-
-  // Dev warning for large datasets
-  if (process.env.NODE_ENV === 'development' && data.length > 200) {
-    console.warn(
-      `[LineChart] ${data.length} data points detected. Consider downsampling for better performance.`
+  const refs = useRef<(SVGRectElement | null)[]>([]);
+  const [tabIndex, setTabIndex] = useState(0);
+  const [inspection, setInspection] = useState<{
+    data: readonly T[];
+    index: number;
+  } | null>(null);
+  const [focus, setFocus] = useState<{
+    data: readonly T[];
+    index: number;
+    seriesIndex: number;
+  } | null>(null);
+  const keys = useMemo<readonly (keyof T)[]>(
+    () => (Array.isArray(y) ? y : [y as keyof T]),
+    [y],
+  );
+  const model = useMemo(() => {
+    let validationError: string | null = keys.length
+      ? null
+      : "Supply at least one numeric key in y.";
+    if (new Set(keys).size !== keys.length)
+      validationError =
+        "Each key in y must be unique. Remove duplicate series keys.";
+    const labels = data.map((row, index) => {
+      if (row[x] === null || row[x] === undefined)
+        validationError ??= `Row ${index + 1}: category "${String(x)}" is missing. Check the x key.`;
+      return String(row[x] ?? "");
+    });
+    const values = keys.map((key) =>
+      data.map((row, index) => {
+        const raw = row[key];
+        const value = parseLineValue(raw);
+        if (raw !== null && raw !== undefined && value === null)
+          validationError ??= `Row ${index + 1}: "${String(key)}" must contain a finite number or null for a gap.`;
+        return value;
+      }),
     );
-  }
-
-  // Compute global domain across all series for shared Y-axis
-  const globalDomain = useMemo(() => {
-    if (!data.length) return { min: 0, max: 0 };
-
-    const yKeys = Array.isArray(y) ? y : [y];
-    let allMin = Infinity;
-    let allMax = -Infinity;
-
-    for (const yKey of yKeys) {
-      for (const item of data) {
-        const val = getNumericValueOrNull(item, yKey as string);
-        if (val !== null) {
-          if (val < allMin) allMin = val;
-          if (val > allMax) allMax = val;
-        }
-      }
-    }
-
-    if (!isFinite(allMin) || !isFinite(allMax)) return { min: 0, max: 0 };
-    return { min: allMin, max: allMax };
-  }, [data, y]);
-
-  const yTicks = useMemo(() => {
-    if (globalDomain.min === globalDomain.max) return globalDomain.min === 0 ? [] : [globalDomain.min];
-    return calculateNiceTicks(globalDomain.min, globalDomain.max, 5);
-  }, [globalDomain]);
-
-  const gridDasharray = useMemo(() => getGridDasharray(gridStyle), [gridStyle]);
-
-  // Effective Y domain from nice ticks for consistent grid alignment
-  const effectiveDomain = useMemo(() => {
-    if (!yTicks.length) return globalDomain;
-    return { min: Math.min(...yTicks), max: Math.max(...yTicks) };
-  }, [yTicks, globalDomain]);
-
-  const processedSeries = useMemo(() => {
-    if (!data.length || chartWidth <= 0 || chartHeight <= 0) return [];
-
-    const yKeys = Array.isArray(y) ? y : [y];
-    const { min: scaleMin, max: scaleMax } = effectiveDomain;
-    const range = scaleMax - scaleMin || 1;
-
-    return yKeys.map((yKey, seriesIndex) => {
-      const seriesData = data.map((item, index) => {
-        const yVal = getNumericValueOrNull(item, yKey as string);
-        return {
-          data: item,
+    return { labels, values, validationError };
+  }, [data, x, keys]);
+  const knownValues = useMemo(
+    () =>
+      model.values.flat().filter((value): value is number => value !== null),
+    [model],
+  );
+  const placeholder =
+    loading && (!knownValues.length || !!model.validationError);
+  const count = placeholder ? data.length || 6 : data.length;
+  const values = useMemo(
+    () =>
+      placeholder
+        ? keys.map((_, seriesIndex) =>
+            Array.from(
+              { length: count },
+              (_, index) =>
+                [40, 60, 48, 78, 65, 85][(index + seriesIndex) % 6]!,
+            ),
+          )
+        : model.values,
+    [placeholder, count, keys, model],
+  );
+  const domain = useMemo(
+    () =>
+      getLineDomain(
+        placeholder
+          ? values.flat().filter((value): value is number => value !== null)
+          : knownValues,
+      ),
+    [placeholder, values, knownValues],
+  );
+  const tickLabels = useMemo(
+    () => domain.ticks.map(axisValueFormatter),
+    [domain, axisValueFormatter],
+  );
+  const validHeight = Number.isFinite(height) && height > 0;
+  const frameHeight = validHeight ? height : DEFAULT_HEIGHT;
+  const hasLegend = showLegend && keys.length > 1;
+  const svgHeight = Math.max(0, frameHeight - (hasLegend ? LEGEND_HEIGHT : 0));
+  const margin = {
+    top: 20,
+    right: 20,
+    bottom: 40,
+    left: Math.min(
+      tickLabels.reduce(
+        (width, label) => Math.max(width, label.length * 6.5 + 16),
+        50,
+      ),
+      Math.max(50, containerWidth * 0.35),
+    ),
+  };
+  const plotWidth = Math.max(0, containerWidth - margin.left - margin.right);
+  const plotHeight = Math.max(0, svgHeight - margin.top - margin.bottom);
+  const xPosition = (index: number) =>
+    count > 1 ? (index / (count - 1)) * plotWidth : plotWidth / 2;
+  const baseline = Math.max(
+    0,
+    Math.min(plotHeight, scaleLineValue(0, domain, plotHeight)),
+  );
+  const series = useMemo(
+    () =>
+      keys.map((key, seriesIndex) => {
+        const points = values[seriesIndex]!.map((value, index) => ({
+          x: count > 1 ? (index / (count - 1)) * plotWidth : plotWidth / 2,
+          y: value === null ? 0 : scaleLineValue(value, domain, plotHeight),
+          defined: value !== null,
+          value,
           index,
-          xValue: item[x],
-          yValue: yVal,
-          hasValue: yVal !== null,
-          x: data.length > 1 ? (index / (data.length - 1)) * chartWidth : chartWidth / 2,
-          label: String(item[x]),
-          value: yVal !== null ? formatValue(yVal) : 'N/A',
+        }));
+        const segments = getLineSegments(points, connectNulls);
+        return {
+          key,
+          seriesIndex,
+          points,
+          segments,
+          isolatedX: new Set(
+            segments
+              .filter((segment) => segment.length === 1)
+              .map((segment) => segment[0]!.x),
+          ),
+          color: colors[seriesIndex % colors.length] ?? DEFAULT_COLORS[0],
+          line: segments
+            .map((segment) => getLinePath(segment, curve))
+            .join(" "),
+          area: segments
+            .map((segment) => getLineArea(segment, curve, baseline))
+            .join(" "),
         };
-      });
-
-      const validValues = seriesData.filter(item => item.hasValue).map(item => item.yValue!);
-      if (!validValues.length) return null;
-
-      const seriesColor = colors[seriesIndex % colors.length] || DEFAULT_COLORS[0];
-
-      // Calculate y positions using shared domain
-      const points = seriesData.map(item => ({
-        ...item,
-        y: item.hasValue
-          ? chartHeight - ((item.yValue! - scaleMin) / range) * chartHeight
-          : chartHeight,
-        color: seriesColor,
-      }));
-
-      const linePath = generatePath(points, curve, connectNulls);
-      const areaPath = showArea && linePath
-        ? `${linePath} L ${chartWidth} ${chartHeight} L 0 ${chartHeight} Z`
-        : '';
-
-      return {
-        key: String(yKey),
-        points,
-        linePath,
-        areaPath,
-        color: seriesColor,
-        minValue: Math.min(...validValues),
-        maxValue: Math.max(...validValues),
-      };
-    }).filter((series): series is NonNullable<typeof series> => series !== null);
-  }, [data, x, y, colors, chartWidth, chartHeight, curve, connectNulls, showArea, effectiveDomain]);
-
-  // Event handlers with useCallback
-  const handlePointMouseEnter = useCallback((index: number) => {
-    setHoveredIndex(index);
-  }, []);
-
-  const handlePointMouseLeave = useCallback(() => {
-    setHoveredIndex(null);
-  }, []);
-
-  const handlePointClick = useCallback((pointData: T, index: number, series?: string) => {
-    onPointClick?.(pointData, index, series);
-  }, [onPointClick]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent, pointData: T, index: number, series?: string) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onPointClick?.(pointData, index, series);
+      }),
+    [
+      keys,
+      values,
+      count,
+      plotWidth,
+      plotHeight,
+      domain,
+      connectNulls,
+      colors,
+      curve,
+      baseline,
+    ],
+  );
+  const chartError =
+    error ||
+    model.validationError ||
+    (!validHeight ? "Chart height must be a positive, finite number." : null) ||
+    (!(strokeWidth > 0) || !Number.isFinite(strokeWidth)
+      ? "strokeWidth must be a positive, finite number."
+      : null);
+  const ready =
+    !loading &&
+    !chartError &&
+    knownValues.length > 0 &&
+    plotWidth > 0 &&
+    plotHeight > 0;
+  useEffect(() => {
+    const index = ready
+      ? refs.current.findIndex(
+          (element) => element !== null && element === document.activeElement,
+        )
+      : -1;
+    if (index < 0) {
+      setInspection(null);
+      setFocus(null);
+      return;
     }
-  }, [onPointClick]);
-
-  if (loading) return <states.Loading height={height} />;
-  if (error) return <states.Error error={error} />;
-  if (!data.length) return <states.Empty />;
-
-  if (!containerWidth) {
-    return (
-      <div ref={containerRef} className={cn('relative w-full', className)} style={{ height }}>
-        <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-          Loading...
-        </div>
-      </div>
-    );
+    setTabIndex(index);
+    setInspection({ data, index });
+    setFocus((previous) => ({
+      data,
+      index,
+      seriesIndex:
+        series.find(
+          (item) =>
+            item.seriesIndex === previous?.seriesIndex &&
+            item.points[index]?.defined,
+        )?.seriesIndex ??
+        series.find((item) => item.points[index]?.defined)?.seriesIndex ??
+        0,
+    }));
+  }, [ready, data, x, series]);
+  const activeIndex =
+    ready && inspection?.data === data ? inspection.index : null;
+  const focusIndex = ready && focus?.data === data ? focus.index : null;
+  const activeItems =
+    activeIndex === null
+      ? []
+      : series.filter((item) => item.points[activeIndex]?.defined);
+  const selectedTab = Math.min(tabIndex, Math.max(0, data.length - 1));
+  const categoryStep = Math.max(
+    1,
+    Math.ceil(48 / (plotWidth / Math.max(1, count - 1))),
+  );
+  const tooltipData: LineChartTooltipData<T> | null =
+    activeIndex === null
+      ? null
+      : {
+          label: model.labels[activeIndex]!,
+          index: activeIndex,
+          series: activeItems.map((item) => ({
+            key: String(item.key),
+            value: item.points[activeIndex]!.value!,
+            rawValue: data[activeIndex]![item.key],
+            color: item.color,
+          })),
+        };
+  function inspect(index: number) {
+    setInspection({ data, index });
   }
-
-  const { min: scaleMin, max: scaleMax } = effectiveDomain;
-  const scaleRange = scaleMax - scaleMin || 1;
+  function available(index: number) {
+    return series.filter((item) => item.points[index]?.defined);
+  }
+  function handleKeyDown(event: KeyboardEvent<SVGRectElement>, index: number) {
+    const options = available(index);
+    const selected =
+      options.find((item) => item.seriesIndex === focus?.seriesIndex) ??
+      options[0];
+    let next = index;
+    if (event.key === "ArrowLeft") next = Math.max(0, index - 1);
+    else if (event.key === "ArrowRight")
+      next = Math.min(data.length - 1, index + 1);
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = data.length - 1;
+    else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+      event.preventDefault();
+      const position = selected ? options.indexOf(selected) : 0;
+      const nextSeries =
+        options[
+          Math.max(
+            0,
+            Math.min(
+              options.length - 1,
+              position + (event.key === "ArrowDown" ? 1 : -1),
+            ),
+          )
+        ];
+      setFocus({ data, index, seriesIndex: nextSeries?.seriesIndex ?? 0 });
+      inspect(index);
+      return;
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      setInspection(null);
+      return;
+    } else if (
+      (event.key === "Enter" || event.key === " ") &&
+      onPointClick &&
+      selected
+    ) {
+      event.preventDefault();
+      onPointClick(data[index]!, index, String(selected.key));
+      return;
+    } else return;
+    event.preventDefault();
+    const nextOptions = available(next);
+    const nextSeries =
+      nextOptions.find((item) => item.seriesIndex === selected?.seriesIndex) ??
+      nextOptions[0];
+    setTabIndex(next);
+    refs.current[next]?.focus();
+    setFocus({ data, index: next, seriesIndex: nextSeries?.seriesIndex ?? 0 });
+    inspect(next);
+  }
+  function dismissHover() {
+    setInspection(focus?.data === data ? { data, index: focus.index } : null);
+  }
 
   return (
     <div
       ref={containerRef}
-      className={cn('relative w-full', className)}
-      style={{ height }}
+      className={cn("relative w-full", className)}
+      style={{ height: frameHeight }}
+      aria-busy={loading}
+      onMouseLeave={dismissHover}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setFocus(null);
+          setInspection(null);
+        }
+      }}
     >
-      <svg
-        width="100%"
-        height={svgHeight}
-        className="overflow-visible"
-        role="img"
-        aria-label={`Line chart with ${processedSeries.length} series and ${data.length} data points`}
-      >
-        <defs>
-          {processedSeries.map((series, index) => (
-            <g key={`series-defs-${index}`}>
-              <linearGradient
-                id={`area-gradient-${index}`}
-                x1="0%" y1="0%" x2="0%" y2="100%"
-              >
-                <stop offset="0%" stopColor={series.color} stopOpacity={0.3} />
-                <stop offset="100%" stopColor={series.color} stopOpacity={0.02} />
-              </linearGradient>
-              <pattern
-                id={`dot-pattern-${index}`}
-                patternUnits="userSpaceOnUse"
-                width="8" height="8"
-              >
-                <rect width="8" height="8" fill={`url(#area-gradient-${index})`} />
-                <circle cx="4" cy="4" r="0.6" fill={series.color} fillOpacity="0.25" />
-              </pattern>
-            </g>
-          ))}
-        </defs>
-
-        <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
-          {/* Grid lines */}
-          {showGrid && yTicks.map((tick, i) => {
-            const tickY = chartHeight - ((tick - scaleMin) / scaleRange) * chartHeight;
-            return (
-              <line
-                key={`grid-h-${i}`}
-                x1={0} y1={tickY} x2={chartWidth} y2={tickY}
-                stroke="currentColor" opacity={0.1}
-                strokeDasharray={gridDasharray}
-              />
-            );
-          })}
-
-          {/* Axes */}
-          <line
-            x1={0} y1={0} x2={0} y2={chartHeight}
-            stroke="currentColor" opacity={0.3} strokeWidth={1.5}
-          />
-          <line
-            x1={0} y1={chartHeight} x2={chartWidth} y2={chartHeight}
-            stroke="currentColor" opacity={0.3} strokeWidth={1.5}
-          />
-
-          {/* Y-axis ticks and labels */}
-          {yTicks.map((tick, i) => {
-            const tickY = chartHeight - ((tick - scaleMin) / scaleRange) * chartHeight;
-            return (
-              <g key={`y-tick-${i}`}>
-                <line x1={-4} y1={tickY} x2={0} y2={tickY} stroke="currentColor" opacity={0.3} />
-                <text
-                  x={-8} y={tickY}
-                  textAnchor="end" dominantBaseline="middle"
-                  fontSize={11} className="fill-muted-foreground"
-                >
-                  {formatValue(tick)}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Hover line */}
-          {hoveredIndex !== null && data.length > 1 && (
-            <line
-              x1={(hoveredIndex / (data.length - 1)) * chartWidth}
-              y1={0}
-              x2={(hoveredIndex / (data.length - 1)) * chartWidth}
-              y2={chartHeight}
-              stroke="currentColor"
-              opacity={0.3}
-              strokeWidth={1}
-              strokeDasharray="4 4"
-            />
-          )}
-
-          {/* Areas and Lines */}
-          {processedSeries.map((series, seriesIndex) => {
-            const isSeriesHovered = hoveredIndex !== null && series.points[hoveredIndex]?.hasValue;
-
-            return (
-              <g key={`series-${seriesIndex}`}>
-                {showArea && (!showAreaForSeries || showAreaForSeries.includes(seriesIndex)) && (
-                  <motion.path
-                    d={series.areaPath}
-                    fill={`url(#area-gradient-${seriesIndex})`}
-                    {...(shouldAnimate && {
-                      initial: { opacity: 0, scaleY: 0 },
-                      animate: { opacity: 1, scaleY: 1 },
-                      transition: {
-                        duration: 0.8,
-                        delay: seriesIndex * 0.15,
-                        ease: ANIMATION_EASING,
-                      }
-                    })}
-                    style={{ transformOrigin: 'bottom' }}
-                  />
-                )}
-                <motion.path
-                  d={series.linePath}
-                  stroke={series.color}
-                  strokeWidth={strokeWidth}
-                  fill="none"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="pointer-events-none"
-                  style={{
-                    filter: isSeriesHovered && !reduceMotion ? `drop-shadow(0 0 8px ${series.color})` : 'none',
-                    transition: reduceMotion ? 'none' : `filter ${HOVER_DURATION}s ease-out`,
-                  }}
-                  {...(shouldAnimate && {
-                    initial: { pathLength: 0 },
-                    animate: { pathLength: 1 },
-                    transition: {
-                      duration: 1.2,
-                      delay: seriesIndex * 0.1,
-                      ease: ANIMATION_EASING,
-                    }
-                  })}
-                />
-              </g>
-            );
-          })}
-
-          {/* Invisible hit areas for line hover */}
-          {data.map((_, index) => {
-            const xPos = data.length > 1 ? (index / (data.length - 1)) * chartWidth : chartWidth / 2;
-            const sliceWidth = data.length > 1 ? chartWidth / (data.length - 1) : chartWidth;
-            return (
-              <rect
-                key={`hit-${index}`}
-                x={xPos - sliceWidth / 2}
-                y={0}
-                width={sliceWidth}
-                height={chartHeight}
-                fill="transparent"
-                className="cursor-pointer touch-manipulation"
-                onMouseEnter={() => handlePointMouseEnter(index)}
-                onMouseLeave={handlePointMouseLeave}
-                onClick={() => {
-                  const firstSeries = processedSeries[0];
-                  if (!firstSeries) return;
-                  const point = firstSeries.points[index];
-                  if (point?.hasValue) handlePointClick(point.data, index, firstSeries.key);
-                }}
-              />
-            );
-          })}
-
-          {/* Triangle Dots */}
-          {showDots && processedSeries.flatMap((series, seriesIndex) =>
-            series.points
-              .filter((point) => point.hasValue)
-              .map((point) => {
-                const isHovered = hoveredIndex === point.index;
-                const size = isHovered ? 10 : 7;
-                const trianglePath = `M ${point.x} ${point.y - size} L ${point.x - size * 0.866} ${point.y + size * 0.5} L ${point.x + size * 0.866} ${point.y + size * 0.5} Z`;
-
-                return (
-                  <motion.path
-                    key={`triangle-${seriesIndex}-${point.index}`}
-                    d={trianglePath}
-                    fill={series.color}
-                    stroke="hsl(var(--background))"
-                    strokeWidth={2}
-                    className="cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    tabIndex={0}
-                    role="graphics-symbol"
-                    aria-label={`${series.key}: ${point.label}, ${point.value}`}
-                    onMouseEnter={() => handlePointMouseEnter(point.index)}
-                    onMouseLeave={handlePointMouseLeave}
-                    onFocus={() => handlePointMouseEnter(point.index)}
-                    onBlur={handlePointMouseLeave}
-                    onClick={() => handlePointClick(point.data, point.index, series.key)}
-                    onKeyDown={(e) => handleKeyDown(e, point.data, point.index, series.key)}
-                    style={{
-                      filter: isHovered && !reduceMotion ? `drop-shadow(0 0 6px ${series.color})` : 'none',
-                      transition: reduceMotion ? 'none' : `filter ${HOVER_DURATION}s ease-out`,
-                    }}
-                    {...(shouldAnimate && {
-                      initial: { scale: 0, rotate: -180 },
-                      animate: { scale: 1, rotate: 0 },
-                      whileHover: { scale: 1.3, rotate: 360 },
-                      transition: {
-                        duration: 0.4,
-                        delay: seriesIndex * 0.1 + point.index * 0.02,
-                        ease: ANIMATION_EASING,
-                      }
-                    })}
-                  />
-                );
-              })
-          )}
-
-          {/* X-axis labels with tick marks */}
-          {data.map((item, index) => {
-            const xPos = data.length > 1 ? (index / (data.length - 1)) * chartWidth : chartWidth / 2;
-            return (
-              <g key={`x-label-${index}`}>
-                <line
-                  x1={xPos} y1={chartHeight}
-                  x2={xPos} y2={chartHeight + 4}
-                  stroke="currentColor" opacity={0.3}
-                />
-                <text
-                  x={xPos}
-                  y={chartHeight + 16}
-                  textAnchor="middle"
-                  fontSize={11}
-                  className="fill-muted-foreground"
-                >
-                  {String(item[x])}
-                </text>
-              </g>
-            );
-          })}
-        </g>
-      </svg>
-
-      {/* Tooltip */}
-      {(() => {
-        const tooltipItems = hoveredIndex !== null && hoveredIndex >= 0
-          ? processedSeries
-              .map(series => ({
-                key: series.key,
-                color: series.color,
-                point: series.points[hoveredIndex]
-              }))
-              .filter(item => item.point?.hasValue)
-          : [];
-
-        const tipData: LineChartTooltipData<T> | null = tooltipItems.length > 0 && hoveredIndex !== null
-          ? {
-              label: tooltipItems[0]?.point?.label || '',
-              index: hoveredIndex,
-              series: tooltipItems.map(({ key, point, color }) => ({
-                key,
-                value: point!.yValue!,
-                rawValue: point!.data[Array.isArray(y) ? y[0] : y] as unknown,
-                color,
-              })),
+      {loading && (
+        <span role="status" className="sr-only">
+          Loading chart
+        </span>
+      )}
+      {!loading && chartError ? (
+        <div
+          role="alert"
+          className="flex h-full items-center justify-center p-6 text-center"
+        >
+          <div className="space-y-2">
+            <p className="font-medium text-destructive">Chart Error</p>
+            <p className="text-sm text-muted-foreground">{chartError}</p>
+          </div>
+        </div>
+      ) : !loading && !knownValues.length ? (
+        <div
+          role="status"
+          className="flex h-full items-center justify-center p-6 text-center"
+        >
+          <div className="space-y-2">
+            <p className="text-muted-foreground">No Data</p>
+            <p className="text-sm text-muted-foreground">
+              {data.length
+                ? "There are no measured values in these series."
+                : "There's no data to display"}
+            </p>
+          </div>
+        </div>
+      ) : !loading && !ready ? (
+        <div
+          role="status"
+          className="flex h-full items-center justify-center text-sm text-muted-foreground"
+        >
+          Waiting for chart space
+        </div>
+      ) : (
+        <>
+          <svg
+            width="100%"
+            height={svgHeight}
+            role={loading ? "presentation" : "group"}
+            aria-hidden={loading || undefined}
+            aria-label={
+              ariaLabel ??
+              `Line chart with ${keys.length} series and ${data.length} data points`
             }
-          : null;
-
-        return (
-          <ChartTooltip
-            visible={tipData !== null}
-            x={hoveredIndex !== null
-              ? (data.length > 1
-                  ? (hoveredIndex / (data.length - 1)) * chartWidth + MARGIN.left
-                  : chartWidth / 2 + MARGIN.left)
-              : 0}
-            y={Math.max(10, MARGIN.top - 10)}
-            className="transform -translate-x-1/2"
+            aria-describedby={`${id}-description`}
           >
-            {tipData && (tooltipRenderer ? tooltipRenderer(tipData) : (
-              <>
-                <div className="text-xs font-medium text-foreground mb-1.5 pb-1.5 border-b border-border/50 text-center whitespace-nowrap">
-                  {tipData.label}
-                </div>
-                {tooltipItems.map(({ key, point, color }) => (
-                  <div key={key} className="flex items-center justify-between gap-3 py-0.5">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                      {processedSeries.length > 1 && (
-                        <span className="text-xs text-muted-foreground">{key}</span>
+            <desc id={`${id}-description`}>
+              {description ? `${description} ` : ""}Use Left and Right to
+              inspect categories, Up and Down to choose a series, Home and End
+              to jump, and Escape to dismiss the tooltip.
+              {onPointClick ? " Press Enter or Space to select a point." : ""}
+            </desc>
+            <defs>
+              {series.map((item) => (
+                <linearGradient
+                  key={String(item.key)}
+                  id={`${id}-area-${item.seriesIndex}`}
+                  x1="0%"
+                  y1="0%"
+                  x2="0%"
+                  y2="100%"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor={loading ? "currentColor" : item.color}
+                    stopOpacity={0.3}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor={loading ? "currentColor" : item.color}
+                    stopOpacity={0.02}
+                  />
+                </linearGradient>
+              ))}
+              <clipPath id={`${id}-reveal`} clipPathUnits="userSpaceOnUse">
+                <motion.rect
+                  key={loading ? "loading" : "ready"}
+                  data-line-reveal=""
+                  x={-10}
+                  y={-10}
+                  width={plotWidth + 20}
+                  height={plotHeight + 20}
+                  style={{ originX: 0 }}
+                  initial={shouldAnimate && !loading ? { scaleX: 0 } : false}
+                  animate={{ scaleX: 1 }}
+                  transition={{
+                    duration: shouldAnimate && !loading ? 0.65 : 0,
+                    ease: EASING,
+                  }}
+                />
+              </clipPath>
+              <clipPath id={`${id}-plot`}>
+                <rect
+                  x={-10}
+                  y={-10}
+                  width={plotWidth + 20}
+                  height={plotHeight + 20}
+                />
+              </clipPath>
+            </defs>
+            <g
+              transform={`translate(${margin.left}, ${margin.top})`}
+              onMouseLeave={dismissHover}
+            >
+              {domain.ticks.map((tick, index) => {
+                const tickY = scaleLineValue(tick, domain, plotHeight);
+                return (
+                  <g key={tick} aria-hidden="true">
+                    {showGrid && (
+                      <line
+                        x1={0}
+                        x2={plotWidth}
+                        y1={tickY}
+                        y2={tickY}
+                        stroke="currentColor"
+                        opacity={0.1}
+                        strokeDasharray={getGridDasharray(gridStyle)}
+                      />
+                    )}
+                    {loading ? (
+                      <rect
+                        x={-36}
+                        y={tickY - 4}
+                        width={24}
+                        height={8}
+                        rx={3}
+                        className="fill-muted"
+                      />
+                    ) : (
+                      <text
+                        x={-8}
+                        y={tickY}
+                        textAnchor="end"
+                        dominantBaseline="middle"
+                        fontSize={11}
+                        className="fill-muted-foreground"
+                      >
+                        {shorten(tickLabels[index]!, margin.left - 12)}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+              <g aria-hidden="true" stroke="currentColor" opacity={0.3}>
+                <line x1={0} x2={0} y1={0} y2={plotHeight} />
+                <line x1={0} x2={plotWidth} y1={plotHeight} y2={plotHeight} />
+              </g>
+              {domain.min < 0 && domain.max > 0 && (
+                <line
+                  data-zero-baseline=""
+                  aria-hidden="true"
+                  x1={0}
+                  x2={plotWidth}
+                  y1={baseline}
+                  y2={baseline}
+                  stroke="currentColor"
+                  opacity={0.3}
+                />
+              )}
+              <g clipPath={`url(#${id}-plot)`}>
+                <g
+                  clipPath={`url(#${id}-reveal)`}
+                  aria-hidden="true"
+                  className={cn(
+                    "pointer-events-none",
+                    loading && "text-muted",
+                    loading &&
+                      shouldAnimate &&
+                      "animate-pulse motion-reduce:animate-none",
+                  )}
+                >
+                  {series.map((item) => (
+                    <g key={String(item.key)}>
+                      {showArea &&
+                        (!showAreaForSeries ||
+                          showAreaForSeries.includes(item.seriesIndex)) && (
+                          <path
+                            data-line-area={item.seriesIndex}
+                            d={item.area}
+                            fill={`url(#${id}-area-${item.seriesIndex})`}
+                          />
+                        )}
+                      <path
+                        data-line-series={
+                          loading ? undefined : item.seriesIndex
+                        }
+                        data-loading-line={
+                          loading ? item.seriesIndex : undefined
+                        }
+                        d={item.line}
+                        fill="none"
+                        stroke={loading ? "currentColor" : item.color}
+                        strokeWidth={strokeWidth}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      {item.points
+                        .filter(
+                          (point) =>
+                            point.defined &&
+                            (showDots || item.isolatedX.has(point.x)),
+                        )
+                        .map((point) => (
+                          <path
+                            key={point.index}
+                            data-line-marker={`${item.seriesIndex}-${point.index}`}
+                            d={`M ${point.x} ${point.y - 6} L ${point.x - 5.196} ${point.y + 3} L ${point.x + 5.196} ${point.y + 3} Z`}
+                            fill={loading ? "currentColor" : item.color}
+                            strokeWidth={2}
+                            className="stroke-background"
+                          />
+                        ))}
+                    </g>
+                  ))}
+                </g>
+              </g>
+              {activeIndex !== null && (
+                <g aria-hidden="true" className="pointer-events-none">
+                  <line
+                    data-line-crosshair=""
+                    x1={xPosition(activeIndex)}
+                    x2={xPosition(activeIndex)}
+                    y1={0}
+                    y2={plotHeight}
+                    stroke="currentColor"
+                    opacity={0.3}
+                    strokeDasharray="4 4"
+                  />
+                  {activeItems.map((item) => (
+                    <circle
+                      key={String(item.key)}
+                      cx={item.points[activeIndex]!.x}
+                      cy={item.points[activeIndex]!.y}
+                      r={
+                        focusIndex === activeIndex &&
+                        focus?.seriesIndex === item.seriesIndex
+                          ? 7
+                          : 5
+                      }
+                      fill={item.color}
+                      strokeWidth={2}
+                      className="stroke-background"
+                    />
+                  ))}
+                </g>
+              )}
+              {Array.from({ length: count }, (_, index) => {
+                const position = xPosition(index);
+                const left =
+                  index === 0 ? 0 : (xPosition(index - 1) + position) / 2;
+                const right =
+                  index === count - 1
+                    ? plotWidth
+                    : (position + xPosition(index + 1)) / 2;
+                return (
+                  <g key={index}>
+                    {!loading && (
+                      <rect
+                        data-line-band={index}
+                        x={left}
+                        y={0}
+                        width={right - left}
+                        height={plotHeight}
+                        fill="transparent"
+                        ref={(element) => {
+                          refs.current[index] = element;
+                        }}
+                        tabIndex={index === selectedTab ? 0 : -1}
+                        role={
+                          onPointClick && available(index).length
+                            ? "button"
+                            : "graphics-symbol"
+                        }
+                        aria-label={`${model.labels[index]}: ${series.map((item) => `${String(item.key)} ${item.points[index]!.defined ? valueFormatter(item.points[index]!.value!) : "No value"}`).join(", ")}`}
+                        aria-describedby={
+                          activeIndex === index ? `${id}-tooltip` : undefined
+                        }
+                        className={cn(
+                          "touch-manipulation outline-none",
+                          onPointClick ? "cursor-pointer" : "cursor-default",
+                        )}
+                        onMouseEnter={() => inspect(index)}
+                        onPointerDown={() => inspect(index)}
+                        onFocus={() => {
+                          setTabIndex(index);
+                          setFocus({
+                            data,
+                            index,
+                            seriesIndex: available(index)[0]?.seriesIndex ?? 0,
+                          });
+                          inspect(index);
+                        }}
+                        onClick={(event) => {
+                          inspect(index);
+                          const pointerY =
+                            event.clientY -
+                            event.currentTarget.ownerSVGElement!.getBoundingClientRect()
+                              .top -
+                            margin.top;
+                          const nearest = available(index).reduce<
+                            (typeof series)[number] | undefined
+                          >(
+                            (best, item) =>
+                              !best ||
+                              Math.abs(item.points[index]!.y - pointerY) <
+                                Math.abs(best.points[index]!.y - pointerY)
+                                ? item
+                                : best,
+                            undefined,
+                          );
+                          if (nearest)
+                            onPointClick?.(
+                              data[index]!,
+                              index,
+                              String(nearest.key),
+                            );
+                        }}
+                        onKeyDown={(event) => handleKeyDown(event, index)}
+                      />
+                    )}
+                    {focusIndex === index && (
+                      <rect
+                        aria-hidden="true"
+                        x={left + 1}
+                        y={1}
+                        width={Math.max(0, right - left - 2)}
+                        height={Math.max(0, plotHeight - 2)}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={1}
+                        strokeDasharray="3 3"
+                        className="pointer-events-none"
+                      />
+                    )}
+                    {(index % categoryStep === 0 || index === count - 1) &&
+                      (loading ? (
+                        <rect
+                          aria-hidden="true"
+                          x={position - 12}
+                          y={plotHeight + 10}
+                          width={24}
+                          height={8}
+                          rx={3}
+                          className="fill-muted"
+                        />
+                      ) : (
+                        <text
+                          aria-hidden="true"
+                          x={position}
+                          y={plotHeight + 18}
+                          textAnchor={
+                            index === 0
+                              ? "start"
+                              : index === count - 1
+                                ? "end"
+                                : "middle"
+                          }
+                          fontSize={11}
+                          className="pointer-events-none fill-muted-foreground"
+                        >
+                          {shorten(
+                            model.labels[index]!,
+                            Math.max(
+                              20,
+                              (plotWidth / Math.max(1, count - 1)) *
+                                categoryStep -
+                                8,
+                            ),
+                          )}
+                        </text>
+                      ))}
+                  </g>
+                );
+              })}
+            </g>
+          </svg>
+          {hasLegend && (
+            <div
+              aria-hidden={loading || undefined}
+              className="flex overflow-x-auto px-4"
+              style={{ height: LEGEND_HEIGHT }}
+            >
+              <div className="m-auto flex min-w-max items-center gap-4">
+                {series.map((item) => (
+                  <div
+                    key={String(item.key)}
+                    className="flex items-center gap-2 text-xs text-muted-foreground"
+                  >
+                    <span
+                      className={cn(
+                        "size-2.5 shrink-0 rounded-full",
+                        loading && "bg-muted",
                       )}
-                    </div>
-                    <span className="text-xs font-bold text-foreground tabular-nums">{point!.value}</span>
+                      style={
+                        loading ? undefined : { backgroundColor: item.color }
+                      }
+                    />
+                    {loading ? (
+                      <span className="h-2 w-12 rounded bg-muted" />
+                    ) : (
+                      String(item.key)
+                    )}
                   </div>
                 ))}
-              </>
-            ))}
-          </ChartTooltip>
-        );
-      })()}
-
-      {/* Legend */}
-      {hasLegend && processedSeries.length > 1 && (
-        <div className="flex flex-wrap gap-4 justify-center px-4" style={{ height: LEGEND_HEIGHT }}>
-          {processedSeries.map((series) => (
-            <div key={series.key} className="flex items-center space-x-2">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: series.color }}
-              />
-              <span className="text-sm text-muted-foreground">{series.key}</span>
+              </div>
             </div>
-          ))}
-        </div>
+          )}
+          {tooltipData && (
+            <LineTooltip
+              id={`${id}-tooltip`}
+              x={margin.left + xPosition(tooltipData.index)}
+              y={
+                margin.top +
+                (activeItems[0]?.points[tooltipData.index]?.y ?? plotHeight / 2)
+              }
+              width={containerWidth}
+              height={svgHeight}
+            >
+              {tooltipRenderer ? (
+                tooltipRenderer(tooltipData)
+              ) : (
+                <>
+                  <div className="mb-2 border-b border-border pb-2 text-xs font-medium text-muted-foreground">
+                    {tooltipData.label}
+                  </div>
+                  {tooltipData.series.length ? (
+                    tooltipData.series.map((item) => (
+                      <div
+                        key={item.key}
+                        className="flex min-w-24 items-center justify-between gap-6 py-0.5"
+                      >
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="size-2.5 shrink-0 rounded-sm"
+                            style={{ backgroundColor: item.color }}
+                          />
+                          {keys.length > 1 && (
+                            <span className="text-xs text-muted-foreground">
+                              {item.key}
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-sm font-semibold tabular-nums">
+                          {valueFormatter(item.value)}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      No measured value
+                    </span>
+                  )}
+                </>
+              )}
+            </LineTooltip>
+          )}
+        </>
       )}
     </div>
   );
 }
 
-export const LineChart = memo(LineChartComponent);
+export const LineChart = memo(LineChartComponent) as typeof LineChartComponent;
 export type { ChartDataItem, LineChartProps };
 export { DEFAULT_COLORS, formatValue };

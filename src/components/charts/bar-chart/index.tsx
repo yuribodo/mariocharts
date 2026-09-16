@@ -1,581 +1,704 @@
 "use client";
 
-import * as React from "react";
-import { memo, useMemo, useState, useCallback } from "react";
+import {
+  memo,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "../../../../lib/utils";
-import { formatValue, getNumericValue, calculateNiceTicks, getGridDasharray, useContainerDimensions, ChartTooltip } from "../_shared";
-import type { ChartDataItem, BarChartTooltipData, TooltipRenderer } from "../_shared";
+import {
+  formatValue,
+  getGridDasharray,
+  useContainerDimensions,
+} from "../_shared";
+import type {
+  ChartDataItem,
+  BarChartTooltipData,
+  TooltipRenderer,
+} from "../_shared";
+import {
+  getBarDomain,
+  getBarGeometry,
+  parseBarValue,
+  scaleBarValue,
+} from "./utils";
+import { BarTooltip } from "./tooltip";
 
 interface BarChartProps<T extends ChartDataItem> {
+  /** Rows with finite numeric values. Missing/invalid values display an error, not zero. */
   readonly data: readonly T[];
+  /** Category key; categories retain input order. */
   readonly x: keyof T;
+  /** Numeric key. Defaults to "value". Unambiguous numeric strings are supported. */
   readonly y?: keyof T;
   readonly colors?: readonly string[];
   readonly className?: string;
+  /** Stable frame height in every state. Defaults to 300. */
   readonly height?: number;
+  /** Shows a skeleton in the chart's geometry; retain data during refresh to preserve bar positions. */
   readonly loading?: boolean;
   readonly error?: string | null;
   readonly animation?: boolean;
-  readonly variant?: 'filled' | 'outline';
-  readonly orientation?: 'vertical' | 'horizontal';
+  readonly variant?: "filled" | "outline";
+  readonly orientation?: "vertical" | "horizontal";
   readonly showValues?: boolean;
   readonly showGrid?: boolean;
-  readonly gridStyle?: 'solid' | 'dashed' | 'dotted';
+  readonly gridStyle?: "solid" | "dashed" | "dotted";
   readonly onBarClick?: (data: T, index: number) => void;
   readonly tooltipRenderer?: TooltipRenderer<BarChartTooltipData<T>>;
+  /** Formats tooltips, value labels and accessible values; also ticks unless overridden. */
+  readonly valueFormatter?: (value: number) => string;
+  /** Optional compact tick formatter, independent of detailed inspection values. */
+  readonly axisValueFormatter?: (value: number) => string;
+  /** Accessible chart name. */
+  readonly ariaLabel?: string;
+  /** Optional context, units, or explanation announced with the chart. */
+  readonly description?: string;
 }
 
-// Constants
 const DEFAULT_COLORS = [
-  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4',
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#06b6d4",
 ] as const;
-
 const DEFAULT_HEIGHT = 300;
-const MARGIN = { top: 20, right: 20, bottom: 40, left: 50 };
 const ANIMATION_EASING = [0.4, 0, 0.2, 1] as const;
-const HOVER_DURATION = 0.2;
 
-// Loading/Error States
-function LoadingState({
-  orientation = 'vertical',
-  variant = 'filled',
-  height = DEFAULT_HEIGHT
-}: {
-  orientation?: 'vertical' | 'horizontal';
-  variant?: 'filled' | 'outline';
-  height?: number;
-}) {
-  const isVertical = orientation === 'vertical';
-  const isFilled = variant === 'filled';
-
-  return (
-    <div className="relative w-full" style={{ height }}>
-      <div className="flex items-center justify-center h-full p-6">
-        <div className="w-full max-w-full">
-          <div className="animate-pulse bg-muted rounded h-4 w-32 mb-4" />
-          <div
-            className="relative border-l border-b border-muted/30"
-            style={{
-              height: height - MARGIN.top - MARGIN.bottom - 50,
-              marginLeft: MARGIN.left,
-              marginRight: MARGIN.right,
-              marginBottom: MARGIN.bottom,
-            }}
-          >
-            <div className={`flex ${isVertical ? 'items-end space-x-2 h-full' : 'flex-col justify-center space-y-2 w-full'}`}>
-              {Array.from({ length: 5 }).map((_, i) => {
-                const barSize = isVertical
-                  ? { width: 32, height: 40 + (i * 20) }
-                  : { width: 60 + (i * 30), height: 24 };
-
-                return (
-                  <div
-                    key={i}
-                    className={`${isFilled ? 'bg-muted' : 'border-2 border-muted bg-transparent'} rounded animate-pulse`}
-                    style={{
-                      width: barSize.width,
-                      height: barSize.height,
-                      animationDelay: `${i * 0.1}s`
-                    }}
-                  />
-                );
-              })}
-            </div>
-            <div className={`absolute ${isVertical ? 'bottom-0 left-0 right-0 flex justify-around mt-2' : 'left-0 top-0 bottom-0 flex flex-col justify-around -ml-8'}`}>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={`label-${i}`}
-                  className="animate-pulse bg-muted rounded h-3 w-8"
-                  style={{ animationDelay: `${(i + 5) * 0.1}s` }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+function shortenLabel(label: string, availableWidth: number) {
+  const characters = Math.max(1, Math.floor(availableWidth / 6.5));
+  return label.length > characters
+    ? `${label.slice(0, Math.max(0, characters - 1))}…`
+    : label;
 }
 
-function ErrorState({ error }: { error: string }) {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center space-y-2">
-        <div className="text-destructive font-medium">Chart Error</div>
-        <div className="text-sm text-muted-foreground">{error}</div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center space-y-2">
-        <div className="text-muted-foreground">No Data</div>
-        <div className="text-sm text-muted-foreground">
-          There&apos;s no data to display
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Main Component
 function BarChartComponent<T extends ChartDataItem>({
   data,
   x,
-  y = 'value' as keyof T,
+  y = "value" as keyof T,
   colors = DEFAULT_COLORS,
   className,
   height = DEFAULT_HEIGHT,
   loading = false,
   error = null,
   animation = true,
-  variant = 'filled',
-  orientation = 'vertical',
+  variant = "filled",
+  orientation = "vertical",
   showValues = false,
   showGrid = false,
-  gridStyle = 'dashed',
+  gridStyle = "dashed",
   onBarClick,
   tooltipRenderer,
+  valueFormatter = formatValue,
+  axisValueFormatter = valueFormatter,
+  ariaLabel,
+  description,
 }: BarChartProps<T>) {
   const [containerRef, containerWidth] = useContainerDimensions();
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
+  const id = useId();
   const reduceMotion = useReducedMotion();
   const shouldAnimate = animation && !reduceMotion;
+  const barRefs = useRef<(SVGRectElement | null)[]>([]);
+  const [tabIndex, setTabIndex] = useState(0);
+  // Replacing input invalidates inspection instead of selecting a different row by accident.
+  const [inspection, setInspection] = useState<{
+    data: readonly T[];
+    index: number;
+  } | null>(null);
+  const [focus, setFocus] = useState<{
+    data: readonly T[];
+    index: number;
+  } | null>(null);
+  const activeIndex = inspection?.data === data ? inspection.index : null;
+  const focusIndex = focus?.data === data ? focus.index : null;
+  const vertical = orientation === "vertical";
+  const validHeight = Number.isFinite(height) && height > 0;
+  const frameHeight = validHeight ? height : DEFAULT_HEIGHT;
 
-  const chartWidth = Math.max(0, containerWidth - MARGIN.left - MARGIN.right);
-  const chartHeight = height - MARGIN.top - MARGIN.bottom;
-
-  // Dev warning for large datasets
-  if (process.env.NODE_ENV === 'development' && data.length > 50) {
-    console.warn(
-      `[BarChart] ${data.length} data points detected. Consider pagination or a different visualization for large datasets.`
-    );
-  }
-
-  // Extract value domain for grid/ticks
-  const valueDomain = useMemo(() => {
-    if (!data.length) return { min: 0, max: 0 };
-    const values = data.map(d => getNumericValue(d, y as string));
-    const maxValue = Math.max(...values, 0);
-    return { min: 0, max: maxValue };
-  }, [data, y]);
-
-  const yTicks = useMemo(() => {
-    if (valueDomain.max <= 0) return [];
-    return calculateNiceTicks(0, valueDomain.max, 5);
-  }, [valueDomain]);
-
-  const gridDasharray = useMemo(() => getGridDasharray(gridStyle), [gridStyle]);
-
-  const processedBars = useMemo(() => {
-    if (!data.length || chartWidth <= 0 || chartHeight <= 0) return [];
-
-    const values = data.map(d => getNumericValue(d, y as string));
-    const maxValue = valueDomain.max;
-
-    const isVertical = orientation === 'vertical';
-    const barCount = data.length;
-
-    const barSize = isVertical ? chartWidth / barCount : chartHeight / barCount;
-    const barSpacing = barSize * 0.2;
-    const actualBarSize = barSize * 0.8;
-
-    if (maxValue <= 0) {
-      return data.map((item, index) => ({
-        data: item,
-        index,
-        x: isVertical ? index * barSize + barSpacing / 2 : 0,
-        y: isVertical ? chartHeight : index * barSize + barSpacing / 2,
-        width: isVertical ? actualBarSize : 0,
-        height: isVertical ? 0 : actualBarSize,
-        color: colors[index % colors.length] || DEFAULT_COLORS[0],
-        label: String(item[x]),
-        value: formatValue(values[index]),
-        rawValue: values[index]
-      }));
-    }
-
-    // Use niceMax from ticks for consistent scaling with grid
-    const scaleMax = yTicks.length > 0 ? Math.max(...yTicks) : maxValue;
-
-    return data.map((item, index) => {
-      const value = values[index] || 0;
-
-      if (isVertical) {
-        const normalizedHeight = Math.max(0, (value / scaleMax) * chartHeight);
-        return {
-          data: item,
-          index,
-          x: index * barSize + barSpacing / 2,
-          y: chartHeight - normalizedHeight,
-          width: actualBarSize,
-          height: normalizedHeight,
-          color: colors[index % colors.length] || DEFAULT_COLORS[0],
-          label: String(item[x]),
-          value: formatValue(value),
-          rawValue: value
-        };
-      } else {
-        const normalizedWidth = Math.max(0, (value / scaleMax) * chartWidth);
-        return {
-          data: item,
-          index,
-          x: 0,
-          y: index * barSize + barSpacing / 2,
-          width: normalizedWidth,
-          height: actualBarSize,
-          color: colors[index % colors.length] || DEFAULT_COLORS[0],
-          label: String(item[x]),
-          value: formatValue(value),
-          rawValue: value
-        };
+  const model = useMemo(() => {
+    const values: number[] = [];
+    let validationError: string | null = null;
+    for (let index = 0; index < data.length; index++) {
+      const item = data[index]!;
+      const value = parseBarValue(item[y]);
+      if (value === null) {
+        validationError = `Row ${index + 1}: "${String(y)}" must contain a finite number. Supply a value or remove this row; missing values are not zero.`;
+        break;
       }
-    });
-  }, [data, x, y, colors, chartWidth, chartHeight, orientation, valueDomain, yTicks]);
-
-  // Event handlers with useCallback
-  const handleBarMouseEnter = useCallback((index: number) => {
-    setHoveredIndex(index);
-  }, []);
-
-  const handleBarMouseLeave = useCallback(() => {
-    setHoveredIndex(null);
-  }, []);
-
-  const handleBarClick = useCallback((barData: T, index: number) => {
-    onBarClick?.(barData, index);
-  }, [onBarClick]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent, barData: T, index: number) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onBarClick?.(barData, index);
+      if (item[x] === null || item[x] === undefined) {
+        validationError = `Row ${index + 1}: category "${String(x)}" is missing. Check the x key or provide a label.`;
+        break;
+      }
+      values.push(value);
     }
-  }, [onBarClick]);
+    return { values, validationError };
+  }, [data, x, y]);
+  // Use known geometry during refresh; initial loading has neutral placeholders.
+  const layoutValues = useMemo(
+    () =>
+      loading && (!data.length || model.validationError)
+        ? Array.from(
+            { length: data.length || 6 },
+            (_, index) => [40, 65, 50, 85, 70, 55][index % 6]!,
+          )
+        : model.values,
+    [loading, data.length, model],
+  );
+  const domain = useMemo(() => getBarDomain(layoutValues), [layoutValues]);
+  const tickLabels = useMemo(
+    () => domain.ticks.map(axisValueFormatter),
+    [domain.ticks, axisValueFormatter],
+  );
+  const labels = useMemo(
+    () => data.map((item) => String(item[x] ?? "")),
+    [data, x],
+  );
+  const leftLabelWidth = (vertical ? tickLabels : labels).reduce(
+    (width, label) => Math.max(width, label.length * 6.5 + 16),
+    50,
+  );
+  const margin = {
+    top: 20,
+    right: 20,
+    bottom: 40,
+    left: Math.min(leftLabelWidth, Math.max(50, containerWidth * 0.35)),
+  };
+  const plotWidth = Math.max(0, containerWidth - margin.left - margin.right);
+  const plotHeight = Math.max(0, frameHeight - margin.top - margin.bottom);
+  const bars = useMemo(
+    () =>
+      layoutValues.map((value, index) => ({
+        ...getBarGeometry(
+          value,
+          index,
+          layoutValues.length,
+          plotWidth,
+          plotHeight,
+          domain,
+          orientation,
+        ),
+        value,
+        index,
+        data: data[index]!,
+        label: labels[index] ?? "",
+        color: colors[index % colors.length] ?? DEFAULT_COLORS[0],
+        formattedValue: loading ? "" : valueFormatter(value),
+      })),
+    [
+      layoutValues,
+      domain,
+      loading,
+      data,
+      plotWidth,
+      plotHeight,
+      orientation,
+      labels,
+      colors,
+      valueFormatter,
+    ],
+  );
+  const chartError =
+    error ||
+    (!validHeight
+      ? "Chart height must be a positive, finite number."
+      : model.validationError);
+  const ready =
+    !loading &&
+    !chartError &&
+    data.length > 0 &&
+    plotWidth > 0 &&
+    plotHeight > 0;
+  const activeBar =
+    ready && activeIndex !== null ? bars[activeIndex] : undefined;
+  const selectedTabIndex = Math.min(tabIndex, Math.max(0, bars.length - 1));
+  const zero = vertical
+    ? plotHeight - scaleBarValue(0, domain.min, domain.max, plotHeight)
+    : scaleBarValue(0, domain.min, domain.max, plotWidth);
+  const categoryStep = Math.max(
+    1,
+    Math.ceil(
+      (vertical ? 36 : 20) /
+        ((vertical ? plotWidth : plotHeight) / Math.max(1, bars.length)),
+    ),
+  );
 
-  if (loading) return <LoadingState orientation={orientation} variant={variant} height={height} />;
-  if (error) return <ErrorState error={error} />;
-  if (!data.length) return <EmptyState />;
-
-  if (!containerWidth) {
-    return (
-      <div ref={containerRef} className={cn('relative w-full', className)} style={{ height }}>
-        <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-          Loading...
-        </div>
-      </div>
-    );
+  function inspect(index: number) {
+    setInspection({ data, index });
   }
+  function handleKeyDown(event: KeyboardEvent<SVGRectElement>, index: number) {
+    let next = index;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown")
+      next = Math.min(bars.length - 1, index + 1);
+    else if (event.key === "ArrowLeft" || event.key === "ArrowUp")
+      next = Math.max(0, index - 1);
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = bars.length - 1;
+    else if (event.key === "Escape") {
+      setInspection(null);
+      event.preventDefault();
+      return;
+    } else if ((event.key === "Enter" || event.key === " ") && onBarClick) {
+      event.preventDefault();
+      onBarClick(data[index]!, index);
+      return;
+    } else return;
+    event.preventDefault();
+    setTabIndex(next);
+    setFocus({ data, index: next });
+    inspect(next);
+    barRefs.current[next]?.focus();
+  }
+  const tooltipData: BarChartTooltipData<T> | null = activeBar
+    ? {
+        label: activeBar.label,
+        value: activeBar.value,
+        rawValue: activeBar.data[y],
+        color: activeBar.color,
+        index: activeBar.index,
+        data: activeBar.data,
+      }
+    : null;
 
-  const isVertical = orientation === 'vertical';
-  const scaleMax = yTicks.length > 0 ? Math.max(...yTicks) : valueDomain.max;
-
+  // This node stays mounted in every state so measurement never loses its target.
   return (
     <div
       ref={containerRef}
-      className={cn('relative w-full', className)}
-      style={{ height }}
+      className={cn("relative w-full", className)}
+      style={{ height: frameHeight }}
+      aria-busy={loading}
+      onMouseLeave={() => setInspection(focus?.data === data ? focus : null)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setFocus(null);
+          setInspection(null);
+        }
+      }}
     >
-      <svg
-        width="100%"
-        height={height}
-        className="overflow-visible"
-        role="img"
-        aria-label={`Bar chart with ${data.length} bars in ${orientation} orientation`}
-      >
-        <g transform={`translate(${MARGIN.left}, ${MARGIN.top})`}>
-          {/* Grid lines */}
-          {showGrid && isVertical && scaleMax > 0 && yTicks.map((tick, i) => {
-            const tickY = chartHeight - (tick / scaleMax) * chartHeight;
-            return (
-              <line
-                key={`grid-h-${i}`}
-                x1={0}
-                y1={tickY}
-                x2={chartWidth}
-                y2={tickY}
-                stroke="currentColor"
-                opacity={0.1}
-                strokeDasharray={gridDasharray}
-              />
-            );
-          })}
-          {showGrid && !isVertical && scaleMax > 0 && yTicks.map((tick, i) => {
-            const tickX = (tick / scaleMax) * chartWidth;
-            return (
-              <line
-                key={`grid-v-${i}`}
-                x1={tickX}
-                y1={0}
-                x2={tickX}
-                y2={chartHeight}
-                stroke="currentColor"
-                opacity={0.1}
-                strokeDasharray={gridDasharray}
-              />
-            );
-          })}
-
-          {/* Axes */}
-          {isVertical ? (
-            <>
-              <line
-                x1={0} y1={0} x2={0} y2={chartHeight}
-                stroke="currentColor" opacity={0.3} strokeWidth={1.5}
-              />
-              <line
-                x1={0} y1={chartHeight} x2={chartWidth} y2={chartHeight}
-                stroke="currentColor" opacity={0.3} strokeWidth={1.5}
-              />
-            </>
-          ) : (
-            <>
-              <line
-                x1={0} y1={0} x2={0} y2={chartHeight}
-                stroke="currentColor" opacity={0.3} strokeWidth={1.5}
-              />
-              <line
-                x1={0} y1={chartHeight} x2={chartWidth} y2={chartHeight}
-                stroke="currentColor" opacity={0.1}
-              />
-            </>
-          )}
-
-          {/* Y-axis ticks and labels (vertical) / X-axis ticks and labels (horizontal) */}
-          {isVertical && scaleMax > 0 && yTicks.map((tick, i) => {
-            const tickY = chartHeight - (tick / scaleMax) * chartHeight;
-            return (
-              <g key={`y-tick-${i}`}>
-                <line x1={-4} y1={tickY} x2={0} y2={tickY} stroke="currentColor" opacity={0.3} />
-                <text
-                  x={-8}
-                  y={tickY}
-                  textAnchor="end"
-                  dominantBaseline="middle"
-                  fontSize={11}
-                  className="fill-muted-foreground"
-                >
-                  {formatValue(tick)}
-                </text>
-              </g>
-            );
-          })}
-          {!isVertical && scaleMax > 0 && yTicks.map((tick, i) => {
-            const tickX = (tick / scaleMax) * chartWidth;
-            return (
-              <g key={`x-tick-${i}`}>
-                <line x1={tickX} y1={chartHeight} x2={tickX} y2={chartHeight + 4} stroke="currentColor" opacity={0.3} />
-                <text
-                  x={tickX}
-                  y={chartHeight + 16}
-                  textAnchor="middle"
-                  fontSize={11}
-                  className="fill-muted-foreground"
-                >
-                  {formatValue(tick)}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Bars */}
-          {processedBars.map((bar) => {
-            const isFilled = variant === 'filled';
-            const isHovered = hoveredIndex === bar.index;
-
-            const motionProps = shouldAnimate ? {
-              initial: isVertical ? { scaleY: 0 } : { scaleX: 0 },
-              animate: isVertical ? { scaleY: 1 } : { scaleX: 1 },
-              transition: {
-                duration: 0.6,
-                delay: bar.index * 0.05,
-                ease: ANIMATION_EASING,
-              },
-            } : {};
-
-            const transformOrigin = isVertical
-              ? `${bar.x + bar.width/2}px ${bar.y + bar.height}px`
-              : `${bar.x}px ${bar.y + bar.height/2}px`;
-
-            return (
-              <g key={bar.index}>
-                {/* Invisible hit area for outline variant */}
-                {!isFilled && (
-                  <rect
-                    x={bar.x}
-                    y={bar.y}
-                    width={bar.width}
-                    height={bar.height}
-                    fill="transparent"
-                    className="cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    tabIndex={0}
-                    role="graphics-symbol"
-                    aria-label={`${bar.label}: ${bar.value}`}
-                    onMouseEnter={() => handleBarMouseEnter(bar.index)}
-                    onMouseLeave={handleBarMouseLeave}
-                    onFocus={() => handleBarMouseEnter(bar.index)}
-                    onBlur={handleBarMouseLeave}
-                    onClick={() => handleBarClick(bar.data, bar.index)}
-                    onKeyDown={(e) => handleKeyDown(e, bar.data, bar.index)}
-                  />
-                )}
-
-                {/* Visible bar */}
-                <motion.rect
-                  x={bar.x}
-                  y={bar.y}
-                  width={bar.width}
-                  height={bar.height}
-                  fill={isFilled ? bar.color : 'none'}
-                  stroke={isFilled ? 'none' : bar.color}
-                  strokeWidth={isFilled ? 0 : 2}
-                  rx={4}
-                  className={cn(
-                    isFilled
-                      ? "cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      : "pointer-events-none"
-                  )}
-                  style={{
-                    transformOrigin,
-                    filter: isHovered && !reduceMotion ? `drop-shadow(0 0 6px ${bar.color})` : 'none',
-                    transition: reduceMotion ? 'none' : `filter ${HOVER_DURATION}s ease-out`,
-                  }}
-                  {...motionProps}
-                  {...(isFilled && {
-                    tabIndex: 0,
-                    role: "graphics-symbol" as const,
-                    "aria-label": `${bar.label}: ${bar.value}`,
-                    onMouseEnter: () => handleBarMouseEnter(bar.index),
-                    onMouseLeave: handleBarMouseLeave,
-                    onFocus: () => handleBarMouseEnter(bar.index),
-                    onBlur: handleBarMouseLeave,
-                    onClick: () => handleBarClick(bar.data, bar.index),
-                    onKeyDown: (e: React.KeyboardEvent) => handleKeyDown(e, bar.data, bar.index),
-                  })}
-                />
-
-                {/* Value label above/beside bar */}
-                {showValues && (
-                  isVertical ? (
-                    <text
-                      x={bar.x + bar.width / 2}
-                      y={bar.y - 6}
-                      textAnchor="middle"
-                      fontSize={11}
-                      className="fill-foreground font-medium select-none"
-                    >
-                      {bar.value}
-                    </text>
-                  ) : (
-                    <text
-                      x={bar.x + bar.width + 6}
-                      y={bar.y + bar.height / 2}
-                      textAnchor="start"
-                      dominantBaseline="middle"
-                      fontSize={11}
-                      className="fill-foreground font-medium select-none"
-                    >
-                      {bar.value}
-                    </text>
-                  )
-                )}
-              </g>
-            );
-          })}
-
-          {/* X-axis labels (vertical) / Y-axis labels (horizontal) */}
-          {processedBars.map((bar) => (
-            <g key={`label-group-${bar.index}`}>
-              {/* Tick mark */}
-              {isVertical ? (
-                <line
-                  x1={bar.x + bar.width / 2}
-                  y1={chartHeight}
-                  x2={bar.x + bar.width / 2}
-                  y2={chartHeight + 4}
-                  stroke="currentColor"
-                  opacity={0.3}
-                />
-              ) : (
-                <line
-                  x1={-4}
-                  y1={bar.y + bar.height / 2}
-                  x2={0}
-                  y2={bar.y + bar.height / 2}
-                  stroke="currentColor"
-                  opacity={0.3}
-                />
-              )}
-              <text
-                x={isVertical ? bar.x + bar.width / 2 : -8}
-                y={isVertical ? chartHeight + 16 : bar.y + bar.height / 2}
-                textAnchor={isVertical ? "middle" : "end"}
-                dominantBaseline={isVertical ? "auto" : "middle"}
-                fontSize={11}
-                className="fill-muted-foreground"
-              >
-                {bar.label}
-              </text>
-            </g>
-          ))}
-        </g>
-      </svg>
-
-      {/* Tooltip */}
-      {(() => {
-        const bar = hoveredIndex !== null ? processedBars[hoveredIndex] : null;
-        const tipData: BarChartTooltipData<T> | null = bar ? {
-          label: bar.label,
-          value: bar.rawValue ?? 0,
-          rawValue: bar.data[y] as unknown,
-          color: bar.color,
-          index: hoveredIndex!,
-          data: bar.data,
-        } : null;
-
-        const tooltipStyle = bar ? (isVertical ? {
-          left: bar.x + bar.width / 2 + MARGIN.left,
-          top: Math.max(10, bar.y + MARGIN.top - 60),
-        } : {
-          left: bar.x + bar.width + MARGIN.left + 10,
-          top: bar.y + bar.height / 2 + MARGIN.top,
-        }) : { left: 0, top: 0 };
-
-        return (
-          <ChartTooltip
-            visible={tipData !== null}
-            x={tooltipStyle.left}
-            y={tooltipStyle.top}
-            className={isVertical ? 'transform -translate-x-1/2' : 'transform -translate-y-1/2'}
+      {loading && (
+        <span role="status" className="sr-only">
+          Loading chart
+        </span>
+      )}
+      {!loading && chartError ? (
+        <div
+          role="alert"
+          className="flex h-full items-center justify-center p-6 text-center"
+        >
+          <div className="space-y-2">
+            <p className="font-medium text-destructive">Chart Error</p>
+            <p className="text-sm text-muted-foreground">{chartError}</p>
+          </div>
+        </div>
+      ) : !loading && !data.length ? (
+        <div
+          role="status"
+          className="flex h-full items-center justify-center p-6 text-center"
+        >
+          <div className="space-y-2">
+            <p className="text-muted-foreground">No Data</p>
+            <p className="text-sm text-muted-foreground">
+              There&apos;s no data to display
+            </p>
+          </div>
+        </div>
+      ) : !loading && !ready ? (
+        <div
+          role="status"
+          className="flex h-full items-center justify-center text-sm text-muted-foreground"
+        >
+          Waiting for chart space
+        </div>
+      ) : (
+        <>
+          <svg
+            width="100%"
+            height={frameHeight}
+            role={loading ? "presentation" : "group"}
+            aria-hidden={loading || undefined}
+            aria-label={
+              ariaLabel ??
+              `Bar chart with ${data.length} bars in ${orientation} orientation`
+            }
+            aria-describedby={`${id}-description`}
           >
-            {tipData && (tooltipRenderer ? tooltipRenderer(tipData) : (
-              <>
-                <div className="flex items-center gap-2 mb-1">
-                  <div
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{ backgroundColor: bar!.color }}
+            <desc id={`${id}-description`}>
+              {description ? `${description} ` : ""}Use arrow keys to inspect
+              bars, Home or End to jump, and Escape to dismiss the tooltip.
+              {onBarClick ? " Press Enter or Space to select a bar." : ""}
+            </desc>
+            <g
+              transform={`translate(${margin.left}, ${margin.top})`}
+              onMouseLeave={() =>
+                setInspection(focus?.data === data ? focus : null)
+              }
+            >
+              {domain.ticks.map((tick, index) => {
+                const coordinate = scaleBarValue(
+                  tick,
+                  domain.min,
+                  domain.max,
+                  vertical ? plotHeight : plotWidth,
+                );
+                const position = vertical
+                  ? plotHeight - coordinate
+                  : coordinate;
+                return (
+                  <g key={tick} aria-hidden="true">
+                    {showGrid && tick !== 0 && (
+                      <line
+                        x1={vertical ? 0 : position}
+                        x2={vertical ? plotWidth : position}
+                        y1={vertical ? position : 0}
+                        y2={vertical ? position : plotHeight}
+                        stroke="currentColor"
+                        opacity={0.1}
+                        strokeDasharray={getGridDasharray(gridStyle)}
+                      />
+                    )}
+                    {loading ? (
+                      <rect
+                        x={vertical ? -36 : position - 12}
+                        y={vertical ? position - 4 : plotHeight + 10}
+                        width={24}
+                        height={8}
+                        rx={3}
+                        className="fill-muted"
+                      />
+                    ) : (
+                      <text
+                        x={vertical ? -8 : position}
+                        y={vertical ? position : plotHeight + 18}
+                        textAnchor={vertical ? "end" : "middle"}
+                        dominantBaseline={vertical ? "middle" : "auto"}
+                        fontSize={11}
+                        className="fill-muted-foreground"
+                      >
+                        {shortenLabel(
+                          tickLabels[index]!,
+                          vertical
+                            ? margin.left - 12
+                            : Math.max(24, plotWidth / domain.ticks.length),
+                        )}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+              <g aria-hidden="true">
+                <line
+                  x1={0}
+                  x2={vertical ? 0 : plotWidth}
+                  y1={vertical ? 0 : plotHeight}
+                  y2={plotHeight}
+                  stroke="currentColor"
+                  opacity={0.2}
+                />
+                {vertical && zero !== plotHeight && (
+                  <line
+                    x1={0}
+                    x2={plotWidth}
+                    y1={plotHeight}
+                    y2={plotHeight}
+                    stroke="currentColor"
+                    opacity={0.2}
                   />
-                  <span className="text-xs font-medium text-foreground whitespace-nowrap">
-                    {bar!.label}
-                  </span>
-                </div>
-                <div className="text-sm font-bold text-primary tabular-nums text-center">
-                  {bar!.value}
-                </div>
-              </>
-            ))}
-          </ChartTooltip>
-        );
-      })()}
+                )}
+                <line
+                  data-zero-baseline=""
+                  x1={vertical ? 0 : zero}
+                  x2={vertical ? plotWidth : zero}
+                  y1={vertical ? zero : 0}
+                  y2={vertical ? zero : plotHeight}
+                  stroke="currentColor"
+                  opacity={0.4}
+                  strokeWidth={1.5}
+                />
+              </g>
+              {bars.map((bar) => {
+                if (loading)
+                  return (
+                    <g key={bar.index} aria-hidden="true">
+                      <rect
+                        data-loading-bar={bar.index}
+                        x={bar.x}
+                        y={bar.y}
+                        width={bar.width}
+                        height={bar.height}
+                        rx={4}
+                        fill={variant === "filled" ? "currentColor" : "none"}
+                        stroke={variant === "outline" ? "currentColor" : "none"}
+                        strokeWidth={variant === "outline" ? 2 : 0}
+                        className={cn(
+                          "text-muted",
+                          shouldAnimate &&
+                            "animate-pulse motion-reduce:animate-none",
+                        )}
+                      />
+                      {bar.value === 0 && (
+                        <line
+                          x1={vertical ? bar.x : zero}
+                          x2={vertical ? bar.x + bar.width : zero}
+                          y1={vertical ? zero : bar.y}
+                          y2={vertical ? zero : bar.y + bar.height}
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          className="text-muted"
+                        />
+                      )}
+                      {bar.index % categoryStep === 0 && (
+                        <rect
+                          x={
+                            vertical
+                              ? bar.x +
+                                bar.width / 2 -
+                                Math.min(24, bar.width) / 2
+                              : -36
+                          }
+                          y={
+                            vertical
+                              ? plotHeight + 10
+                              : bar.y + bar.height / 2 - 4
+                          }
+                          width={vertical ? Math.min(24, bar.width) : 24}
+                          height={8}
+                          rx={3}
+                          className="fill-muted"
+                        />
+                      )}
+                    </g>
+                  );
+                const hit = {
+                  x: vertical
+                    ? bar.x
+                    : Math.max(
+                        0,
+                        Math.min(
+                          bar.x - Math.max(0, 12 - bar.width) / 2,
+                          plotWidth - 12,
+                        ),
+                      ),
+                  y: vertical
+                    ? Math.max(
+                        0,
+                        Math.min(
+                          bar.y - Math.max(0, 12 - bar.height) / 2,
+                          plotHeight - 12,
+                        ),
+                      )
+                    : bar.y,
+                  width: vertical
+                    ? bar.width
+                    : Math.min(plotWidth, Math.max(12, bar.width)),
+                  height: vertical
+                    ? Math.min(plotHeight, Math.max(12, bar.height))
+                    : bar.height,
+                };
+                return (
+                  <g key={bar.index}>
+                    <rect
+                      data-inspection-band={bar.index}
+                      aria-hidden="true"
+                      x={vertical ? (bar.index * plotWidth) / bars.length : 0}
+                      y={vertical ? 0 : (bar.index * plotHeight) / bars.length}
+                      width={vertical ? plotWidth / bars.length : plotWidth}
+                      height={vertical ? plotHeight : plotHeight / bars.length}
+                      fill="currentColor"
+                      opacity={activeIndex === bar.index ? 0.04 : 0}
+                      onMouseEnter={() => inspect(bar.index)}
+                      onPointerDown={() => inspect(bar.index)}
+                    />
+                    <motion.rect
+                      data-bar-index={bar.index}
+                      x={bar.x}
+                      y={bar.y}
+                      width={bar.width}
+                      height={bar.height}
+                      fill={variant === "filled" ? bar.color : "none"}
+                      stroke={variant === "outline" ? bar.color : "none"}
+                      strokeWidth={variant === "outline" ? 2 : 0}
+                      rx={4}
+                      aria-hidden="true"
+                      className="pointer-events-none"
+                      style={{
+                        // Motion calculates SVG transformOrigin from these values.
+                        originX: vertical ? 0.5 : `${zero}px`,
+                        originY: vertical ? `${zero}px` : 0.5,
+                      }}
+                      initial={
+                        shouldAnimate
+                          ? vertical
+                            ? { scaleY: 0, scaleX: 1 }
+                            : { scaleX: 0, scaleY: 1 }
+                          : false
+                      }
+                      animate={{ scaleX: 1, scaleY: 1 }}
+                      transition={{
+                        duration: shouldAnimate ? 0.6 : 0,
+                        delay: shouldAnimate
+                          ? Math.min(bar.index * 0.04, 0.4)
+                          : 0,
+                        ease: ANIMATION_EASING,
+                      }}
+                    />
+                    {bar.value === 0 && (
+                      <line
+                        aria-hidden="true"
+                        x1={vertical ? bar.x : zero}
+                        x2={vertical ? bar.x + bar.width : zero}
+                        y1={vertical ? zero : bar.y}
+                        y2={vertical ? zero : bar.y + bar.height}
+                        stroke={bar.color}
+                        strokeWidth={2}
+                      />
+                    )}
+                    <rect
+                      {...hit}
+                      ref={(element) => {
+                        barRefs.current[bar.index] = element;
+                      }}
+                      fill="transparent"
+                      role={onBarClick ? "button" : "graphics-symbol"}
+                      tabIndex={bar.index === selectedTabIndex ? 0 : -1}
+                      aria-label={`${bar.label}: ${bar.formattedValue}`}
+                      aria-describedby={
+                        activeIndex === bar.index ? `${id}-tooltip` : undefined
+                      }
+                      className={cn(
+                        "touch-manipulation outline-none",
+                        onBarClick ? "cursor-pointer" : "cursor-default",
+                      )}
+                      onMouseEnter={() => inspect(bar.index)}
+                      onPointerDown={() => inspect(bar.index)}
+                      onFocus={() => {
+                        setFocus({ data, index: bar.index });
+                        setTabIndex(bar.index);
+                        inspect(bar.index);
+                      }}
+                      onClick={() => {
+                        inspect(bar.index);
+                        onBarClick?.(bar.data, bar.index);
+                      }}
+                      onKeyDown={(event) => handleKeyDown(event, bar.index)}
+                    />
+                    {(focusIndex === bar.index ||
+                      activeIndex === bar.index) && (
+                      <rect
+                        {...hit}
+                        aria-hidden="true"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={focusIndex === bar.index ? 2 : 1}
+                        rx={4}
+                        className="pointer-events-none text-foreground"
+                      />
+                    )}
+                    {showValues && (
+                      <text
+                        aria-hidden="true"
+                        x={
+                          vertical
+                            ? bar.x + bar.width / 2
+                            : bar.value < 0
+                              ? bar.x + 6
+                              : bar.x + bar.width - 6
+                        }
+                        y={
+                          vertical
+                            ? bar.value < 0
+                              ? Math.min(
+                                  plotHeight - 6,
+                                  bar.y + bar.height + 14,
+                                )
+                              : bar.y - 6
+                            : bar.y + bar.height / 2
+                        }
+                        textAnchor={
+                          vertical ? "middle" : bar.value < 0 ? "start" : "end"
+                        }
+                        dominantBaseline={vertical ? "auto" : "middle"}
+                        fontSize={11}
+                        className="pointer-events-none fill-foreground font-medium"
+                      >
+                        {shortenLabel(
+                          bar.formattedValue,
+                          vertical ? bar.width : Math.max(24, bar.width - 12),
+                        )}
+                      </text>
+                    )}
+                    {bar.index % categoryStep === 0 && (
+                      <text
+                        aria-hidden="true"
+                        x={vertical ? bar.x + bar.width / 2 : -8}
+                        y={vertical ? plotHeight + 18 : bar.y + bar.height / 2}
+                        textAnchor={vertical ? "middle" : "end"}
+                        dominantBaseline={vertical ? "auto" : "middle"}
+                        fontSize={11}
+                        className="pointer-events-none fill-muted-foreground"
+                      >
+                        {shortenLabel(
+                          bar.label,
+                          vertical
+                            ? (plotWidth / bars.length) * categoryStep - 4
+                            : margin.left - 12,
+                        )}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+            </g>
+          </svg>
+          {activeBar && tooltipData && (
+            <BarTooltip
+              id={`${id}-tooltip`}
+              x={
+                margin.left +
+                activeBar.x +
+                (vertical
+                  ? activeBar.width / 2
+                  : activeBar.value < 0
+                    ? 0
+                    : activeBar.width)
+              }
+              y={
+                margin.top + activeBar.y + (vertical ? 0 : activeBar.height / 2)
+              }
+              width={containerWidth}
+              height={frameHeight}
+            >
+              {tooltipRenderer ? (
+                tooltipRenderer(tooltipData)
+              ) : (
+                <>
+                  <div className="mb-2 border-b border-border pb-2 text-xs font-medium text-muted-foreground">
+                    {activeBar.label}
+                  </div>
+                  <div className="flex min-w-24 items-center justify-between gap-6">
+                    <span
+                      className="size-2.5 shrink-0 rounded-sm"
+                      style={{ backgroundColor: activeBar.color }}
+                    />
+                    <span className="text-sm font-semibold tabular-nums">
+                      {activeBar.formattedValue}
+                    </span>
+                  </div>
+                </>
+              )}
+            </BarTooltip>
+          )}
+        </>
+      )}
     </div>
   );
 }
 
-export const BarChart = memo(BarChartComponent);
+// React.memo otherwise erases the relationship between data, keys and callbacks.
+export const BarChart = memo(BarChartComponent) as typeof BarChartComponent;
 export type { ChartDataItem, BarChartProps };
 export { DEFAULT_COLORS, formatValue };

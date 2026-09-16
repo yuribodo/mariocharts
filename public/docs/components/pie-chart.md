@@ -22,20 +22,35 @@ import { PieChart } from "@/components/charts/pie-chart";
 
 ```ts
 interface PieChartProps<T extends ChartDataItem> {
+  /** Finite, nonnegative observations. Zero shares have no slice. */
   readonly data: readonly T[];
   readonly value: keyof T;
   readonly label: keyof T;
   readonly colors?: readonly string[];
   readonly className?: string;
+  /** Total frame height, including an optional legend, in every variant and state. */
   readonly height?: number;
+  /** Retain data during refresh to preserve the exact slice geometry. */
   readonly loading?: boolean;
   readonly error?: string | null;
   readonly animation?: boolean;
-  readonly variant?: 'pie' | 'donut' | 'semi';
+  readonly variant?: "pie" | "donut" | "semi";
+  /** Fraction of the outer radius, from 0 inclusive to 1 exclusive. Ignored for pie. */
   readonly innerRadius?: number;
-  readonly centerContent?: React.ReactNode | ((data: { total: number; items: readonly T[] }) => React.ReactNode);
+  /** Slice corner radius in pixels. Zero gives flat edges; constrained to fit each slice. */
+  readonly cornerRadius?: number;
+  readonly centerContent?:
+    | ReactNode
+    | ((data: { total: number; items: readonly T[] }) => ReactNode);
+  readonly showLegend?: boolean;
   readonly onSliceClick?: (data: T, index: number) => void;
+  /** rawValue contains the source value field; value is its parsed numeric value. */
   readonly tooltipRenderer?: TooltipRenderer<PieChartTooltipData<T>>;
+  readonly valueFormatter?: (value: number) => string;
+  /** Receives a percentage from 0 to 100. */
+  readonly percentageFormatter?: (percentage: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
 }
 ```
 

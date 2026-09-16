@@ -28,7 +28,7 @@ const CHARTS = [
     description: 'A customizable bar chart component with animations, hover effects, responsive design, and support for both vertical and horizontal orientations with filled or outline variants',
     importName: 'BarChart',
     exportName: 'BarChart',
-    siblingFiles: [],
+    siblingFiles: ['utils.ts', 'tooltip.tsx'],
     categories: ['charts', 'dashboard'],
     propsSourceFile: 'index.tsx',
   },
@@ -36,10 +36,10 @@ const CHARTS = [
     name: 'line-chart',
     docsSlug: 'line-chart',
     title: 'Line Chart',
-    description: 'A sophisticated line chart component with triangular markers, textured area fills, multiple series support, gap handling, curve interpolation, and advanced animations',
+    description: 'A line chart with multiple series, faithful gap handling, four curve interpolations, accessible inspection, gradient areas, and geometry-matched loading states',
     importName: 'LineChart',
     exportName: 'LineChart',
-    siblingFiles: [],
+    siblingFiles: ['utils.ts', 'tooltip.tsx'],
     categories: ['charts', 'dashboard'],
     propsSourceFile: 'index.tsx',
   },
@@ -47,7 +47,7 @@ const CHARTS = [
     name: 'scatter-plot',
     docsSlug: 'scatter-plot',
     title: 'Scatter Plot',
-    description: 'A versatile scatter plot and bubble chart component with multi-series support, trend lines, dynamic bubble sizing, responsive design, and smooth animations',
+    description: 'A scatter and bubble chart with area-scaled bubbles, clipped viewports and trends, keyboard and touch inspection, and points that grow at fixed coordinates',
     importName: 'ScatterPlot',
     exportName: 'ScatterPlot',
     siblingFiles: ['types.ts', 'scales.ts', 'regression.ts'],
@@ -61,7 +61,7 @@ const CHARTS = [
     description: 'A customizable pie and donut chart component with animated segments, interactive hover effects, center labels, and responsive design',
     importName: 'PieChart',
     exportName: 'PieChart',
-    siblingFiles: [],
+    siblingFiles: ['utils.ts'],
     categories: ['charts', 'dashboard'],
     propsSourceFile: 'index.tsx',
   },
@@ -69,7 +69,7 @@ const CHARTS = [
     name: 'radar-chart',
     docsSlug: 'radar-chart',
     title: 'Radar Chart',
-    description: 'A multi-axis radar chart component with multi-series support, animated fills, interactive tooltips, and responsive design',
+    description: 'A multi-axis radar chart with explicit axis ranges, polygons that grow from the center, keyboard and touch inspection, and responsive labels',
     importName: 'RadarChart',
     exportName: 'RadarChart',
     siblingFiles: ['types.ts', 'geometry.ts', 'scales.ts'],
@@ -80,10 +80,10 @@ const CHARTS = [
     name: 'stacked-bar-chart',
     docsSlug: 'stacked-bar-chart',
     title: 'Stacked Bar Chart',
-    description: 'A stacked bar chart component with multiple segment support, animated stacking, interactive tooltips, and both vertical and horizontal orientations',
+    description: 'A stacked bar chart with faithful signed stacks, growth from zero, segment inspection by keyboard and touch, and vertical or horizontal layouts',
     importName: 'StackedBarChart',
     exportName: 'StackedBarChart',
-    siblingFiles: [],
+    siblingFiles: ['utils.ts'],
     categories: ['charts', 'dashboard'],
     propsSourceFile: 'index.tsx',
   },
@@ -91,7 +91,7 @@ const CHARTS = [
     name: 'gauge-chart',
     docsSlug: 'gauge-chart',
     title: 'Gauge Chart',
-    description: 'A 3/4 arc gauge chart component with configurable color zones, animated needle, center value display, and responsive design',
+    description: 'A 270-degree arc gauge with truthful range limits, nonoverlapping color zones, animated value updates, and keyboard and touch inspection',
     importName: 'GaugeChart',
     exportName: 'GaugeChart',
     siblingFiles: ['utils.ts'],
@@ -102,10 +102,10 @@ const CHARTS = [
     name: 'heatmap',
     docsSlug: 'heatmap',
     title: 'Heatmap Chart',
-    description: 'A heatmap chart component with configurable color schemes, animated cells, interactive tooltips, row/column labels, and multiple layout variants',
+    description: 'A grid, radial and stock heatmap with explicit missing values, faithful color scales, weighted areas, and keyboard and touch inspection',
     importName: 'HeatmapChart',
     exportName: 'HeatmapChart',
-    siblingFiles: [],
+    siblingFiles: ['model.ts', 'colors.ts', 'geometry.ts', 'stock-label.tsx'],
     categories: ['charts', 'dashboard'],
     propsSourceFile: 'index.tsx',
   },
@@ -113,23 +113,23 @@ const CHARTS = [
     name: 'funnel-chart',
     docsSlug: 'funnel-chart',
     title: 'Funnel Chart',
-    description: 'A funnel chart component with vertical trapezoid and horizontal diminishing bar variants, animated segments, conversion rates, and interactive tooltips',
+    description: 'A five-variant funnel with faithful stage values, conversion and drop-off metrics, growing geometry, and keyboard and touch inspection',
     importName: 'FunnelChart',
     exportName: 'FunnelChart',
-    siblingFiles: [],
+    siblingFiles: ['model.ts', 'geometry.ts'],
     categories: ['charts', 'dashboard'],
     propsSourceFile: 'index.tsx',
   },
   {
-    name: 'area-chart',
-    docsSlug: 'area-chart',
-    title: 'Area Chart',
-    description: 'A layered area chart component with multiple curve interpolations, gradient fills, multi-series support, and responsive design',
-    importName: 'AreaChart',
-    exportName: 'AreaChart',
-    siblingFiles: [],
+    name: 'sankey-chart',
+    docsSlug: 'sankey-chart',
+    title: 'Sankey Chart',
+    description: 'A Sankey chart for branching and converging flows with proportional ribbons, reachable-path highlighting, keyboard and touch inspection, and a left-to-right reveal',
+    importName: 'SankeyChart',
+    exportName: 'SankeyChart',
+    siblingFiles: ['types.ts', 'model.ts', 'geometry.ts'],
     categories: ['charts', 'dashboard'],
-    propsSourceFile: 'index.tsx',
+    propsSourceFile: 'types.ts',
   },
   {
     name: 'treemap-chart',
@@ -137,14 +137,14 @@ const CHARTS = [
     // treemap-chart — see the comment above CHARTS.
     docsSlug: 'treemap',
     title: 'Treemap Chart',
-    description: 'A squarified treemap chart component for hierarchical data with nested rectangles, animated layout, interactive tooltips, and responsive design',
+    description: 'A treemap with three proportional layouts, nested or flat views, group navigation, contrast-aware labels, growing tiles, and keyboard and touch inspection',
     // TreeMapChart, with a capital M — the component and the barrel in
     // src/components/index.ts both spell it that way, even though the
     // directory is treemap-chart. Every published import example is built
     // from this string, so a mismatch ships a non-compiling copy-paste.
     importName: 'TreeMapChart',
     exportName: 'TreeMapChart',
-    siblingFiles: ['layout.ts'],
+    siblingFiles: ['layout.ts', 'model.ts', 'ink.ts'],
     categories: ['charts', 'dashboard'],
     propsSourceFile: 'index.tsx',
   },
@@ -152,7 +152,7 @@ const CHARTS = [
     name: 'waterfall-chart',
     docsSlug: 'waterfall-chart',
     title: 'Waterfall Chart',
-    description: 'A waterfall chart component visualizing cumulative increases, decreases, and running totals with animated floating bars and connectors',
+    description: 'A waterfall chart with absolute balances, computed sums and period subtotals, vertical and horizontal layouts, filled or outline bars, growth animations, and keyboard and touch inspection',
     importName: 'WaterfallChart',
     exportName: 'WaterfallChart',
     siblingFiles: ['utils.ts'],
@@ -160,10 +160,6 @@ const CHARTS = [
     propsSourceFile: 'index.tsx',
   },
 ];
-
-// Charts that import from `../_shared` (all except area-chart, which only
-// pulls `cn` and `useIsomorphicLayoutEffect` directly from lib/*).
-const CHARTS_WITHOUT_SHARED = new Set(['area-chart']);
 
 function readSource(absPath) {
   if (!fs.existsSync(absPath)) {
@@ -183,9 +179,7 @@ function buildChartItem(chart) {
     })),
   ];
 
-  const registryDependencies = CHARTS_WITHOUT_SHARED.has(chart.name)
-    ? ['lib-utils', 'lib-hooks']
-    : ['lib-utils', 'chart-shared'];
+  const registryDependencies = ['lib-utils', 'chart-shared'];
 
   return {
     name: chart.name,
@@ -247,7 +241,7 @@ function buildSupportItems() {
   // disk as charttooltip.tsx and break the barrel's `./ChartTooltip` import
   // on case-sensitive filesystems. Rename it to kebab-case for the embedded
   // copy only, and rewrite the one barrel import line to match.
-  const sharedFileNames = ['index.ts', 'types.ts', 'utils.ts', 'hooks.ts', 'tooltip-types.ts'];
+  const sharedFileNames = ['index.ts', 'types.ts', 'utils.ts', 'hooks.ts', 'tooltip-types.ts', 'cartesian.ts', 'inspection-tooltip.tsx'];
 
   const chartShared = {
     name: 'chart-shared',
@@ -291,6 +285,5 @@ module.exports = {
   SITE_URL,
   AUTHOR,
   CHARTS,
-  CHARTS_WITHOUT_SHARED,
   buildAllItems,
 };

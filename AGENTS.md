@@ -110,7 +110,6 @@ mariocharts/
 │   └── components/
 │       ├── charts/              # The published chart components
 │       │   ├── _shared/         # cn, formatValue, ChartTooltip, hooks
-│       │   ├── area-chart/
 │       │   ├── bar-chart/
 │       │   ├── funnel-chart/
 │       │   ├── gauge-chart/
@@ -118,6 +117,7 @@ mariocharts/
 │       │   ├── line-chart/
 │       │   ├── pie-chart/
 │       │   ├── radar-chart/
+│       │   ├── sankey-chart/
 │       │   ├── scatter-plot/
 │       │   ├── stacked-bar-chart/
 │       │   ├── treemap-chart/
@@ -164,10 +164,10 @@ the markdown docs) derives from that list.
 7. **GaugeChart** - Arc gauges for targets and goals
 8. **HeatmapChart** - Pattern and density heatmaps
 9. **FunnelChart** - Conversion funnels
-10. **AreaChart** - Layered area charts with gradient fills
-11. **TreeMapChart** - Hierarchical treemaps (note the capital M — the
+10. **TreeMapChart** - Hierarchical treemaps (note the capital M — the
     directory is `treemap-chart`, the export is `TreeMapChart`)
-12. **WaterfallChart** - Cumulative increases/decreases and running totals
+11. **WaterfallChart** - Cumulative increases/decreases and running totals
+12. **SankeyChart** - Proportional branching and converging flows
 
 ### Code Standards & Performance
 

@@ -2,8 +2,16 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { BarChartContent } from "./bar-chart-content";
 
 jest.mock("@/src/components/charts/bar-chart", () => ({
-  BarChart: ({ orientation, variant }: { orientation?: string; variant?: string }) => (
-    <div data-testid="bar-chart">{orientation}:{variant}</div>
+  BarChart: ({
+    orientation,
+    variant,
+  }: {
+    orientation?: string;
+    variant?: string;
+  }) => (
+    <div data-testid="bar-chart">
+      {orientation}:{variant}
+    </div>
   ),
 }));
 
@@ -15,15 +23,31 @@ describe("BarChartContent", () => {
   it("presents the component as a concise implementation guide", () => {
     render(<BarChartContent />);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Bar Chart" })).toBeInTheDocument();
-    expect(screen.getByText("npx mario-charts@latest add bar-chart")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "Playground" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "Resilient by default" })).toBeInTheDocument();
-    expect(screen.getByText("Loading")).toBeInTheDocument();
-    expect(screen.getByText("Error")).toBeInTheDocument();
-    expect(screen.getByText("Empty")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Bar Chart" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("npx mario-charts@latest add bar-chart"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Playground" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Resilient by default" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Loading", level: 3 }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Error", level: 3 }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Empty", level: 3 }),
+    ).toBeInTheDocument();
     expect(screen.getByText("loading={true}")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "API Reference" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "API Reference" }),
+    ).toBeInTheDocument();
   });
 
   it("updates the preview from accessible segmented controls", () => {
@@ -43,9 +67,14 @@ describe("BarChartContent", () => {
     expect(
       document.querySelector('[data-segmented-indicator="Appearance"]'),
     ).toHaveAttribute("data-position", "right");
-    expect(screen.getAllByTestId("bar-chart")[0]).toHaveTextContent("horizontal:outline");
+    expect(screen.getAllByTestId("bar-chart")[0]).toHaveTextContent(
+      "horizontal:outline",
+    );
 
     fireEvent.keyDown(outline, { key: "ArrowLeft" });
-    expect(screen.getByRole("button", { name: "Filled" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Filled" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 });

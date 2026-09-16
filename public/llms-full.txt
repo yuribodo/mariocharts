@@ -80,28 +80,41 @@ Props:
 
 ```ts
 interface BarChartProps<T extends ChartDataItem> {
+  /** Rows with finite numeric values. Missing/invalid values display an error, not zero. */
   readonly data: readonly T[];
+  /** Category key; categories retain input order. */
   readonly x: keyof T;
+  /** Numeric key. Defaults to "value". Unambiguous numeric strings are supported. */
   readonly y?: keyof T;
   readonly colors?: readonly string[];
   readonly className?: string;
+  /** Stable frame height in every state. Defaults to 300. */
   readonly height?: number;
+  /** Shows a skeleton in the chart's geometry; retain data during refresh to preserve bar positions. */
   readonly loading?: boolean;
   readonly error?: string | null;
   readonly animation?: boolean;
-  readonly variant?: 'filled' | 'outline';
-  readonly orientation?: 'vertical' | 'horizontal';
+  readonly variant?: "filled" | "outline";
+  readonly orientation?: "vertical" | "horizontal";
   readonly showValues?: boolean;
   readonly showGrid?: boolean;
-  readonly gridStyle?: 'solid' | 'dashed' | 'dotted';
+  readonly gridStyle?: "solid" | "dashed" | "dotted";
   readonly onBarClick?: (data: T, index: number) => void;
   readonly tooltipRenderer?: TooltipRenderer<BarChartTooltipData<T>>;
+  /** Formats tooltips, value labels and accessible values; also ticks unless overridden. */
+  readonly valueFormatter?: (value: number) => string;
+  /** Optional compact tick formatter, independent of detailed inspection values. */
+  readonly axisValueFormatter?: (value: number) => string;
+  /** Accessible chart name. */
+  readonly ariaLabel?: string;
+  /** Optional context, units, or explanation announced with the chart. */
+  readonly description?: string;
 }
 ```
 
 ### Line Chart (`line-chart`)
 
-A sophisticated line chart component with triangular markers, textured area fills, multiple series support, gap handling, curve interpolation, and advanced animations
+A line chart with multiple series, faithful gap handling, four curve interpolations, accessible inspection, gradient areas, and geometry-matched loading states
 
 Install: `npx shadcn@latest add https://mariocharts.com/r/line-chart.json`
 Import: `import { LineChart } from "@/components/charts/line-chart";`
@@ -111,32 +124,43 @@ Props:
 
 ```ts
 interface LineChartProps<T extends ChartDataItem> {
+  /** Rows in display order. Null/undefined values are gaps; malformed numbers display an error. */
   readonly data: readonly T[];
+  /** Equally spaced category labels, including date strings; not a continuous time scale. */
   readonly x: keyof T;
   readonly y: keyof T | readonly (keyof T)[];
   readonly colors?: readonly string[];
   readonly className?: string;
+  /** Total frame height, including the legend, in every state. */
   readonly height?: number;
+  /** Retain data during refresh to preserve the exact line geometry in the skeleton. */
   readonly loading?: boolean;
   readonly error?: string | null;
   readonly animation?: boolean;
   readonly strokeWidth?: number;
-  readonly curve?: 'linear' | 'monotone' | 'natural' | 'step';
+  /** Monotone avoids spurious extrema; natural splines may overshoot between observations. */
+  readonly curve?: "linear" | "monotone" | "natural" | "step";
   readonly showDots?: boolean;
   readonly showArea?: boolean;
+  /** Original indices in y; empty series never shift this mapping. */
   readonly showAreaForSeries?: readonly number[];
   readonly showGrid?: boolean;
-  readonly gridStyle?: 'solid' | 'dashed' | 'dotted';
+  readonly gridStyle?: "solid" | "dashed" | "dotted";
   readonly showLegend?: boolean;
+  /** Opt in to bridging missing observations. Defaults to false. */
   readonly connectNulls?: boolean;
   readonly onPointClick?: (data: T, index: number, series?: string) => void;
   readonly tooltipRenderer?: TooltipRenderer<LineChartTooltipData<T>>;
+  readonly valueFormatter?: (value: number) => string;
+  readonly axisValueFormatter?: (value: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
 }
 ```
 
 ### Scatter Plot (`scatter-plot`)
 
-A versatile scatter plot and bubble chart component with multi-series support, trend lines, dynamic bubble sizing, responsive design, and smooth animations
+A scatter and bubble chart with area-scaled bubbles, clipped viewports and trends, keyboard and touch inspection, and points that grow at fixed coordinates
 
 Install: `npx shadcn@latest add https://mariocharts.com/r/scatter-plot.json`
 Import: `import { ScatterPlot } from "@/components/charts/scatter-plot";`
@@ -146,37 +170,48 @@ Props:
 
 ```ts
 export interface ScatterPlotProps<T extends ChartDataItem> {
-  // Required
+  /** Observations with finite X/Y values. Missing or malformed values produce an error. */
   readonly data: readonly T[];
   readonly x: keyof T;
   readonly y: keyof T;
-
-  // Common chart props
+  /** Optional point name, also available during keyboard inspection. */
+  readonly label?: keyof T;
   readonly colors?: readonly string[];
   readonly className?: string;
+  /** Total frame height, including the optional legend and viewport notice. */
   readonly height?: number;
+  /** Retain data for a skeleton with the exact same positions and sizes. */
   readonly loading?: boolean;
   readonly error?: string | null;
+  /** Grow each point at its fixed coordinates. Respects reduced motion. */
   readonly animation?: boolean;
-
-  // Scatter-specific
+  /** Group observations by this data key. */
   readonly series?: keyof T;
+  /** A constant radius in pixels, or a key containing finite, nonnegative bubble values. */
   readonly size?: keyof T | number;
+  /** Minimum positive and maximum bubble radius in pixels. Zero values have no painted area. */
   readonly sizeRange?: readonly [number, number];
-
-  // P1 Features
+  /** Area scales radius by square root of value; radius preserves the previous linear radius mapping. */
+  readonly sizeScale?: "area" | "radius";
+  /** Per-series least-squares fit, limited to observed X values and clipped to the displayed domains. */
   readonly showTrendLine?: boolean;
   readonly trendLineColor?: string;
   readonly showLegend?: boolean;
   readonly showGrid?: boolean;
-  readonly gridStyle?: 'solid' | 'dashed' | 'dotted';
+  readonly gridStyle?: "solid" | "dashed" | "dotted";
+  /** Viewport bounds. Out-of-range observations remain in the source data and trend calculation. */
   readonly xDomain?: readonly [number, number];
   readonly yDomain?: readonly [number, number];
-
-  // Event handlers
+  readonly xLabel?: string;
+  readonly yLabel?: string;
+  readonly sizeLabel?: string;
+  readonly xFormatter?: (value: number) => string;
+  readonly yFormatter?: (value: number) => string;
+  readonly sizeFormatter?: (value: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
+  /** Original observation and row index, plus its series key ("default" when ungrouped). */
   readonly onPointClick?: (data: T, index: number, series?: string) => void;
-
-  // Custom tooltip
   readonly tooltipRenderer?: TooltipRenderer<ScatterPlotTooltipData<T>>;
 }
 ```
@@ -193,26 +228,41 @@ Props:
 
 ```ts
 interface PieChartProps<T extends ChartDataItem> {
+  /** Finite, nonnegative observations. Zero shares have no slice. */
   readonly data: readonly T[];
   readonly value: keyof T;
   readonly label: keyof T;
   readonly colors?: readonly string[];
   readonly className?: string;
+  /** Total frame height, including an optional legend, in every variant and state. */
   readonly height?: number;
+  /** Retain data during refresh to preserve the exact slice geometry. */
   readonly loading?: boolean;
   readonly error?: string | null;
   readonly animation?: boolean;
-  readonly variant?: 'pie' | 'donut' | 'semi';
+  readonly variant?: "pie" | "donut" | "semi";
+  /** Fraction of the outer radius, from 0 inclusive to 1 exclusive. Ignored for pie. */
   readonly innerRadius?: number;
-  readonly centerContent?: React.ReactNode | ((data: { total: number; items: readonly T[] }) => React.ReactNode);
+  /** Slice corner radius in pixels. Zero gives flat edges; constrained to fit each slice. */
+  readonly cornerRadius?: number;
+  readonly centerContent?:
+    | ReactNode
+    | ((data: { total: number; items: readonly T[] }) => ReactNode);
+  readonly showLegend?: boolean;
   readonly onSliceClick?: (data: T, index: number) => void;
+  /** rawValue contains the source value field; value is its parsed numeric value. */
   readonly tooltipRenderer?: TooltipRenderer<PieChartTooltipData<T>>;
+  readonly valueFormatter?: (value: number) => string;
+  /** Receives a percentage from 0 to 100. */
+  readonly percentageFormatter?: (percentage: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
 }
 ```
 
 ### Radar Chart (`radar-chart`)
 
-A multi-axis radar chart component with multi-series support, animated fills, interactive tooltips, and responsive design
+A multi-axis radar chart with explicit axis ranges, polygons that grow from the center, keyboard and touch inspection, and responsive labels
 
 Install: `npx shadcn@latest add https://mariocharts.com/r/radar-chart.json`
 Import: `import { RadarChart } from "@/components/charts/radar-chart";`
@@ -226,25 +276,25 @@ export interface RadarChartProps<T extends ChartDataItem> {
   /** Array of data series to display */
   readonly series: readonly RadarSeries<T>[];
   /** Configuration for each axis/dimension */
-  readonly axes: readonly RadarAxis[];
+  readonly axes: readonly RadarAxis<T>[];
 
   // Common chart props (following library pattern)
   /** Color palette for series */
   readonly colors?: readonly string[];
   /** Additional CSS classes */
   readonly className?: string;
-  /** Chart height in pixels */
+  /** Total frame height in pixels, including the optional legend, in every state. */
   readonly height?: number;
-  /** Show loading state */
+  /** Retain series during refresh to preserve the exact polygon geometry. */
   readonly loading?: boolean;
   /** Error message to display */
   readonly error?: string | null;
-  /** Enable animations */
+  /** Grow polygons from the center. Respects reduced motion and completes on keyboard focus. */
   readonly animation?: boolean;
 
   // Radar-specific props
   /** Grid shape type */
-  readonly gridType?: 'polygon' | 'circular';
+  readonly gridType?: "polygon" | "circular";
   /** Number of concentric grid levels/rings */
   readonly gridLevels?: number;
   /** Show axis labels at endpoints */
@@ -266,7 +316,14 @@ export interface RadarChartProps<T extends ChartDataItem> {
   /** Callback when a series is clicked */
   readonly onSeriesClick?: (series: RadarSeries<T>, index: number) => void;
   /** Callback when an axis is clicked */
-  readonly onAxisClick?: (axis: RadarAxis, index: number) => void;
+  readonly onAxisClick?: (axis: RadarAxis<T>, index: number) => void;
+
+  /** Show a wrapping legend. Defaults to true when there is more than one series. */
+  readonly showLegend?: boolean;
+  /** Format values in inspection, accessible data, and axis ranges. */
+  readonly valueFormatter?: (value: number, axis: RadarAxis<T>) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
 
   readonly tooltipRenderer?: TooltipRenderer<RadarChartTooltipData<T>>;
 }
@@ -274,7 +331,7 @@ export interface RadarChartProps<T extends ChartDataItem> {
 
 ### Stacked Bar Chart (`stacked-bar-chart`)
 
-A stacked bar chart component with multiple segment support, animated stacking, interactive tooltips, and both vertical and horizontal orientations
+A stacked bar chart with faithful signed stacks, growth from zero, segment inspection by keyboard and touch, and vertical or horizontal layouts
 
 Install: `npx shadcn@latest add https://mariocharts.com/r/stacked-bar-chart.json`
 Import: `import { StackedBarChart } from "@/components/charts/stacked-bar-chart";`
@@ -283,19 +340,36 @@ Docs: https://mariocharts.com/docs/components/stacked-bar-chart.md
 Props:
 
 ```ts
-interface StackedBarChartProps<T extends ChartDataItem> {
+export interface StackedBarChartProps<T extends ChartDataItem> {
+  /** Finite segment values; missing/malformed values show a row/key error. */
   readonly data: readonly T[];
+  /** Category key. Rows retain input order, including duplicate labels. */
   readonly x: keyof T;
+  /** Unique numeric keys in stack and legend order. */
   readonly y: readonly (keyof T)[];
   readonly colors?: readonly string[];
   readonly className?: string;
+  /** Total frame height, including the optional legend. Defaults to 300. */
   readonly height?: number;
+  /** Retain data during refresh to preserve exact segment geometry. */
   readonly loading?: boolean;
   readonly error?: string | null;
+  /** Grow entire stacks from zero, preserving segment joins. Respects reduced motion. */
   readonly animation?: boolean;
-  readonly variant?: 'filled' | 'outline';
-  readonly orientation?: 'vertical' | 'horizontal';
+  readonly variant?: "filled" | "outline";
+  readonly orientation?: "vertical" | "horizontal";
+  /** Radius in pixels at the outer ends of each signed stack. Internal joins stay flat. Defaults to 2. */
+  readonly cornerRadius?: number;
   readonly showLegend?: boolean;
+  readonly showGrid?: boolean;
+  readonly gridStyle?: "solid" | "dashed" | "dotted";
+  /** Format segment values and signed totals. */
+  readonly valueFormatter?: (value: number) => string;
+  /** Format numeric ticks; defaults to valueFormatter. */
+  readonly axisValueFormatter?: (value: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
+  /** Original row, selected stack key, and original row index. Enter/Space also activate. */
   readonly onSegmentClick?: (data: T, stackKey: string, index: number) => void;
   readonly tooltipRenderer?: TooltipRenderer<StackedBarChartTooltipData<T>>;
 }
@@ -303,7 +377,7 @@ interface StackedBarChartProps<T extends ChartDataItem> {
 
 ### Gauge Chart (`gauge-chart`)
 
-A 3/4 arc gauge chart component with configurable color zones, animated needle, center value display, and responsive design
+A 270-degree arc gauge with truthful range limits, nonoverlapping color zones, animated value updates, and keyboard and touch inspection
 
 Install: `npx shadcn@latest add https://mariocharts.com/r/gauge-chart.json`
 Import: `import { GaugeChart } from "@/components/charts/gauge-chart";`
@@ -312,38 +386,42 @@ Docs: https://mariocharts.com/docs/components/gauge-chart.md
 Props:
 
 ```ts
-interface GaugeChartProps {
-  /** The current value to display on the gauge. */
+export interface GaugeChartProps {
+  /** Actual finite measurement. Outside-range values remain visible; the arc keeps the boundary zone color and is clamped. */
   readonly value: number;
-  /** Minimum value of the gauge range. @default 0 */
+  /** Finite increasing bounds. @default 0 */
   readonly min?: number;
-  /** Maximum value of the gauge range. @default 100 */
+  /** @default 100 */
   readonly max?: number;
-  /** Array of zone objects defining color regions. */
+  /** Nonoverlapping zones inside the range; input order and colors need not be unique. */
   readonly zones: readonly GaugeZone[];
-  /** Unit label shown next to the center value (e.g. `"%"`, `"GB"`). */
   readonly unit?: string;
-  /** Descriptive label shown below the center value. */
   readonly label?: string;
-  /** Thickness of the gauge arc stroke in pixels. @default 20 */
+  /** Requested stroke thickness, capped to fit small frames. @default 20 */
   readonly strokeWidth?: number;
-  /** Height of the chart container in pixels. @default 300 */
+  /** Progress/track end caps. Zone boundaries remain flat. @default "round" */
+  readonly strokeLinecap?: "round" | "butt";
+  /** Stable total height in every state. @default 300 */
   readonly height?: number;
-  /** Show loading skeleton state. @default false */
+  /** Retain value and zones during refresh for matching geometry. */
   readonly loading?: boolean;
-  /** Error message to display in place of the chart. @default null */
   readonly error?: string | null;
-  /** Enable entrance animation for the progress arc. @default true */
+  /** Sweep from minimum on entrance and retarget from the current arc on updates. */
   readonly animation?: boolean;
-  /** Additional CSS classes to apply to the container. */
   readonly className?: string;
+  /** Format actual measurement and inspection values; unit is appended separately. */
+  readonly valueFormatter?: (value: number) => string;
+  /** Compact endpoint labels. Defaults to valueFormatter. */
+  readonly axisValueFormatter?: (value: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
   readonly tooltipRenderer?: TooltipRenderer<GaugeChartTooltipData>;
 }
 ```
 
 ### Heatmap Chart (`heatmap`)
 
-A heatmap chart component with configurable color schemes, animated cells, interactive tooltips, row/column labels, and multiple layout variants
+A grid, radial and stock heatmap with explicit missing values, faithful color scales, weighted areas, and keyboard and touch inspection
 
 Install: `npx shadcn@latest add https://mariocharts.com/r/heatmap.json`
 Import: `import { HeatmapChart } from "@/components/charts/heatmap";`
@@ -352,24 +430,41 @@ Docs: https://mariocharts.com/docs/components/heatmap.md
 Props:
 
 ```ts
-interface HeatmapChartProps<T extends ChartDataItem> {
+export interface HeatmapChartProps<T extends ChartDataItem> {
+  /** Rows in input order. Null/undefined/empty values are missing, not zero. */
   readonly data: readonly T[];
   readonly x: keyof T;
+  /** Row/ring key; ignored by stock. */
   readonly y: keyof T;
   readonly value: keyof T;
-  readonly weight?: keyof T;       // for stock: area size (e.g. market cap)
+  /** Nonnegative stock area weights. Omit for equal allocation. Zero has no area. */
+  readonly weight?: keyof T;
   readonly variant?: HeatmapVariant;
   readonly colorScheme?: ColorScheme;
+  /** Valid CSS colors, including inherited variables. Stock defaults to red/green. */
   readonly colorFrom?: string;
   readonly colorTo?: string;
+  /** Fixed color bounds containing all measured values. Auto scales use the observed extent. */
+  readonly domain?: readonly [number, number];
+  /** Neutral value for diverging and stock scales. Defaults to zero. */
+  readonly midpoint?: number;
   readonly showLabels?: boolean;
   readonly showLegend?: boolean;
+  /** Grid/stock corner radius in pixels; radial cells keep circular edges. */
   readonly cellRadius?: number;
   readonly className?: string;
+  /** Stable frame height including legends and notices. Defaults to 320. */
   readonly height?: number;
+  /** Retain rows during refresh to preserve cell geometry. */
   readonly loading?: boolean;
   readonly error?: string | null;
   readonly animation?: boolean;
+  /** Measured value formatter. Stock defaults to signed percentages. */
+  readonly valueFormatter?: (value: number) => string;
+  readonly weightFormatter?: (value: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
+  /** Original row only; absent matrix combinations cannot invoke an action. */
   readonly onClick?: (item: T, colLabel: string, rowLabel: string) => void;
   readonly tooltipRenderer?: TooltipRenderer<HeatmapChartTooltipData<T>>;
 }
@@ -377,7 +472,7 @@ interface HeatmapChartProps<T extends ChartDataItem> {
 
 ### Funnel Chart (`funnel-chart`)
 
-A funnel chart component with vertical trapezoid and horizontal diminishing bar variants, animated segments, conversion rates, and interactive tooltips
+A five-variant funnel with faithful stage values, conversion and drop-off metrics, growing geometry, and keyboard and touch inspection
 
 Install: `npx shadcn@latest add https://mariocharts.com/r/funnel-chart.json`
 Import: `import { FunnelChart } from "@/components/charts/funnel-chart";`
@@ -386,64 +481,86 @@ Docs: https://mariocharts.com/docs/components/funnel-chart.md
 Props:
 
 ```ts
-interface FunnelChartProps<T extends ChartDataItem> {
+export interface FunnelChartProps<T extends ChartDataItem> {
+  /** Sequential stages in input order; values must be finite and nonnegative. */
   readonly data: readonly T[];
   readonly label: keyof T;
   readonly value: keyof T;
+  /** Valid CSS colors; an empty palette uses the defaults. */
   readonly colors?: readonly string[];
-  readonly variant?: "tapered" | "straight" | "horizontal";
+  /** Tapered/smooth show transitions; straight/horizontal/columns compare measured extents. */
+  readonly variant?: FunnelVariant;
   readonly showValues?: boolean;
+  /** Percent of the first stage, not a sum of repeated stage counts. */
   readonly showPercentages?: boolean;
   readonly showConversionRates?: boolean;
+  /** Signed change from the preceding stage: loss or increase. */
+  readonly showDropOff?: boolean;
+  readonly showConnectors?: boolean;
+  /** Requested stage gap; rate annotations reserve at least 26px in row layouts. */
+  readonly gap?: number;
+  /** Corner radius for straight, horizontal and columns. */
+  readonly borderRadius?: number;
   readonly className?: string;
+  /** Stable frame height. Crowded stages scroll rather than overlap. */
   readonly height?: number;
   readonly loading?: boolean;
   readonly error?: string | null;
   readonly animation?: boolean;
+  readonly valueFormatter?: (value: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
   readonly onClick?: (item: T, index: number) => void;
   readonly tooltipRenderer?: TooltipRenderer<FunnelChartTooltipData<T>>;
 }
 ```
 
-### Area Chart (`area-chart`)
+### Sankey Chart (`sankey-chart`)
 
-A layered area chart component with multiple curve interpolations, gradient fills, multi-series support, and responsive design
+A Sankey chart for branching and converging flows with proportional ribbons, reachable-path highlighting, keyboard and touch inspection, and a left-to-right reveal
 
-Install: `npx shadcn@latest add https://mariocharts.com/r/area-chart.json`
-Import: `import { AreaChart } from "@/components/charts/area-chart";`
-Docs: https://mariocharts.com/docs/components/area-chart.md
+Install: `npx shadcn@latest add https://mariocharts.com/r/sankey-chart.json`
+Import: `import { SankeyChart } from "@/components/charts/sankey-chart";`
+Docs: https://mariocharts.com/docs/components/sankey-chart.md
 
 Props:
 
 ```ts
-interface AreaChartProps<T extends ChartDataItem> {
-  readonly data: readonly T[];
-  readonly x: keyof T;
-  readonly y: keyof T | readonly (keyof T)[];
+export interface SankeyChartProps<
+  N extends SankeyNode = SankeyNode,
+  L extends SankeyLink = SankeyLink,
+> {
+  /** Unique IDs, display labels and optional CSS colors. Input order orders peers. */
+  readonly nodes: readonly N[];
+  /** Finite nonnegative volumes. Cycles and references to absent IDs are errors. */
+  readonly links: readonly L[];
   readonly colors?: readonly string[];
+  /** Align terminal nodes to the last column, or keep their earliest depth. */
+  readonly align?: "justify" | "start";
+  readonly linkColor?: "gradient" | "source" | "target";
+  /** Horizontal curve tension from 0 (straight) to 1. */
+  readonly curvature?: number;
+  readonly nodeWidth?: number;
+  readonly nodeGap?: number;
+  readonly showValues?: boolean;
   readonly className?: string;
+  /** A stable frame; crowded graphs scroll inside it. */
   readonly height?: number;
   readonly loading?: boolean;
   readonly error?: string | null;
   readonly animation?: boolean;
-  readonly areaOpacity?: number;
-  readonly gradient?: boolean;
-  readonly stacked?: boolean;
-  readonly strokeWidth?: number;
-  readonly curve?: 'linear' | 'monotone' | 'natural' | 'step';
-  readonly showDots?: boolean;
-  readonly showGrid?: boolean;
-  readonly gridStyle?: 'solid' | 'dashed' | 'dotted';
-  readonly showLegend?: boolean;
-  readonly connectNulls?: boolean;
-  readonly onPointClick?: (data: T, index: number, series?: string) => void;
-  readonly tooltipRenderer?: (data: AreaChartTooltipData<T>) => React.ReactNode;
+  readonly valueFormatter?: (value: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
+  readonly onNodeClick?: (node: N, index: number) => void;
+  readonly onLinkClick?: (link: L, index: number) => void;
+  readonly tooltipRenderer?: (inspection: SankeyInspection<N, L>) => ReactNode;
 }
 ```
 
 ### Treemap Chart (`treemap-chart`)
 
-A squarified treemap chart component for hierarchical data with nested rectangles, animated layout, interactive tooltips, and responsive design
+A treemap with three proportional layouts, nested or flat views, group navigation, contrast-aware labels, growing tiles, and keyboard and touch inspection
 
 Install: `npx shadcn@latest add https://mariocharts.com/r/treemap-chart.json`
 Import: `import { TreeMapChart } from "@/components/charts/treemap-chart";`
@@ -453,21 +570,38 @@ Props:
 
 ```ts
 export interface TreeMapChartProps {
+  /** Hierarchical observations. Group totals derive from children, never add parent values. */
   readonly data: readonly TreeMapNode[];
   readonly colors?: readonly string[];
+  readonly layout?: TreeMapLayout;
+  /** Nested groups reserve headers; flat compares all leaf areas on one scale. */
+  readonly variant?: TreeMapVariant;
+  readonly sort?: "value" | "input";
+  /** Levels shown at once, 1–6. Smaller groups collapse to an explorable tile. */
+  readonly maxDepth?: number;
+  readonly gap?: number;
+  readonly borderRadius?: number;
+  readonly showValues?: boolean;
+  readonly showPercentages?: boolean;
+  readonly drillDown?: boolean;
+  readonly valueFormatter?: (value: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
   readonly className?: string;
   readonly height?: number;
   readonly loading?: boolean;
   readonly error?: string | null;
   readonly animation?: boolean;
   readonly onClick?: (node: TreeMapNode, path: readonly string[]) => void;
-  readonly tooltipRenderer?: TooltipRenderer<TreemapChartTooltipData>;
+  readonly tooltipRenderer?: TooltipRenderer<
+    TreemapChartTooltipData<TreeMapNode>
+  >;
 }
 ```
 
 ### Waterfall Chart (`waterfall-chart`)
 
-A waterfall chart component visualizing cumulative increases, decreases, and running totals with animated floating bars and connectors
+A waterfall chart with absolute balances, computed sums and period subtotals, vertical and horizontal layouts, filled or outline bars, growth animations, and keyboard and touch inspection
 
 Install: `npx shadcn@latest add https://mariocharts.com/r/waterfall-chart.json`
 Import: `import { WaterfallChart } from "@/components/charts/waterfall-chart";`
@@ -478,27 +612,40 @@ Props:
 ```ts
 interface WaterfallChartProps<T extends ChartDataItem> {
   readonly data: readonly T[];
-  /** Key holding each step's label. Defaults to `"label"`. */
-  readonly x?: keyof T;
-  /** Key holding each step's numeric value. Defaults to `"value"`. */
-  readonly y?: keyof T;
-  /** Key holding each step's type (`"increase" | "decrease" | "total"`). Defaults to `"type"`; inferred from sign when absent. */
-  readonly type?: keyof T;
+  /** Step label key. Defaults to "label". */
+  readonly x?: WaterfallDataKey<T>;
+  /** Finite numeric value key. Omit values for sum/subtotal steps. Defaults to "value". */
+  readonly y?: WaterfallDataKey<T>;
+  /** Step type key: increase, decrease, total, sum or subtotal. Missing types infer direction from sign. */
+  readonly type?: WaterfallDataKey<T>;
   readonly colors?: WaterfallColors;
   readonly className?: string;
+  /** Fixed outer height, at least 180px. Defaults to 300. Dense charts scroll inside this frame. */
   readonly height?: number;
   readonly loading?: boolean;
   readonly error?: string | null;
   readonly animation?: boolean;
   readonly orientation?: "vertical" | "horizontal";
-  /** Draw the connector lines that link each step's running total to the next. Defaults to `true`. */
+  /** Filled or outlined marks. Defaults to filled. */
+  readonly variant?: WaterfallVariant;
+  /** Corner radius in pixels, from 0 to 24. Defaults to 3. */
+  readonly borderRadius?: number;
+  /** Fraction of the category slot occupied by a bar, from 0.2 to 0.9. Defaults to 0.65. */
+  readonly barWidth?: number;
+  /** Running balance before the first step. Defaults to 0. */
+  readonly initialValue?: number;
+  /** Connect consecutive balances. Absolute resets intentionally break the connector. Defaults to true. */
   readonly showConnectors?: boolean;
-  /** Render the signed delta / total on each bar. Defaults to `false`. */
+  readonly connectorStyle?: "solid" | "dashed" | "dotted";
+  /** Show signed changes and absolute sums. Defaults to false. */
   readonly showValues?: boolean;
   readonly showGrid?: boolean;
   readonly gridStyle?: "solid" | "dashed" | "dotted";
-  /** Show the increase/decrease/total legend. Defaults to `false`. */
   readonly showLegend?: boolean;
+  /** Formats values consistently in axes, labels, tooltips and the data table. */
+  readonly valueFormatter?: (value: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
   readonly onBarClick?: (data: T, index: number) => void;
   readonly tooltipRenderer?: TooltipRenderer<WaterfallChartTooltipData<T>>;
 }

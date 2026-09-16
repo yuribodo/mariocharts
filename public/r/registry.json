@@ -16,6 +16,14 @@
         {
           "path": "bar-chart/index.tsx",
           "type": "registry:component"
+        },
+        {
+          "path": "bar-chart/utils.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "bar-chart/tooltip.tsx",
+          "type": "registry:component"
         }
       ]
     },
@@ -23,7 +31,7 @@
       "name": "line-chart",
       "type": "registry:component",
       "title": "Line Chart",
-      "description": "A sophisticated line chart component with triangular markers, textured area fills, multiple series support, gap handling, curve interpolation, and advanced animations",
+      "description": "A line chart with multiple series, faithful gap handling, four curve interpolations, accessible inspection, gradient areas, and geometry-matched loading states",
       "categories": [
         "charts",
         "dashboard"
@@ -32,6 +40,14 @@
         {
           "path": "line-chart/index.tsx",
           "type": "registry:component"
+        },
+        {
+          "path": "line-chart/utils.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "line-chart/tooltip.tsx",
+          "type": "registry:component"
         }
       ]
     },
@@ -39,7 +55,7 @@
       "name": "scatter-plot",
       "type": "registry:component",
       "title": "Scatter Plot",
-      "description": "A versatile scatter plot and bubble chart component with multi-series support, trend lines, dynamic bubble sizing, responsive design, and smooth animations",
+      "description": "A scatter and bubble chart with area-scaled bubbles, clipped viewports and trends, keyboard and touch inspection, and points that grow at fixed coordinates",
       "categories": [
         "charts",
         "dashboard"
@@ -76,6 +92,10 @@
         {
           "path": "pie-chart/index.tsx",
           "type": "registry:component"
+        },
+        {
+          "path": "pie-chart/utils.ts",
+          "type": "registry:component"
         }
       ]
     },
@@ -83,7 +103,7 @@
       "name": "radar-chart",
       "type": "registry:component",
       "title": "Radar Chart",
-      "description": "A multi-axis radar chart component with multi-series support, animated fills, interactive tooltips, and responsive design",
+      "description": "A multi-axis radar chart with explicit axis ranges, polygons that grow from the center, keyboard and touch inspection, and responsive labels",
       "categories": [
         "charts",
         "dashboard"
@@ -111,7 +131,7 @@
       "name": "stacked-bar-chart",
       "type": "registry:component",
       "title": "Stacked Bar Chart",
-      "description": "A stacked bar chart component with multiple segment support, animated stacking, interactive tooltips, and both vertical and horizontal orientations",
+      "description": "A stacked bar chart with faithful signed stacks, growth from zero, segment inspection by keyboard and touch, and vertical or horizontal layouts",
       "categories": [
         "charts",
         "dashboard"
@@ -120,6 +140,10 @@
         {
           "path": "stacked-bar-chart/index.tsx",
           "type": "registry:component"
+        },
+        {
+          "path": "stacked-bar-chart/utils.ts",
+          "type": "registry:component"
         }
       ]
     },
@@ -127,7 +151,7 @@
       "name": "gauge-chart",
       "type": "registry:component",
       "title": "Gauge Chart",
-      "description": "A 3/4 arc gauge chart component with configurable color zones, animated needle, center value display, and responsive design",
+      "description": "A 270-degree arc gauge with truthful range limits, nonoverlapping color zones, animated value updates, and keyboard and touch inspection",
       "categories": [
         "charts",
         "dashboard"
@@ -147,7 +171,7 @@
       "name": "heatmap",
       "type": "registry:component",
       "title": "Heatmap Chart",
-      "description": "A heatmap chart component with configurable color schemes, animated cells, interactive tooltips, row/column labels, and multiple layout variants",
+      "description": "A grid, radial and stock heatmap with explicit missing values, faithful color scales, weighted areas, and keyboard and touch inspection",
       "categories": [
         "charts",
         "dashboard"
@@ -156,6 +180,22 @@
         {
           "path": "heatmap/index.tsx",
           "type": "registry:component"
+        },
+        {
+          "path": "heatmap/model.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "heatmap/colors.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "heatmap/geometry.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "heatmap/stock-label.tsx",
+          "type": "registry:component"
         }
       ]
     },
@@ -163,7 +203,7 @@
       "name": "funnel-chart",
       "type": "registry:component",
       "title": "Funnel Chart",
-      "description": "A funnel chart component with vertical trapezoid and horizontal diminishing bar variants, animated segments, conversion rates, and interactive tooltips",
+      "description": "A five-variant funnel with faithful stage values, conversion and drop-off metrics, growing geometry, and keyboard and touch inspection",
       "categories": [
         "charts",
         "dashboard"
@@ -172,21 +212,41 @@
         {
           "path": "funnel-chart/index.tsx",
           "type": "registry:component"
+        },
+        {
+          "path": "funnel-chart/model.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "funnel-chart/geometry.ts",
+          "type": "registry:component"
         }
       ]
     },
     {
-      "name": "area-chart",
+      "name": "sankey-chart",
       "type": "registry:component",
-      "title": "Area Chart",
-      "description": "A layered area chart component with multiple curve interpolations, gradient fills, multi-series support, and responsive design",
+      "title": "Sankey Chart",
+      "description": "A Sankey chart for branching and converging flows with proportional ribbons, reachable-path highlighting, keyboard and touch inspection, and a left-to-right reveal",
       "categories": [
         "charts",
         "dashboard"
       ],
       "files": [
         {
-          "path": "area-chart/index.tsx",
+          "path": "sankey-chart/index.tsx",
+          "type": "registry:component"
+        },
+        {
+          "path": "sankey-chart/types.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "sankey-chart/model.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "sankey-chart/geometry.ts",
           "type": "registry:component"
         }
       ]
@@ -195,7 +255,7 @@
       "name": "treemap-chart",
       "type": "registry:component",
       "title": "Treemap Chart",
-      "description": "A squarified treemap chart component for hierarchical data with nested rectangles, animated layout, interactive tooltips, and responsive design",
+      "description": "A treemap with three proportional layouts, nested or flat views, group navigation, contrast-aware labels, growing tiles, and keyboard and touch inspection",
       "categories": [
         "charts",
         "dashboard"
@@ -208,6 +268,14 @@
         {
           "path": "treemap-chart/layout.ts",
           "type": "registry:component"
+        },
+        {
+          "path": "treemap-chart/model.ts",
+          "type": "registry:component"
+        },
+        {
+          "path": "treemap-chart/ink.ts",
+          "type": "registry:component"
         }
       ]
     },
@@ -215,7 +283,7 @@
       "name": "waterfall-chart",
       "type": "registry:component",
       "title": "Waterfall Chart",
-      "description": "A waterfall chart component visualizing cumulative increases, decreases, and running totals with animated floating bars and connectors",
+      "description": "A waterfall chart with absolute balances, computed sums and period subtotals, vertical and horizontal layouts, filled or outline bars, growth animations, and keyboard and touch inspection",
       "categories": [
         "charts",
         "dashboard"

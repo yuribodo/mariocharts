@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { ComponentsContent } from "./components-content";
 
 describe("ComponentsContent", () => {
-  it("organizes every shipped chart by analytical purpose", () => {
+  it("organizes chart previews by analytical purpose", () => {
     render(<ComponentsContent />);
 
     expect(screen.getByRole("heading", { level: 1, name: "Charts" })).toBeInTheDocument();
@@ -23,10 +23,11 @@ describe("ComponentsContent", () => {
       "href",
       "/docs/components/bar-chart",
     );
-    expect(screen.getByRole("link", { name: /area chart/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /line chart/i })).toHaveAttribute(
       "href",
-      "/docs/components/area-chart",
+      "/docs/components/line-chart",
     );
+    expect(screen.getByRole("link", { name: /sankey chart/i })).toHaveAttribute("href", "/docs/components/sankey-chart");
     expect(screen.getByRole("link", { name: /treemap/i })).toHaveAttribute(
       "href",
       "/docs/components/treemap",

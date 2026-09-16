@@ -34,7 +34,7 @@ const faqItems = [
   {
     question: "Do you plan to add more chart types?",
     answer:
-      "Absolutely. We're actively developing line charts, pie charts, area charts, and advanced visualizations like heatmaps and funnel charts.",
+      "Absolutely. We're actively developing line charts with optional area fills, pie charts, and advanced visualizations like heatmaps and funnel charts.",
   },
   {
     question: "Can I request a specific chart component?",
