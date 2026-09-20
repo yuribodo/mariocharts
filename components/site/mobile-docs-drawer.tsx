@@ -38,7 +38,6 @@ const sidebarNavItems: SidebarNavItem[] = [
     children: [
       { title: "Bar Chart", href: "/docs/components/bar-chart" },
       { title: "Line Chart", href: "/docs/components/line-chart" },
-      { title: "Area Chart", href: "/docs/components/area-chart" },
       { title: "Pie Chart", href: "/docs/components/pie-chart" },
       { title: "Radar Chart", href: "/docs/components/radar-chart" },
       { title: "Scatter Plot", href: "/docs/components/scatter-plot" },
@@ -46,6 +45,7 @@ const sidebarNavItems: SidebarNavItem[] = [
       { title: "Gauge Chart", href: "/docs/components/gauge-chart" },
       { title: "Heatmap", href: "/docs/components/heatmap" },
       { title: "Funnel Chart", href: "/docs/components/funnel-chart" },
+      { title: "Sankey Chart", href: "/docs/components/sankey-chart" },
       { title: "TreeMap", href: "/docs/components/treemap" },
       { title: "Waterfall Chart", href: "/docs/components/waterfall-chart" },
     ],

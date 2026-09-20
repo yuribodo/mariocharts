@@ -1,6 +1,6 @@
 # Treemap Chart
 
-A squarified treemap chart component for hierarchical data with nested rectangles, animated layout, interactive tooltips, and responsive design
+A treemap with three proportional layouts, nested or flat views, group navigation, contrast-aware labels, growing tiles, and keyboard and touch inspection
 
 ## Install
 
@@ -22,15 +22,32 @@ import { TreeMapChart } from "@/components/charts/treemap-chart";
 
 ```ts
 export interface TreeMapChartProps {
+  /** Hierarchical observations. Group totals derive from children, never add parent values. */
   readonly data: readonly TreeMapNode[];
   readonly colors?: readonly string[];
+  readonly layout?: TreeMapLayout;
+  /** Nested groups reserve headers; flat compares all leaf areas on one scale. */
+  readonly variant?: TreeMapVariant;
+  readonly sort?: "value" | "input";
+  /** Levels shown at once, 1–6. Smaller groups collapse to an explorable tile. */
+  readonly maxDepth?: number;
+  readonly gap?: number;
+  readonly borderRadius?: number;
+  readonly showValues?: boolean;
+  readonly showPercentages?: boolean;
+  readonly drillDown?: boolean;
+  readonly valueFormatter?: (value: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
   readonly className?: string;
   readonly height?: number;
   readonly loading?: boolean;
   readonly error?: string | null;
   readonly animation?: boolean;
   readonly onClick?: (node: TreeMapNode, path: readonly string[]) => void;
-  readonly tooltipRenderer?: TooltipRenderer<TreemapChartTooltipData>;
+  readonly tooltipRenderer?: TooltipRenderer<
+    TreemapChartTooltipData<TreeMapNode>
+  >;
 }
 ```
 

@@ -5,7 +5,6 @@ const { CHARTS, buildAllItems } = require('./manifest');
 describe('registry manifest', () => {
   it('declares all 12 shipped charts', () => {
     expect(CHARTS.map((c) => c.name).sort()).toEqual([
-      'area-chart',
       'bar-chart',
       'funnel-chart',
       'gauge-chart',
@@ -13,6 +12,7 @@ describe('registry manifest', () => {
       'line-chart',
       'pie-chart',
       'radar-chart',
+      'sankey-chart',
       'scatter-plot',
       'stacked-bar-chart',
       'treemap-chart',

@@ -1,703 +1,531 @@
 "use client";
 
-import { useState } from "react";
-import { Breadcrumbs } from "../../../../components/site/breadcrumbs";
-import { RadarChart } from "@/src/components/charts/radar-chart";
-import { ExampleShowcase } from "../../../../components/ui/example-showcase";
+import { useMemo, useState } from "react";
+import { RotateCcw } from "lucide-react";
+import {
+  RadarChart,
+  type RadarAxis,
+  type RadarSeries,
+} from "@/src/components/charts/radar-chart";
 import { APIReference } from "../../../../components/ui/api-reference";
-import { InstallationGuide } from "../../../../components/ui/installation-guide";
-import { ChartPolar } from "@phosphor-icons/react";
-import { AnimatedCheckbox } from "../../../../components/ui/animated-checkbox";
+import { CodeBlock } from "../../../../components/ui/code-block";
+import { CommandSnippet } from "../../../../components/ui/command-snippet";
 
-// Sample data sets for different examples
-
-// FIFA-style player stats (primary use case)
-const playerStats = [
+type Scores = {
+  frontend: number | string | null;
+  backend: number | string | null;
+  database: number | string | null;
+  devops: number | string | null;
+  design: number | string | null;
+};
+const axes: readonly RadarAxis<Scores>[] = [
+  { key: "frontend", label: "Frontend", min: 0, max: 100 },
+  { key: "backend", label: "Backend", min: 0, max: 100 },
+  { key: "database", label: "Database", min: 0, max: 100 },
+  { key: "devops", label: "DevOps", min: 0, max: 100 },
+  { key: "design", label: "Design", min: 0, max: 100 },
+];
+const teams: readonly RadarSeries<Scores>[] = [
   {
-    id: "messi",
-    name: "Lionel Messi",
-    data: {
-      pace: 85,
-      shooting: 92,
-      passing: 91,
-      dribbling: 95,
-      defending: 35,
-      physical: 65,
-    },
+    id: "atlas",
+    name: "Team Atlas",
+    data: { frontend: 85, backend: 70, database: 90, devops: 60, design: 75 },
   },
   {
-    id: "ronaldo",
-    name: "Cristiano Ronaldo",
-    data: {
-      pace: 87,
-      shooting: 93,
-      passing: 82,
-      dribbling: 88,
-      defending: 35,
-      physical: 77,
-    },
+    id: "nova",
+    name: "Team Nova",
+    data: { frontend: 65, backend: 90, database: 65, devops: 85, design: 50 },
   },
 ];
+const datasets: Record<string, readonly RadarSeries<Scores>[]> = {
+  teams,
+  single: teams.slice(0, 1),
+  zeros: [
+    {
+      ...teams[0]!,
+      data: { frontend: 0, backend: 0, database: 0, devops: 0, design: 0 },
+    },
+  ],
+  signed: [
+    {
+      ...teams[0]!,
+      data: {
+        frontend: -60,
+        backend: 20,
+        database: 80,
+        devops: -30,
+        design: 45,
+      },
+    },
+  ],
+  missing: [{ ...teams[0]!, data: { ...teams[0]!.data, backend: null } }],
+  invalid: [{ ...teams[0]!, data: { ...teams[0]!.data, backend: "85oops" } }],
+  outside: [{ ...teams[0]!, data: { ...teams[0]!.data, backend: 125 } }],
+  duplicate: [teams[0]!, { ...teams[1]!, id: teams[0]!.id }],
+  long: teams.map((item) => ({
+    ...item,
+    name: `${item.name} · cross-functional product team`,
+  })),
+};
+const example = `import { RadarChart, type RadarAxis } from "@/components/charts/radar-chart";
 
-const playerAxes = [
-  { key: "pace", label: "PAC" },
-  { key: "shooting", label: "SHO" },
-  { key: "passing", label: "PAS" },
-  { key: "dribbling", label: "DRI" },
-  { key: "defending", label: "DEF" },
-  { key: "physical", label: "PHY" },
+type Scores = { frontend: number; backend: number; database: number; devops: number; design: number };
+const axes = [
+  { key: "frontend", label: "Frontend", min: 0, max: 100 },
+  { key: "backend", label: "Backend", min: 0, max: 100 },
+  { key: "database", label: "Database", min: 0, max: 100 },
+  { key: "devops", label: "DevOps", min: 0, max: 100 },
+  { key: "design", label: "Design", min: 0, max: 100 },
+] satisfies readonly RadarAxis<Scores>[];
+
+const series = [
+  { id: "atlas", name: "Team Atlas", data: { frontend: 85, backend: 70, database: 90, devops: 60, design: 75 } },
+  { id: "nova", name: "Team Nova", data: { frontend: 65, backend: 90, database: 65, devops: 85, design: 50 } },
 ];
 
-// Skills assessment data
-const skillsData = [
-  {
-    id: "fullstack",
-    name: "Full Stack",
-    data: {
-      frontend: 85,
-      backend: 88,
-      database: 80,
-      devops: 70,
-      design: 55,
-    },
-  },
-  {
-    id: "frontend",
-    name: "Frontend Dev",
-    data: {
-      frontend: 95,
-      backend: 50,
-      database: 45,
-      devops: 40,
-      design: 85,
-    },
-  },
-];
-
-const skillsAxes = [
-  { key: "frontend", label: "Frontend" },
-  { key: "backend", label: "Backend" },
-  { key: "database", label: "Database" },
-  { key: "devops", label: "DevOps" },
-  { key: "design", label: "Design" },
-];
-
-// Product comparison data
-const productData = [
-  {
-    id: "productA",
-    name: "Product A",
-    data: {
-      price: 4,
-      quality: 5,
-      features: 4,
-      support: 3,
-      performance: 5,
-    },
-  },
-  {
-    id: "productB",
-    name: "Product B",
-    data: {
-      price: 5,
-      quality: 3,
-      features: 5,
-      support: 4,
-      performance: 3,
-    },
-  },
-  {
-    id: "productC",
-    name: "Product C",
-    data: {
-      price: 3,
-      quality: 4,
-      features: 3,
-      support: 5,
-      performance: 4,
-    },
-  },
-];
-
-const productAxes = [
-  { key: "price", label: "Price", max: 5 },
-  { key: "quality", label: "Quality", max: 5 },
-  { key: "features", label: "Features", max: 5 },
-  { key: "support", label: "Support", max: 5 },
-  { key: "performance", label: "Performance", max: 5 },
-];
-
-// API Reference data
-const radarChartProps = [
+export function TeamSkills() {
+  return <RadarChart axes={axes} series={series} height={400} ariaLabel="Team skills comparison" />;
+}`;
+const props = [
   {
     name: "series",
     type: "readonly RadarSeries<T>[]",
-    description: "Array of data series to display. Each series has id, name, data object, and optional color",
-    required: true
+    required: true,
+    description:
+      "Series with unique id, name, data, and optional color. Every axis needs a finite observation, including an explicit zero when measured.",
   },
   {
     name: "axes",
-    type: "readonly RadarAxis[]",
-    description: "Configuration for each axis/dimension with key, label, and optional min/max bounds",
-    required: true
+    type: "readonly RadarAxis<T>[]",
+    required: true,
+    description:
+      "At least three unique keys from T, with label and optional min/max. Order determines the polygon; keep it consistent between comparisons.",
   },
   {
-    name: "colors",
-    type: "readonly string[]",
-    default: "DEFAULT_COLORS",
-    description: "Array of colors to use for series (cycles through for multiple series)"
+    name: "gridType",
+    type: "'polygon' | 'circular'",
+    default: "'polygon'",
+    description:
+      "Shape of the reference grid. The data remains a polygon connecting measured vertices.",
+  },
+  {
+    name: "gridLevels",
+    type: "number",
+    default: "5",
+    description:
+      "Concentric grid levels, as an integer from 1 to 20. Each level is the same fraction of each axis range.",
   },
   {
     name: "height",
     type: "number",
     default: "400",
-    description: "Height of the chart in pixels"
+    description:
+      "Total frame height including the legend, in loading, empty, error, and ready states.",
   },
   {
-    name: "showAxisLabels",
+    name: "colors",
+    type: "readonly string[]",
+    default: "DEFAULT_COLORS",
+    description:
+      "Colors follow series order. A series color overrides the palette.",
+  },
+  {
+    name: "showLegend",
     type: "boolean",
-    default: "true",
-    description: "Show labels at the end of each axis"
+    default: "series.length > 1",
+    description:
+      "Wrapping, scrollable legend with keyboard inspection and optional series selection.",
   },
   {
     name: "showDots",
     type: "boolean",
     default: "true",
-    description: "Show dots at each data point vertex"
+    description:
+      "Show data markers. Hover, touch, and keyboard inspection remain available when hidden.",
+  },
+  {
+    name: "showAxisLabels",
+    type: "boolean",
+    default: "true",
+    description:
+      "Wrap labels in bounded boxes; full names remain in accessible labels and the data table.",
+  },
+  {
+    name: "showAxisLines",
+    type: "boolean",
+    default: "true",
+    description: "Show spokes from the center to each axis endpoint.",
+  },
+  {
+    name: "showGridLines",
+    type: "boolean",
+    default: "true",
+    description: "Show the reference grid.",
+  },
+  {
+    name: "labelOffset",
+    type: "number",
+    default: "30",
+    description:
+      "Label distance in pixels, reduced on narrow frames to keep labels inside the chart.",
   },
   {
     name: "fillOpacity",
     type: "number",
     default: "0.25",
-    description: "Opacity of the polygon fill (0-1)"
+    description: "Polygon fill opacity, from 0 to 1.",
   },
   {
     name: "strokeWidth",
     type: "number",
     default: "2",
-    description: "Width of the polygon stroke in pixels"
-  },
-  {
-    name: "labelOffset",
-    type: "number",
-    default: "25",
-    description: "Distance of axis labels from the chart edge"
+    description: "Finite, nonnegative polygon stroke width in pixels.",
   },
   {
     name: "loading",
     type: "boolean",
     default: "false",
-    description: "Show loading state with animated skeleton"
+    description:
+      "Retain series for a skeleton with identical geometry. Without data, show a neutral placeholder.",
   },
   {
     name: "error",
     type: "string | null",
     default: "null",
-    description: "Error message to display"
+    description: "Show an actionable error inside the existing frame.",
   },
   {
     name: "animation",
     type: "boolean",
     default: "true",
-    description: "Enable entrance and hover animations"
+    description:
+      "Grow data from the fixed center, leaving the reference grid still. Respects reduced motion; keyboard focus completes entrance immediately.",
+  },
+  {
+    name: "valueFormatter",
+    type: "(value: number, axis: RadarAxis<T>) => string",
+    default: "formatValue",
+    description:
+      "Format values and ranges in tooltips and accessible data. Use the axis key for units.",
   },
   {
     name: "onSeriesClick",
     type: "(series: RadarSeries<T>, index: number) => void",
-    description: "Callback fired when a series polygon is clicked"
+    description:
+      "Original series and index, from a polygon, point, legend click, or keyboard activation.",
   },
   {
     name: "onAxisClick",
-    type: "(axis: RadarAxis, index: number) => void",
-    description: "Callback fired when an axis is clicked"
+    type: "(axis: RadarAxis<T>, index: number) => void",
+    description:
+      "Original axis and index. Axis labels and endpoints are keyboard accessible when this callback is provided.",
+  },
+  {
+    name: "tooltipRenderer",
+    type: "TooltipRenderer<RadarChartTooltipData<T>>",
+    description:
+      "Custom content with original data, series name and color. Point inspection adds axisLabel, parsed value, formattedValue, and type 'point'.",
+  },
+  { name: "ariaLabel", type: "string", description: "Accessible chart name." },
+  {
+    name: "description",
+    type: "string",
+    description:
+      "Context prepended to keyboard instructions and the scale explanation.",
   },
   {
     name: "className",
     type: "string",
-    description: "Additional CSS classes to apply to the container"
-  }
-];
-
-// Installation steps
-const installationSteps = [
-  {
-    title: "Initialize Mario Charts (first time only)",
-    description: "Set up Mario Charts in your React project. This configures paths and dependencies.",
-    code: `# Initialize the project (run once)
-npx mario-charts@latest init
-
-# Or initialize with components
-npx mario-charts@latest init --components radar-chart`,
-    language: "bash"
+    description: "Additional classes for the persistent chart frame.",
   },
-  {
-    title: "Add the RadarChart component",
-    description: "Install the RadarChart component using the CLI. This automatically handles dependencies.",
-    code: `# Add RadarChart component
-npx mario-charts@latest add radar-chart
-
-# Add multiple chart components at once
-npx mario-charts@latest add radar-chart bar-chart pie-chart`,
-    language: "bash"
-  },
-  {
-    title: "Start using the component",
-    description: "Import and use the RadarChart in your React components.",
-    code: `import { RadarChart } from "@/components/charts/radar-chart";
-
-const playerStats = [
-  {
-    id: "player1",
-    name: "Player 1",
-    data: { pace: 85, shooting: 92, passing: 91 }
-  }
-];
-
-const axes = [
-  { key: "pace", label: "Pace" },
-  { key: "shooting", label: "Shooting" },
-  { key: "passing", label: "Passing" }
-];
-
-<RadarChart series={playerStats} axes={axes} />`,
-    language: "tsx"
-  }
 ];
 
 export function RadarChartContent() {
-  const [selectedSeries, setSelectedSeries] = useState<string | null>(null);
-  const [showAnimation, setShowAnimation] = useState(true);
-  const [chartKey, setChartKey] = useState(0);
-  const [showDots, setShowDots] = useState(true);
-
-  const replayAnimation = () => {
-    setChartKey(prev => prev + 1);
-  };
-
+  const [dataset, setDataset] = useState("teams");
+  const [state, setState] = useState("ready");
+  const [gridType, setGridType] = useState<"polygon" | "circular">("polygon");
+  const [autoScale, setAutoScale] = useState(false);
+  const [levels, setLevels] = useState(5);
+  const [fill, setFill] = useState(0.25);
+  const [dots, setDots] = useState(true);
+  const [labels, setLabels] = useState(true);
+  const [legend, setLegend] = useState(true);
+  const [animation, setAnimation] = useState(true);
+  const [replay, setReplay] = useState(0);
+  const [selection, setSelection] = useState<string | null>(null);
+  const loading = state === "loading" || state === "initial-loading";
+  // Keep input identity stable through inspection and optional control changes.
+  const activeAxes = useMemoAxes(dataset, autoScale);
   return (
-    <div className="max-w-none space-y-12">
-      {/* Breadcrumbs */}
-      <Breadcrumbs />
-
-      {/* Hero Section */}
-      <div className="flex flex-col space-y-4 pb-8 pt-6">
-        <div className="flex items-center space-x-3">
-          <ChartPolar size={24} weight="duotone" className="text-primary" />
-          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
-            Radar Chart
-          </h1>
-        </div>
-        <p className="text-xl text-muted-foreground leading-7 max-w-3xl">
-          A versatile radar chart (spider/web chart) for visualizing multi-dimensional data.
-          Perfect for player stats, skills assessment, product comparisons, and performance metrics.
+    <div className="space-y-12">
+      <header className="space-y-4">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Components
         </p>
-
-        {/* Features */}
-        <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-            Multi-Series
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-            Gaming Ready
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-            Interactive Tooltips
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-            Smooth Animations
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-            Keyboard Accessible
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-            Responsive
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-foreground rounded-full"></div>
-            TypeScript
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Start Example */}
-      <ExampleShowcase
-        title="Basic Radar Chart"
-        description="Compare developer skill profiles across multiple dimensions with interactive hover and click"
-        preview={
-          <div className="space-y-4">
-            <div className="h-96">
-              <RadarChart
-                key={chartKey}
-                series={skillsData}
-                axes={skillsAxes}
-                showDots={showDots}
-                animation={showAnimation}
-                onSeriesClick={(series) => setSelectedSeries(series.id)}
-              />
-            </div>
-
-            {/* Interactive feedback */}
-            <div className="p-3 bg-muted/50 rounded-lg border text-sm">
-              <div className="font-medium">
-                Selected: {selectedSeries
-                  ? skillsData.find(s => s.id === selectedSeries)?.name
-                  : 'Click the chart to select'}
-              </div>
-            </div>
-
-            {/* Controls */}
-            <div className="space-y-3 pt-2 border-t">
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center space-x-6">
-                  <AnimatedCheckbox
-                    checked={showAnimation}
-                    onChange={setShowAnimation}
-                    label="Animations"
-                    id="basic-animations"
-                  />
-
-                  <AnimatedCheckbox
-                    checked={showDots}
-                    onChange={setShowDots}
-                    label="Show Dots"
-                    id="show-dots"
-                  />
-                </div>
-
-                <button
-                  onClick={replayAnimation}
-                  disabled={!showAnimation}
-                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-                >
-                  <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  Replay Animation
-                </button>
-              </div>
-            </div>
-          </div>
-        }
-        code={`import { RadarChart } from '@/components/charts/radar-chart';
-
-const skillsData = [
-  {
-    id: "fullstack",
-    name: "Full Stack",
-    data: {
-      frontend: 85,
-      backend: 88,
-      database: 80,
-      devops: 70,
-      design: 55,
-    },
-  },
-  {
-    id: "frontend",
-    name: "Frontend Dev",
-    data: {
-      frontend: 95,
-      backend: 50,
-      database: 45,
-      devops: 40,
-      design: 85,
-    },
-  },
-];
-
-const skillsAxes = [
-  { key: "frontend", label: "Frontend" },
-  { key: "backend", label: "Backend" },
-  { key: "database", label: "Database" },
-  { key: "devops", label: "DevOps" },
-  { key: "design", label: "Design" },
-];
-
-export function SkillsRadarChart() {
-  return (
-    <RadarChart
-      series={skillsData}
-      axes={skillsAxes}
-      gridType="polygon"
-      onSeriesClick={(series) => {
-        console.log('Clicked:', series);
-      }}
-    />
-  );
-}`}
-      />
-
-      {/* Installation */}
-      <InstallationGuide
-        title="Installation"
-        description="Get started with the RadarChart component in just a few steps."
-        cliCommand="npx mario-charts@latest add radar-chart"
-        steps={installationSteps}
-        copyPasteCode={`// Complete RadarChart component code available after CLI installation`}
-      />
-
-      {/* Advanced Examples */}
-      <div className="space-y-8">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          Radar Chart
+        </h1>
+        <p className="max-w-2xl text-base leading-7 text-muted-foreground">
+          Compare the profile of a few series across several dimensions. Inspect
+          each value and its range, with a polygon or circular reference grid.
+        </p>
+        <CommandSnippet command="npx mario-charts@latest add radar-chart" />
+      </header>
+      <section aria-labelledby="playground-title" className="space-y-5">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight mb-2">Examples</h2>
-          <p className="text-muted-foreground">
-            Explore different configurations and use cases for the RadarChart component.
+          <h2
+            id="playground-title"
+            className="text-xl font-semibold tracking-tight"
+          >
+            Playground
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Compare grid styles, scales, loading, and interaction.
           </p>
         </div>
-
-        {/* FIFA-style Player Comparison */}
-        <ExampleShowcase
-          title="FIFA-Style Player Stats"
-          description="Compare two players with overlapping radar polygons - a classic gaming use case"
-          preview={
-            <div className="h-96">
-              <RadarChart
-                key={`fifa-${chartKey}`}
-                series={playerStats}
-                axes={playerAxes}
-                animation={showAnimation}
-                fillOpacity={0.2}
-                height={380}
-              />
+        <div className="grid overflow-hidden rounded-md border bg-card lg:grid-cols-[240px_minmax(0,1fr)]">
+          <div className="space-y-5 border-b p-4 lg:border-b-0 lg:border-r">
+            <div>
+              <h3 className="text-sm font-medium">Settings</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                The same chart through every state.
+              </p>
             </div>
-          }
-          code={`import { RadarChart } from '@/components/charts/radar-chart';
-
-const playerStats = [
-  {
-    id: "messi",
-    name: "Lionel Messi",
-    data: {
-      pace: 85,
-      shooting: 92,
-      passing: 91,
-      dribbling: 95,
-      defending: 35,
-      physical: 65,
-    },
-  },
-  {
-    id: "ronaldo",
-    name: "Cristiano Ronaldo",
-    data: {
-      pace: 87,
-      shooting: 93,
-      passing: 82,
-      dribbling: 88,
-      defending: 35,
-      physical: 77,
-    },
-  },
-];
-
-const playerAxes = [
-  { key: "pace", label: "PAC" },
-  { key: "shooting", label: "SHO" },
-  { key: "passing", label: "PAS" },
-  { key: "dribbling", label: "DRI" },
-  { key: "defending", label: "DEF" },
-  { key: "physical", label: "PHY" },
-];
-
-export function PlayerComparison() {
-  return (
-    <RadarChart
-      series={playerStats}
-      axes={playerAxes}
-      fillOpacity={0.2}
-    />
-  );
-}`}
-        />
-
-        {/* Product Comparison - 3 Series */}
-        <ExampleShowcase
-          title="Product Comparison"
-          description="Compare multiple products across various dimensions with automatic color cycling"
-          preview={
-            <div className="h-96">
-              <RadarChart
-                key={`product-${chartKey}`}
-                series={productData}
-                axes={productAxes}
-                animation={showAnimation}
-                fillOpacity={0.15}
-                height={380}
+            <label className="grid gap-2 text-sm">
+              Data
+              <select
+                aria-label="Data"
+                value={dataset}
+                onChange={(e) => {
+                  setDataset(e.target.value);
+                  setSelection(null);
+                }}
+                className="h-10 min-w-0 rounded border bg-background px-2"
+              >
+                <option value="teams">Team skills</option>
+                <option value="single">Single team</option>
+                <option value="zeros">All zeros</option>
+                <option value="signed">Signed values</option>
+                <option value="long">Long labels</option>
+                <option value="missing">Missing observation</option>
+                <option value="invalid">Malformed number</option>
+                <option value="outside">Outside fixed range</option>
+                <option value="duplicate">Duplicate identity</option>
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm">
+              State
+              <select
+                aria-label="State"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                className="h-10 min-w-0 rounded border bg-background px-2"
+              >
+                <option value="ready">Ready</option>
+                <option value="loading">Loading</option>
+                <option value="initial-loading">Initial loading</option>
+                <option value="empty">Empty</option>
+                <option value="error">Error</option>
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm">
+              Grid
+              <select
+                aria-label="Grid"
+                value={gridType}
+                onChange={(e) => setGridType(e.target.value as typeof gridType)}
+                className="h-10 min-w-0 rounded border bg-background px-2"
+              >
+                <option value="polygon">Polygon</option>
+                <option value="circular">Circular</option>
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm">
+              Scale
+              <select
+                aria-label="Scale"
+                value={autoScale ? "auto" : "fixed"}
+                onChange={(e) => setAutoScale(e.target.value === "auto")}
+                className="h-10 min-w-0 rounded border bg-background px-2"
+              >
+                <option value="fixed">
+                  {dataset === "signed"
+                    ? "Fixed −100 to 100"
+                    : "Fixed 0 to 100"}
+                </option>
+                <option value="auto">Auto per axis</option>
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm">
+              Grid levels · {levels}
+              <input
+                aria-label="Grid levels"
+                type="range"
+                min={1}
+                max={8}
+                step={1}
+                value={levels}
+                onChange={(e) => setLevels(Number(e.target.value))}
               />
-            </div>
-          }
-          code={`import { RadarChart } from '@/components/charts/radar-chart';
-
-const productData = [
-  {
-    id: "productA",
-    name: "Product A",
-    data: { price: 4, quality: 5, features: 4, support: 3, performance: 5 },
-  },
-  {
-    id: "productB",
-    name: "Product B",
-    data: { price: 5, quality: 3, features: 5, support: 4, performance: 3 },
-  },
-  {
-    id: "productC",
-    name: "Product C",
-    data: { price: 3, quality: 4, features: 3, support: 5, performance: 4 },
-  },
-];
-
-const productAxes = [
-  { key: "price", label: "Price", max: 5 },
-  { key: "quality", label: "Quality", max: 5 },
-  { key: "features", label: "Features", max: 5 },
-  { key: "support", label: "Support", max: 5 },
-  { key: "performance", label: "Performance", max: 5 },
-];
-
-export function ProductComparison() {
-  return (
-    <RadarChart
-      series={productData}
-      axes={productAxes}
-      fillOpacity={0.15}
-    />
-  );
-}`}
-        />
-
-        {/* Custom Styling */}
-        <ExampleShowcase
-          title="Custom Styling"
-          description="Customize colors, fill opacity, and stroke width for unique visual styles"
-          preview={
-            <div className="h-96">
-              <RadarChart
-                key={`custom-${chartKey}`}
-                series={[
-                  {
-                    id: "custom",
-                    name: "Custom Style",
-                    data: {
-                      metric1: 80,
-                      metric2: 65,
-                      metric3: 90,
-                      metric4: 75,
-                      metric5: 85,
-                      metric6: 70,
-                    },
-                  },
-                ]}
-                axes={[
-                  { key: "metric1", label: "Speed" },
-                  { key: "metric2", label: "Power" },
-                  { key: "metric3", label: "Accuracy" },
-                  { key: "metric4", label: "Stamina" },
-                  { key: "metric5", label: "Agility" },
-                  { key: "metric6", label: "Defense" },
-                ]}
-                colors={['#8b5cf6']}
-                fillOpacity={0.4}
-                strokeWidth={3}
-                gridLevels={4}
-                animation={showAnimation}
-                height={380}
+            </label>
+            <label className="grid gap-2 text-sm">
+              Fill opacity · {Math.round(fill * 100)}%
+              <input
+                aria-label="Fill opacity"
+                type="range"
+                min={0}
+                max={0.6}
+                step={0.05}
+                value={fill}
+                onChange={(e) => setFill(Number(e.target.value))}
               />
+            </label>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={dots}
+                  onChange={(e) => setDots(e.target.checked)}
+                />
+                Show dots
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={labels}
+                  onChange={(e) => setLabels(e.target.checked)}
+                />
+                Axis labels
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={legend}
+                  onChange={(e) => setLegend(e.target.checked)}
+                />
+                Legend
+              </label>
             </div>
-          }
-          code={`import { RadarChart } from '@/components/charts/radar-chart';
-
-export function CustomStyledRadar() {
-  return (
-    <RadarChart
-      series={[{
-        id: "custom",
-        name: "Custom Style",
-        data: {
-          speed: 80,
-          power: 65,
-          accuracy: 90,
-          stamina: 75,
-          agility: 85,
-          defense: 70,
-        },
-      }]}
-      axes={[
-        { key: "speed", label: "Speed" },
-        { key: "power", label: "Power" },
-        { key: "accuracy", label: "Accuracy" },
-        { key: "stamina", label: "Stamina" },
-        { key: "agility", label: "Agility" },
-        { key: "defense", label: "Defense" },
-      ]}
-      colors={['#8b5cf6']}
-      fillOpacity={0.4}
-      strokeWidth={3}
-      gridLevels={4}
-    />
-  );
-}`}
-        />
-      </div>
-
-      {/* Chart States */}
-      <div className="space-y-8">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight mb-2">Chart States</h2>
-          <p className="text-muted-foreground">
-            Built-in states for loading, error, and empty data scenarios.
+            <div className="flex items-center justify-between border-t pt-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={animation}
+                  onChange={(e) => setAnimation(e.target.checked)}
+                />
+                Animate
+              </label>
+              <button
+                type="button"
+                aria-label="Replay animation"
+                onClick={() => setReplay((v) => v + 1)}
+                disabled={!animation || loading}
+                className="rounded border p-2 text-muted-foreground hover:text-foreground disabled:opacity-40"
+              >
+                <RotateCcw size={16} />
+              </button>
+            </div>
+          </div>
+          <div className="flex min-w-0 flex-col justify-center p-5 sm:p-8">
+            <div className="mb-6">
+              <h3 className="font-medium">Team skills</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Illustrative assessment ·{" "}
+                {autoScale
+                  ? "independent axis ranges"
+                  : dataset === "signed"
+                    ? "−100 to 100 on each axis"
+                    : "0 to 100 on each axis"}
+              </p>
+            </div>
+            <RadarChart
+              key={replay}
+              series={
+                state === "empty" || state === "initial-loading"
+                  ? []
+                  : datasets[dataset]!
+              }
+              axes={activeAxes}
+              gridType={gridType}
+              gridLevels={levels}
+              fillOpacity={fill}
+              showDots={dots}
+              showAxisLabels={labels}
+              showLegend={legend}
+              animation={animation}
+              loading={loading}
+              height={400}
+              error={
+                state === "error"
+                  ? "Could not load the assessment. Try again when your connection is restored."
+                  : null
+              }
+              ariaLabel="Team skills comparison"
+              description="Illustrative scores for two product teams."
+              onSeriesClick={(item) => setSelection(`Selected ${item.name}`)}
+              onAxisClick={(axis) =>
+                setSelection(`Selected ${axis.label} axis`)
+              }
+            />
+            <p className="mt-5 text-xs leading-5 text-muted-foreground">
+              Hover or tap a point. Left/Right changes axis; Up/Down changes
+              team. Enter selects.
+            </p>
+            <p
+              role="status"
+              className="mt-2 min-h-5 text-xs text-muted-foreground"
+            >
+              {selection}
+            </p>
+          </div>
+        </div>
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Usage</h2>
+        <CodeBlock code={example} language="tsx" />
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Reading the chart</h2>
+        <div className="space-y-3 text-sm leading-6 text-muted-foreground">
+          <p>
+            Use the same explicit range when dimensions share a scale, such as
+            these 0–100 scores. With automatic ranges, the same distance from
+            the center can represent different values on different axes. Hover
+            or focus a point to see its range.
+          </p>
+          <p>
+            Negative values are supported when the axis range includes them. The
+            center represents that axis’s minimum, which may be below zero.
+            All-zero observations stay at the center of a 0–100 scale and remain
+            keyboard accessible.
+          </p>
+          <p>
+            Keep the number and order of dimensions consistent. Polygon area
+            depends on the chosen ranges and axis order; use the individual
+            observations for exact comparisons. Missing observations and values
+            outside explicit bounds produce an error instead of a misleading
+            shape.
           </p>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Loading State */}
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="font-semibold mb-4">Loading State</h3>
-            <div className="h-64">
-              <RadarChart
-                series={[]}
-                axes={skillsAxes}
-                loading={true}
-              />
-            </div>
-          </div>
-
-          {/* Error State */}
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="font-semibold mb-4">Error State</h3>
-            <div className="h-64">
-              <RadarChart
-                series={[]}
-                axes={skillsAxes}
-                error="Failed to load chart data. Please try again."
-              />
-            </div>
-          </div>
-
-          {/* Empty State */}
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="font-semibold mb-4">Empty State</h3>
-            <div className="h-64">
-              <RadarChart
-                series={[]}
-                axes={[]}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* API Reference */}
-      <APIReference
-        title="API Reference"
-        description="Complete list of props available for the RadarChart component."
-        props={radarChartProps}
-      />
+      </section>
+      <APIReference props={props} />
     </div>
+  );
+}
+
+function useMemoAxes(dataset: string, autoScale: boolean) {
+  return useMemo(
+    () =>
+      axes.map((axis) => ({
+        key: axis.key,
+        label:
+          dataset === "long"
+            ? `${axis.label} engineering and product delivery`
+            : axis.label,
+        ...(autoScale
+          ? {}
+          : { min: dataset === "signed" ? -100 : 0, max: 100 }),
+      })),
+    [dataset, autoScale],
   );
 }

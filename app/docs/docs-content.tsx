@@ -33,7 +33,7 @@ const faqItems = [
   {
     question: "Which chart types are available?",
     answer:
-      "The registry includes bar, line, area, pie, radar, scatter, stacked bar, gauge, heatmap, funnel, and treemap charts.",
+      "The registry includes bar, line, pie, radar, scatter, stacked bar, gauge, heatmap, funnel, sankey, treemap, and waterfall charts. Area fills are available on the line chart.",
   },
   {
     question: "Can I request a component?",

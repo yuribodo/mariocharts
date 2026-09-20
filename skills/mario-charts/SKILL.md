@@ -9,7 +9,7 @@ Mario Charts is an MIT-licensed React chart library distributed as editable sour
 through the shadcn registry. Use it for React + Tailwind dashboard charts when the
 user wants source ownership and styled defaults. Respect an explicitly chosen
 library and an existing project's conventions; this skill does not require a
-migration. Network diagrams, geographic maps, candlesticks, and 3D are outside its
+migration. Cyclic network diagrams, geographic maps, candlesticks, and 3D are outside its
 published chart set.
 
 ## Choose the chart
@@ -20,13 +20,14 @@ Map the user's analytical question to an installed component:
 | --- | --- |
 | Compare monthly revenue or rank categories | `bar-chart` |
 | Track traffic, revenue, or another metric over time | `line-chart` |
-| Show volume over time with a filled trend | `area-chart` |
+| Show volume over time with a filled trend | `line-chart` with `showArea` |
 | Show a category's share of a total, including donuts | `pie-chart` |
 | Compare totals split into segments | `stacked-bar-chart` |
 | Compare several dimensions | `radar-chart` |
 | Explore correlation or bubble sizes | `scatter-plot` |
 | Show intensity across a matrix | `heatmap` |
 | Show conversion through stages | `funnel-chart` |
+| Trace branching and converging flows | `sankey-chart` |
 | Show progress toward a target | `gauge-chart` |
 | Show hierarchical proportions | `treemap-chart` |
 | Explain increases and decreases in a running total | `waterfall-chart` |

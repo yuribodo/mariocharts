@@ -8,7 +8,6 @@
 | --- | --- | --- |
 | Bar Chart | [bar-chart.md](https://mariocharts.com/docs/components/bar-chart.md) | `npx shadcn@latest add https://mariocharts.com/r/bar-chart.json` |
 | Line Chart | [line-chart.md](https://mariocharts.com/docs/components/line-chart.md) | `npx shadcn@latest add https://mariocharts.com/r/line-chart.json` |
-| Area Chart | [area-chart.md](https://mariocharts.com/docs/components/area-chart.md) | `npx shadcn@latest add https://mariocharts.com/r/area-chart.json` |
 | Pie Chart | [pie-chart.md](https://mariocharts.com/docs/components/pie-chart.md) | `npx shadcn@latest add https://mariocharts.com/r/pie-chart.json` |
 | Scatter Plot | [scatter-plot.md](https://mariocharts.com/docs/components/scatter-plot.md) | `npx shadcn@latest add https://mariocharts.com/r/scatter-plot.json` |
 | Radar Chart | [radar-chart.md](https://mariocharts.com/docs/components/radar-chart.md) | `npx shadcn@latest add https://mariocharts.com/r/radar-chart.json` |

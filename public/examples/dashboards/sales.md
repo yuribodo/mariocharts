@@ -6,7 +6,7 @@
 
 - Bar and stacked bar charts for period comparisons
 - Funnel chart for conversion stages
-- Area / line series for trends over time
+- Line series with optional area fills for trends over time
 
 ## Install related charts
 
@@ -14,7 +14,6 @@
 npx shadcn@latest add https://mariocharts.com/r/bar-chart.json
 npx shadcn@latest add https://mariocharts.com/r/stacked-bar-chart.json
 npx shadcn@latest add https://mariocharts.com/r/funnel-chart.json
-npx shadcn@latest add https://mariocharts.com/r/area-chart.json
 npx shadcn@latest add https://mariocharts.com/r/line-chart.json
 ```
 

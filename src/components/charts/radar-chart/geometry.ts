@@ -17,7 +17,7 @@ export function polarToCartesian(
   cx: number,
   cy: number,
   radius: number,
-  angleInRadians: number
+  angleInRadians: number,
 ): { x: number; y: number } {
   // Offset by -PI/2 to start from top (12 o'clock) instead of right (3 o'clock)
   const adjustedAngle = angleInRadians - Math.PI / 2;
@@ -35,7 +35,10 @@ export function polarToCartesian(
  * @param totalAxes - Total number of axes
  * @returns Angle in radians
  */
-export function calculateAxisAngle(axisIndex: number, totalAxes: number): number {
+export function calculateAxisAngle(
+  axisIndex: number,
+  totalAxes: number,
+): number {
   if (totalAxes <= 0) return 0;
   return (2 * Math.PI * axisIndex) / totalAxes;
 }
@@ -47,12 +50,12 @@ export function calculateAxisAngle(axisIndex: number, totalAxes: number): number
  * @returns SVG path d attribute string
  */
 export function generatePolygonPath(
-  points: readonly { x: number; y: number }[]
+  points: readonly { x: number; y: number }[],
 ): string {
-  if (points.length === 0) return '';
+  if (points.length === 0) return "";
 
   const firstPoint = points[0];
-  if (!firstPoint) return '';
+  if (!firstPoint) return "";
 
   if (points.length === 1) {
     // Single point - return a small circle marker
@@ -76,8 +79,8 @@ export function generatePolygonPath(
     }
   }
 
-  pathParts.push('Z'); // Close the path
-  return pathParts.join(' ');
+  pathParts.push("Z"); // Close the path
+  return pathParts.join(" ");
 }
 
 /**
@@ -91,16 +94,16 @@ export function generatePolygonPath(
 export function generateCircularGridPath(
   cx: number,
   cy: number,
-  radius: number
+  radius: number,
 ): string {
-  if (radius <= 0) return '';
+  if (radius <= 0) return "";
 
   // Draw circle using two arcs (SVG can't draw a full circle with a single arc)
   return [
     `M ${cx - radius} ${cy}`,
     `A ${radius} ${radius} 0 1 1 ${cx + radius} ${cy}`,
     `A ${radius} ${radius} 0 1 1 ${cx - radius} ${cy}`,
-  ].join(' ');
+  ].join(" ");
 }
 
 /**
@@ -117,9 +120,9 @@ export function generatePolygonGridPath(
   cx: number,
   cy: number,
   radius: number,
-  sides: number
+  sides: number,
 ): string {
-  if (radius <= 0 || sides < 3) return '';
+  if (radius <= 0 || sides < 3) return "";
 
   const points: { x: number; y: number }[] = [];
 
@@ -147,47 +150,50 @@ export function calculateLabelPosition(
   cx: number,
   cy: number,
   radius: number,
-  offset: number
+  offset: number,
 ): {
   x: number;
   y: number;
-  textAnchor: 'start' | 'middle' | 'end';
-  dominantBaseline: 'auto' | 'middle' | 'hanging';
+  textAnchor: "start" | "middle" | "end";
+  dominantBaseline: "auto" | "middle" | "hanging";
 } {
   const labelRadius = radius + offset;
   const { x, y } = polarToCartesian(cx, cy, labelRadius, angle);
 
   // Normalize angle to 0-2π range
-  const normalizedAngle = ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  const normalizedAngle =
+    ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
 
   // Determine text anchor based on position
-  let textAnchor: 'start' | 'middle' | 'end';
-  let dominantBaseline: 'auto' | 'middle' | 'hanging';
+  let textAnchor: "start" | "middle" | "end";
+  let dominantBaseline: "auto" | "middle" | "hanging";
 
   // Right side of chart
   if (normalizedAngle > 0.1 && normalizedAngle < Math.PI - 0.1) {
-    textAnchor = 'start';
+    textAnchor = "start";
   }
   // Left side of chart
-  else if (normalizedAngle > Math.PI + 0.1 && normalizedAngle < 2 * Math.PI - 0.1) {
-    textAnchor = 'end';
+  else if (
+    normalizedAngle > Math.PI + 0.1 &&
+    normalizedAngle < 2 * Math.PI - 0.1
+  ) {
+    textAnchor = "end";
   }
   // Top or bottom
   else {
-    textAnchor = 'middle';
+    textAnchor = "middle";
   }
 
   // Vertical alignment
   // Top half
   if (normalizedAngle < 0.1 || normalizedAngle > 2 * Math.PI - 0.1) {
-    dominantBaseline = 'auto'; // Bottom of text aligns (text appears above)
+    dominantBaseline = "auto"; // Bottom of text aligns (text appears above)
   }
   // Bottom half
   else if (normalizedAngle > Math.PI - 0.1 && normalizedAngle < Math.PI + 0.1) {
-    dominantBaseline = 'hanging'; // Top of text aligns (text appears below)
-  }
-  else {
-    dominantBaseline = 'middle';
+    dominantBaseline = "hanging"; // Top of text aligns (text appears below)
+  } else {
+    dominantBaseline = "middle";
   }
 
   return { x, y, textAnchor, dominantBaseline };
@@ -203,7 +209,7 @@ export function calculateLabelPosition(
  */
 export function isPointInPolygon(
   point: { x: number; y: number },
-  polygon: readonly { x: number; y: number }[]
+  polygon: readonly { x: number; y: number }[],
 ): boolean {
   if (polygon.length < 3) return false;
 
@@ -220,8 +226,8 @@ export function isPointInPolygon(
     const xj = pointJ.x;
     const yj = pointJ.y;
 
-    const intersect = ((yi > y) !== (yj > y)) &&
-      (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    const intersect =
+      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
 
     if (intersect) inside = !inside;
   }
@@ -237,17 +243,79 @@ export function isPointInPolygon(
  * @returns Centroid coordinates {x, y}
  */
 export function calculatePolygonCentroid(
-  points: readonly { x: number; y: number }[]
+  points: readonly { x: number; y: number }[],
 ): { x: number; y: number } {
   if (points.length === 0) return { x: 0, y: 0 };
 
   const sum = points.reduce(
     (acc, point) => ({ x: acc.x + point.x, y: acc.y + point.y }),
-    { x: 0, y: 0 }
+    { x: 0, y: 0 },
   );
 
   return {
     x: sum.x / points.length,
     y: sum.y / points.length,
   };
+}
+
+/** Reserve bounded label space while keeping the frame fixed across states. */
+export function getRadarLayout(
+  width: number,
+  height: number,
+  labels: boolean,
+  offset: number,
+) {
+  const gap = labels ? Math.min(offset, width * 0.06) : 0;
+  const side = labels ? Math.min(80, width * 0.14) : 0;
+  return {
+    cx: width / 2,
+    cy: height / 2,
+    radius: Math.max(
+      0,
+      Math.min(
+        width / 2 - 12 - side - gap,
+        height / 2 - (labels ? 28 : 12) - gap,
+      ),
+    ),
+    labelOffset: gap,
+  };
+}
+
+/** Fixed-size, wrapping label boxes prevent long text from overflowing the SVG. */
+export function getAxisLabelBox(
+  angle: number,
+  layout: ReturnType<typeof getRadarLayout>,
+  width: number,
+) {
+  const position = calculateLabelPosition(
+    angle,
+    layout.cx,
+    layout.cy,
+    layout.radius,
+    layout.labelOffset,
+  );
+  const available =
+    position.textAnchor === "start"
+      ? width - position.x - 8
+      : position.textAnchor === "end"
+        ? position.x - 8
+        : width - 16;
+  const boxWidth = Math.max(0, Math.min(140, available));
+  return {
+    x:
+      position.textAnchor === "end"
+        ? position.x - boxWidth
+        : position.textAnchor === "middle"
+          ? position.x - boxWidth / 2
+          : position.x,
+    y: position.y - 18,
+    width: boxWidth,
+    height: 36,
+    align:
+      position.textAnchor === "start"
+        ? "left"
+        : position.textAnchor === "end"
+          ? "right"
+          : "center",
+  } as const;
 }

@@ -1,108 +1,67 @@
 "use client";
 
-import * as React from "react";
-import { memo, useMemo } from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import { useContainerDimensions, ChartTooltip } from "../_shared";
+import { memo, useMemo, useState, useRef, useEffect, useId } from "react";
+import { animate, useMotionValue, useReducedMotion } from "framer-motion";
+import { useContainerDimensions, formatValue } from "../_shared";
 import type { GaugeChartTooltipData, TooltipRenderer } from "../_shared";
+import { InspectionTooltip } from "../_shared/inspection-tooltip";
 import { cn } from "../../../../lib/utils";
 import {
-  clampValue,
-  valueToAngle,
+  buildGaugeModel,
+  getGaugeGeometry,
+  computeZoneArcs,
   polarToCartesian,
   describeArcPath,
-  computeZoneArcs,
   GAUGE_START_ANGLE,
   GAUGE_END_ANGLE,
+  GAUGE_TOTAL_ANGLE,
 } from "./utils";
 
-/**
- * Defines a colored zone region on the gauge arc.
- */
-interface GaugeZone {
-  /** Data value where this zone begins (inclusive). */
+export interface GaugeZone {
+  /** Inclusive start. Shared boundaries belong to the zone starting there. */
   readonly from: number;
-  /** Data value where this zone ends (inclusive). */
+  /** Exclusive end, except at the gauge maximum. Gaps are allowed; overlaps are not. */
   readonly to: number;
-  /** CSS color string for this zone's arc segment. */
   readonly color: string;
-  /** Optional label shown in the center when the needle is in this zone. */
   readonly label?: string;
 }
-
-/**
- * Props for the {@link GaugeChart} component.
- */
-interface GaugeChartProps {
-  /** The current value to display on the gauge. */
+export interface GaugeChartProps {
+  /** Actual finite measurement. Outside-range values remain visible; the arc keeps the boundary zone color and is clamped. */
   readonly value: number;
-  /** Minimum value of the gauge range. @default 0 */
+  /** Finite increasing bounds. @default 0 */
   readonly min?: number;
-  /** Maximum value of the gauge range. @default 100 */
+  /** @default 100 */
   readonly max?: number;
-  /** Array of zone objects defining color regions. */
+  /** Nonoverlapping zones inside the range; input order and colors need not be unique. */
   readonly zones: readonly GaugeZone[];
-  /** Unit label shown next to the center value (e.g. `"%"`, `"GB"`). */
   readonly unit?: string;
-  /** Descriptive label shown below the center value. */
   readonly label?: string;
-  /** Thickness of the gauge arc stroke in pixels. @default 20 */
+  /** Requested stroke thickness, capped to fit small frames. @default 20 */
   readonly strokeWidth?: number;
-  /** Height of the chart container in pixels. @default 300 */
+  /** Progress/track end caps. Zone boundaries remain flat. @default "round" */
+  readonly strokeLinecap?: "round" | "butt";
+  /** Stable total height in every state. @default 300 */
   readonly height?: number;
-  /** Show loading skeleton state. @default false */
+  /** Retain value and zones during refresh for matching geometry. */
   readonly loading?: boolean;
-  /** Error message to display in place of the chart. @default null */
   readonly error?: string | null;
-  /** Enable entrance animation for the progress arc. @default true */
+  /** Sweep from minimum on entrance and retarget from the current arc on updates. */
   readonly animation?: boolean;
-  /** Additional CSS classes to apply to the container. */
   readonly className?: string;
+  /** Format actual measurement and inspection values; unit is appended separately. */
+  readonly valueFormatter?: (value: number) => string;
+  /** Compact endpoint labels. Defaults to valueFormatter. */
+  readonly axisValueFormatter?: (value: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
   readonly tooltipRenderer?: TooltipRenderer<GaugeChartTooltipData>;
 }
-
-const DEFAULT_HEIGHT = 300;
-const DEFAULT_STROKE_WIDTH = 20;
-const PADDING = 24;
-
-
-function LoadingState({ height }: { height: number }) {
-  const size = Math.min(height - PADDING * 2, 200);
-  return (
-    <div className="relative w-full flex items-center justify-center" style={{ height }}>
-      <div
-        className="rounded-full border-8 border-muted animate-pulse"
-        style={{ width: size, height: size, borderTopColor: "hsl(var(--muted-foreground) / 0.3)" }}
-      />
-      <div
-        className="absolute rounded-full bg-background"
-        style={{ width: size * 0.6, height: size * 0.6 }}
-      />
-    </div>
-  );
-}
-
-function ErrorState({ error }: { error: string }) {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center space-y-2">
-        <div className="text-destructive font-medium">Chart Error</div>
-        <div className="text-sm text-muted-foreground">{error}</div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center space-y-2">
-        <div className="text-muted-foreground">No Data</div>
-        <div className="text-sm text-muted-foreground">Configure zones to display the gauge</div>
-      </div>
-    </div>
-  );
-}
+const PLACEHOLDER_ZONES = [
+  { from: 0, to: 60, color: "currentColor" },
+  { from: 60, to: 80, color: "currentColor" },
+  { from: 80, to: 100, color: "currentColor" },
+];
+const PLACEHOLDER = buildGaugeModel(65, 0, 100, PLACEHOLDER_ZONES);
 
 function GaugeChartComponent({
   value,
@@ -111,249 +70,464 @@ function GaugeChartComponent({
   zones,
   unit,
   label,
-  strokeWidth = DEFAULT_STROKE_WIDTH,
-  height = DEFAULT_HEIGHT,
+  strokeWidth = 20,
+  strokeLinecap = "round",
+  height = 300,
   loading = false,
   error = null,
   animation = true,
   className,
+  valueFormatter = formatValue,
+  axisValueFormatter = valueFormatter,
+  ariaLabel,
+  description,
   tooltipRenderer,
 }: GaugeChartProps) {
-  const [containerRef, containerWidth] = useContainerDimensions();
-  const [hovered, setHovered] = React.useState(false);
-  const reduceMotion = useReducedMotion();
-  const shouldAnimate = animation && !reduceMotion;
-
-  const clampedValue = clampValue(value, min, max);
-
-  const size = containerWidth > 0
-    ? Math.min(containerWidth - PADDING * 2, height - PADDING * 2)
-    : 0;
-  const cx = containerWidth / 2;
-  const cy = height / 2 + size * 0.1;
-  const midRadius = size / 2 - strokeWidth / 2;
-
-  const zoneArcs = useMemo(
-    () => (containerWidth > 0 ? computeZoneArcs(zones, min, max) : []),
-    [zones, min, max, containerWidth]
+  const [containerRef, width] = useContainerDimensions();
+  const id = useId();
+  const reduced = useReducedMotion();
+  const shouldAnimate = animation && !reduced;
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const model = useMemo(
+    () => buildGaugeModel(value, min, max, zones),
+    [value, min, max, zones],
   );
-
-  const valueAngle = useMemo(
-    () => valueToAngle(clampedValue, min, max),
-    [clampedValue, min, max]
+  const validHeight = Number.isFinite(height) && height > 0;
+  const validStroke = Number.isFinite(strokeWidth) && strokeWidth > 0;
+  const chartError =
+    error ||
+    model.error ||
+    (!validHeight ? "Gauge height must be a positive, finite number." : null) ||
+    (!validStroke ? "strokeWidth must be a positive, finite number." : null);
+  const frameHeight = validHeight ? height : 300;
+  const initialLoading = loading && (!!model.error || !zones.length);
+  const source = initialLoading ? PLACEHOLDER : model;
+  const geometry = getGaugeGeometry(
+    width,
+    frameHeight,
+    validStroke ? strokeWidth : 20,
   );
-
-  const activeZone = useMemo(
-    () => [...zoneArcs].reverse().find((z) => valueAngle >= z.startAngle) ?? null,
-    [zoneArcs, valueAngle]
+  const { cx, cy, radius, stroke } = geometry;
+  const ready = !loading && !chartError && zones.length > 0 && radius > 0;
+  const fraction = source.fraction;
+  const motionFraction = useMotionValue(shouldAnimate ? 0 : fraction);
+  const pathRef = useRef<SVGPathElement>(null);
+  const wasReady = useRef(false);
+  const hasFocus = useRef(false);
+  useEffect(() => {
+    const update = (current: number) =>
+      pathRef.current?.setAttribute(
+        "d",
+        describeArcPath(
+          cx,
+          cy,
+          radius,
+          GAUGE_START_ANGLE,
+          GAUGE_START_ANGLE + current * GAUGE_TOTAL_ANGLE,
+        ),
+      );
+    update(motionFraction.get());
+    return motionFraction.on("change", update);
+  }, [motionFraction, cx, cy, radius]);
+  useEffect(() => {
+    const entering = ready && !wasReady.current;
+    wasReady.current = ready;
+    if (!ready || !shouldAnimate || hasFocus.current) {
+      motionFraction.jump(fraction);
+      return;
+    }
+    if (entering) motionFraction.set(0);
+    const controls = animate(motionFraction, fraction, {
+      duration: entering ? 0.8 : 0.45,
+      ease: [0.33, 0, 0.2, 1],
+    });
+    return () => controls.stop();
+  }, [ready, shouldAnimate, fraction, motionFraction]);
+  useEffect(() => {
+    if (!ready) {
+      setHovered(false);
+      setFocused(false);
+      hasFocus.current = false;
+    }
+  }, [ready]);
+  const accessibleName = ariaLabel ?? label ?? "Gauge";
+  const activeZone = model.activeZone;
+  const boundaryZone =
+    model.rangeStatus === "above"
+      ? model.zones.find((zone) => zone.to === max)
+      : model.rangeStatus === "below"
+        ? model.zones.find((zone) => zone.from === min)
+        : undefined;
+  const indicatorColor = (activeZone ?? boundaryZone)?.color;
+  const statusText =
+    model.rangeStatus === "above"
+      ? "Above range"
+      : model.rangeStatus === "below"
+        ? "Below range"
+        : (activeZone?.label ?? (activeZone ? "" : "Unzoned"));
+  const measurement = model.error
+    ? ""
+    : `${valueFormatter(value)}${unit ? ` ${unit}` : ""}`;
+  const rangeText = model.error
+    ? ""
+    : `${valueFormatter(min)}–${valueFormatter(max)}${unit ? ` ${unit}` : ""}`;
+  const arcs = useMemo(
+    () =>
+      source.error
+        ? []
+        : computeZoneArcs(
+            source.zones,
+            initialLoading ? 0 : min,
+            initialLoading ? 100 : max,
+          ),
+    [source, initialLoading, min, max],
   );
-
-  const zoneArcPaths = useMemo(
-    () => zoneArcs.map((zone) => describeArcPath(cx, cy, midRadius, zone.startAngle, zone.endAngle - 0.01)),
-    [zoneArcs, cx, cy, midRadius]
+  const trackPath = describeArcPath(
+    cx,
+    cy,
+    radius,
+    GAUGE_START_ANGLE,
+    GAUGE_END_ANGLE,
   );
-
-  const bgArcPath = useMemo(
-    () => (midRadius > 0 ? describeArcPath(cx, cy, midRadius, GAUGE_START_ANGLE, GAUGE_END_ANGLE - 0.01) : ''),
-    [cx, cy, midRadius]
+  const progressPath = describeArcPath(
+    cx,
+    cy,
+    radius,
+    GAUGE_START_ANGLE,
+    GAUGE_START_ANGLE + motionFraction.get() * GAUGE_TOTAL_ANGLE,
   );
-
-  const progressArcPath = useMemo(
-    () => (midRadius > 0 && clampedValue > min
-      ? describeArcPath(cx, cy, midRadius, GAUGE_START_ANGLE, valueAngle)
-      : ''),
-    [cx, cy, midRadius, clampedValue, min, valueAngle]
+  const start = polarToCartesian(cx, cy, radius, GAUGE_START_ANGLE),
+    end = polarToCartesian(cx, cy, radius, GAUGE_END_ANGLE);
+  const endpointWidth = Math.max(0, Math.min(100, width / 3));
+  const centerWidth = Math.max(
+    0,
+    Math.min(width - 16, (radius - stroke / 2) * 1.45),
   );
-
-  const minLabelPos = useMemo(
-    () => (midRadius > 0 ? polarToCartesian(cx, cy, midRadius + strokeWidth * 0.8, GAUGE_START_ANGLE) : { x: 0, y: 0 }),
-    [cx, cy, midRadius, strokeWidth]
+  const valueFontSize = Math.min(
+    36,
+    Math.max(14, (centerWidth / Math.max(3, measurement.length)) * 1.45),
   );
-
-  const maxLabelPos = useMemo(
-    () => (midRadius > 0 ? polarToCartesian(cx, cy, midRadius + strokeWidth * 0.8, GAUGE_END_ANGLE) : { x: 0, y: 0 }),
-    [cx, cy, midRadius, strokeWidth]
-  );
-
-  if (loading) return <LoadingState height={height} />;
-  if (error) return <ErrorState error={error} />;
-  if (!zones.length) return <EmptyState />;
-
-  if (!containerWidth) {
-    return (
-      <div ref={containerRef} className={cn("relative w-full", className)} style={{ height }}>
-        <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-          Loading...
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div ref={containerRef} className={cn("relative w-full", className)} style={{ height }}>
-      <svg
-        width="100%"
-        height={height}
-        className="overflow-visible"
-        role="img"
-        aria-label={`Gauge showing ${clampedValue}${unit ?? ""} of ${max}${unit ?? ""}`}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-      >
-        {/* Background arc */}
-        <path
-          d={bgArcPath}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          opacity={0.1}
-        />
-
-        {/* Zone arcs (dimmed) */}
-        {zoneArcs.map((zone, i) => (
-          <path
-            key={i}
-            d={zoneArcPaths[i]}
-            fill="none"
-            stroke={zone.color}
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            opacity={0.2}
-          />
-        ))}
-
-        {/* Progress arc */}
-        {progressArcPath && (
-          <motion.path
-            d={progressArcPath}
-            fill="none"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            style={{
-              filter: activeZone ? `drop-shadow(0 0 8px ${activeZone.color})` : undefined,
-            }}
-            initial={{
-              pathLength: shouldAnimate ? 0 : 1,
-              stroke: activeZone?.color ?? "currentColor",
-            }}
-            animate={{
-              pathLength: 1,
-              stroke: activeZone?.color ?? "currentColor",
-            }}
-            transition={{
-              pathLength: { duration: shouldAnimate ? 1.2 : 0, ease: [0.4, 0, 0.2, 1] as const },
-              stroke: { duration: 0 },
-            }}
-          />
-        )}
-
-        {/* Min label */}
-        <text
-          x={minLabelPos.x}
-          y={minLabelPos.y + strokeWidth}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fontSize={11}
-          className="fill-muted-foreground"
-        >
-          {min}
-        </text>
-
-        {/* Max label */}
-        <text
-          x={maxLabelPos.x}
-          y={maxLabelPos.y + strokeWidth}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fontSize={11}
-          className="fill-muted-foreground"
-        >
-          {max}
-        </text>
-
-        {/* Center value */}
-        <text
-          x={cx}
-          y={cy - 4}
-          textAnchor="middle"
-          dominantBaseline="auto"
-          fontSize={36}
-          fontWeight="bold"
-          className="fill-foreground"
-          style={{ fontVariantNumeric: "tabular-nums" }}
-        >
-          {clampedValue.toLocaleString()}
-          {unit && (
-            <tspan fontSize={20} className="fill-muted-foreground">
-              {" "}{unit}
-            </tspan>
-          )}
-        </text>
-
-        {/* Label */}
-        {label && (
-          <text
-            x={cx}
-            y={cy + 24}
-            textAnchor="middle"
-            fontSize={13}
-            className="fill-muted-foreground"
-          >
-            {label}
-          </text>
-        )}
-
-        {/* Active zone label */}
-        {activeZone?.label && (
-          <text
-            x={cx}
-            y={cy + 42}
-            textAnchor="middle"
-            fontSize={11}
-            fill={activeZone.color}
-            fontWeight="600"
-          >
-            {activeZone.label}
-          </text>
-        )}
-      </svg>
-
-      {(() => {
-        const percentage = max > min ? ((clampedValue - min) / (max - min)) * 100 : 0;
-        const zoneData = activeZone ? (() => {
-          const matchedZone = zones.find(z => z.color === activeZone.color);
-          return {
-            from: matchedZone?.from ?? min,
-            to: matchedZone?.to ?? max,
+  const inspecting = ready && hovered;
+  const tipData: GaugeChartTooltipData = {
+    value,
+    min,
+    max,
+    clampedValue: model.clampedValue,
+    rangeStatus: model.rangeStatus,
+    percentage: model.fraction * 100,
+    ...(unit !== undefined ? { unit } : {}),
+    ...(label !== undefined ? { label } : {}),
+    ...(activeZone
+      ? {
+          zone: {
+            from: activeZone.from,
+            to: activeZone.to,
             color: activeZone.color,
-            ...(activeZone.label != null ? { label: activeZone.label } : {}),
-          };
-        })() : undefined;
-        const tipData: GaugeChartTooltipData | null = hovered ? {
-          value: clampedValue,
-          min,
-          max,
-          percentage,
-          ...(unit != null ? { unit } : {}),
-          ...(label != null ? { label } : {}),
-          ...(zoneData != null ? { zone: zoneData } : {}),
-        } : null;
-
-        return (
-          <ChartTooltip
-            visible={tipData !== null && tooltipRenderer !== undefined}
-            x={cx}
-            y={Math.max(8, cy - size / 2 - 60)}
-            className="transform -translate-x-1/2"
+            index: activeZone.index,
+            ...(activeZone.label !== undefined
+              ? { label: activeZone.label }
+              : {}),
+          },
+        }
+      : {}),
+  };
+  const stateMessage =
+    !loading && chartError
+      ? chartError
+      : !loading && !zones.length
+        ? "No Data"
+        : !loading && !ready
+          ? "Waiting for chart space"
+          : null;
+  return (
+    <div
+      ref={containerRef}
+      className={cn("relative w-full", className)}
+      style={{ height: frameHeight }}
+      aria-busy={loading}
+    >
+      {loading && (
+        <span role="status" className="sr-only">
+          Loading gauge
+        </span>
+      )}
+      {stateMessage ? (
+        <div
+          role={chartError ? "alert" : "status"}
+          className="flex h-full items-center justify-center p-6 text-center"
+        >
+          <div className="space-y-2">
+            <p
+              className={cn(
+                "font-medium",
+                chartError ? "text-destructive" : "text-muted-foreground",
+              )}
+            >
+              {chartError ? "Chart Error" : stateMessage}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {chartError ||
+                (!zones.length ? "Configure zones to display the gauge" : "")}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <svg
+            width="100%"
+            height={frameHeight}
+            role={loading ? "presentation" : "meter"}
+            aria-hidden={loading || undefined}
+            aria-label={accessibleName}
+            aria-valuemin={ready ? min : undefined}
+            aria-valuemax={ready ? max : undefined}
+            aria-valuenow={ready ? model.clampedValue : undefined}
+            aria-valuetext={
+              ready
+                ? `${measurement}; range ${rangeText}${statusText ? `; ${statusText}` : ""}`
+                : undefined
+            }
+            aria-describedby={
+              inspecting
+                ? `${id}-description ${id}-tooltip`
+                : `${id}-description`
+            }
+            tabIndex={ready ? 0 : undefined}
+            className="rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            onMouseEnter={() => ready && setHovered(true)}
+            onMouseLeave={() => setHovered(focused)}
+            onPointerDown={() => ready && setHovered(true)}
+            onFocus={() => {
+              if (ready) {
+                hasFocus.current = true;
+                motionFraction.jump(fraction);
+                setFocused(true);
+                setHovered(true);
+              }
+            }}
+            onBlur={() => {
+              hasFocus.current = false;
+              setFocused(false);
+              setHovered(false);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                setHovered(false);
+              } else if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                setHovered(true);
+              }
+            }}
           >
-            {tipData && tooltipRenderer?.(tipData)}
-          </ChartTooltip>
-        );
-      })()}
+            <desc id={`${id}-description`}>
+              {description ? `${description} ` : ""}Read-only measurement within
+              a configured range. Focus, hover, or tap to inspect; Escape
+              dismisses inspection. Gaps between zones are unclassified. The
+              displayed value stays exact when the arc reaches a limit.
+            </desc>
+            <g
+              aria-hidden="true"
+              className={cn(
+                loading && "text-muted",
+                loading &&
+                  shouldAnimate &&
+                  "animate-pulse motion-reduce:animate-none",
+              )}
+            >
+              <path
+                data-gauge-track=""
+                d={trackPath}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={stroke}
+                strokeLinecap={strokeLinecap}
+                className="text-muted"
+              />
+              {arcs.map((zone, index) => (
+                <path
+                  key={source.zones[index]!.index}
+                  data-gauge-zone={
+                    loading ? undefined : source.zones[index]!.index
+                  }
+                  data-loading-zone={
+                    loading ? source.zones[index]!.index : undefined
+                  }
+                  d={describeArcPath(
+                    cx,
+                    cy,
+                    radius,
+                    zone.startAngle,
+                    zone.endAngle,
+                  )}
+                  fill="none"
+                  stroke={loading ? "currentColor" : zone.color}
+                  strokeWidth={stroke}
+                  strokeLinecap="butt"
+                  opacity={0.25}
+                />
+              ))}
+              <path
+                ref={pathRef}
+                data-gauge-progress={loading ? undefined : ""}
+                data-loading-progress={loading ? "" : undefined}
+                d={progressPath}
+                fill="none"
+                stroke={
+                  loading ? "currentColor" : (indicatorColor ?? "currentColor")
+                }
+                className={cn(
+                  !loading && !indicatorColor && "text-muted-foreground",
+                )}
+                strokeWidth={stroke}
+                strokeLinecap={strokeLinecap}
+              />
+            </g>
+            <g aria-hidden="true">
+              {[start, end].map((point, index) => (
+                <foreignObject
+                  key={index}
+                  x={Math.max(
+                    0,
+                    Math.min(
+                      point.x - endpointWidth / 2,
+                      width - endpointWidth,
+                    ),
+                  )}
+                  y={Math.min(frameHeight - 20, point.y + stroke / 2 + 12)}
+                  width={endpointWidth}
+                  height={18}
+                >
+                  <div
+                    className="truncate text-center text-xs text-muted-foreground"
+                    title={
+                      loading
+                        ? undefined
+                        : axisValueFormatter(index === 0 ? min : max)
+                    }
+                  >
+                    {loading ? (
+                      <span className="inline-block h-2 w-8 rounded bg-muted" />
+                    ) : (
+                      axisValueFormatter(index === 0 ? min : max)
+                    )}
+                  </div>
+                </foreignObject>
+              ))}
+              <foreignObject
+                x={cx - centerWidth / 2}
+                y={cy - 36}
+                width={centerWidth}
+                height={94}
+              >
+                <div className="text-center">
+                  {loading ? (
+                    <>
+                      <div className="mx-auto mt-3 h-7 w-20 max-w-full rounded bg-muted" />
+                      <div className="mx-auto mt-3 h-2 w-24 max-w-full rounded bg-muted" />
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        data-gauge-value=""
+                        className="truncate font-semibold leading-10 tracking-tight text-foreground tabular-nums"
+                        style={{ fontSize: valueFontSize }}
+                        title={measurement}
+                      >
+                        {valueFormatter(value)}
+                        {unit && (
+                          <span className="ml-1 text-base font-normal text-muted-foreground">
+                            {unit}
+                          </span>
+                        )}
+                      </div>
+                      {label && (
+                        <p
+                          className="mt-1 truncate text-xs text-muted-foreground"
+                          title={label}
+                        >
+                          {label}
+                        </p>
+                      )}
+                      {statusText && (
+                        <p
+                          data-gauge-status=""
+                          className="mt-1 truncate text-xs font-medium text-muted-foreground"
+                          style={{
+                            color: indicatorColor,
+                          }}
+                          title={statusText}
+                        >
+                          {statusText}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              </foreignObject>
+            </g>
+          </svg>
+          {inspecting && (
+            <InspectionTooltip
+              id={`${id}-tooltip`}
+              x={cx}
+              y={cy}
+              width={width}
+              height={frameHeight}
+            >
+              {tooltipRenderer ? (
+                tooltipRenderer(tipData)
+              ) : (
+                <>
+                  <p className="mb-2 border-b border-border pb-2 text-xs font-medium text-muted-foreground">
+                    {label ?? accessibleName}
+                  </p>
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex justify-between gap-6">
+                      <span>Value</span>
+                      <span className="font-semibold tabular-nums">
+                        {measurement}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-6">
+                      <span>Range</span>
+                      <span className="tabular-nums">{rangeText}</span>
+                    </div>
+                    <div className="flex justify-between gap-6">
+                      <span>Range position</span>
+                      <span className="tabular-nums">
+                        {formatValue(model.fraction * 100)}%
+                      </span>
+                    </div>
+                    {activeZone ? (
+                      <div className="border-t border-border pt-2">
+                        <p className="flex items-center gap-2">
+                          <span
+                            className="size-2 shrink-0 rounded-full"
+                            style={{ backgroundColor: activeZone.color }}
+                          />
+                          {activeZone.label ?? "Current zone"}
+                        </p>
+                        <p className="mt-1 text-muted-foreground">
+                          {valueFormatter(activeZone.from)}–
+                          {valueFormatter(activeZone.to)}
+                          {unit ? ` ${unit}` : ""}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="border-t border-border pt-2 text-muted-foreground">
+                        {statusText}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+            </InspectionTooltip>
+          )}
+        </>
+      )}
     </div>
   );
 }
-
 export const GaugeChart = memo(GaugeChartComponent);
-export type { GaugeChartProps, GaugeZone };

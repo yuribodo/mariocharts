@@ -1,19 +1,22 @@
 // Base data item constraint
 import type { ChartDataItem } from "../_shared";
-import type { TooltipRenderer, RadarChartTooltipData } from "../_shared/tooltip-types";
+import type {
+  TooltipRenderer,
+  RadarChartTooltipData,
+} from "../_shared/tooltip-types";
 export type { ChartDataItem };
 
 /**
  * Axis configuration for each dimension of the radar chart
  */
-export interface RadarAxis {
+export interface RadarAxis<T extends ChartDataItem = ChartDataItem> {
   /** Data key to extract value from series data */
-  readonly key: string;
+  readonly key: Extract<keyof T, string>;
   /** Display label at axis endpoint */
   readonly label: string;
   /** Custom maximum value (auto-calculated if omitted) */
   readonly max?: number;
-  /** Custom minimum value (defaults to 0) */
+  /** Custom minimum value (defaults to the smaller of zero and the observed minimum) */
   readonly min?: number;
 }
 
@@ -39,25 +42,25 @@ export interface RadarChartProps<T extends ChartDataItem> {
   /** Array of data series to display */
   readonly series: readonly RadarSeries<T>[];
   /** Configuration for each axis/dimension */
-  readonly axes: readonly RadarAxis[];
+  readonly axes: readonly RadarAxis<T>[];
 
   // Common chart props (following library pattern)
   /** Color palette for series */
   readonly colors?: readonly string[];
   /** Additional CSS classes */
   readonly className?: string;
-  /** Chart height in pixels */
+  /** Total frame height in pixels, including the optional legend, in every state. */
   readonly height?: number;
-  /** Show loading state */
+  /** Retain series during refresh to preserve the exact polygon geometry. */
   readonly loading?: boolean;
   /** Error message to display */
   readonly error?: string | null;
-  /** Enable animations */
+  /** Grow polygons from the center. Respects reduced motion and completes on keyboard focus. */
   readonly animation?: boolean;
 
   // Radar-specific props
   /** Grid shape type */
-  readonly gridType?: 'polygon' | 'circular';
+  readonly gridType?: "polygon" | "circular";
   /** Number of concentric grid levels/rings */
   readonly gridLevels?: number;
   /** Show axis labels at endpoints */
@@ -79,65 +82,14 @@ export interface RadarChartProps<T extends ChartDataItem> {
   /** Callback when a series is clicked */
   readonly onSeriesClick?: (series: RadarSeries<T>, index: number) => void;
   /** Callback when an axis is clicked */
-  readonly onAxisClick?: (axis: RadarAxis, index: number) => void;
+  readonly onAxisClick?: (axis: RadarAxis<T>, index: number) => void;
+
+  /** Show a wrapping legend. Defaults to true when there is more than one series. */
+  readonly showLegend?: boolean;
+  /** Format values in inspection, accessible data, and axis ranges. */
+  readonly valueFormatter?: (value: number, axis: RadarAxis<T>) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
 
   readonly tooltipRenderer?: TooltipRenderer<RadarChartTooltipData<T>>;
-}
-
-/**
- * Processed axis data with calculated positions
- */
-export interface ProcessedAxis {
-  readonly index: number;
-  readonly key: string;
-  readonly label: string;
-  /** Angle in radians from top (0 = 12 o'clock) */
-  readonly angle: number;
-  readonly maxValue: number;
-  readonly minValue: number;
-  /** Screen X coordinate for label */
-  readonly labelX: number;
-  /** Screen Y coordinate for label */
-  readonly labelY: number;
-  /** Screen X coordinate for axis endpoint */
-  readonly endpointX: number;
-  /** Screen Y coordinate for axis endpoint */
-  readonly endpointY: number;
-}
-
-/**
- * Processed data point with screen coordinates
- */
-export interface ProcessedPoint {
-  readonly axisIndex: number;
-  readonly rawValue: number;
-  /** Value normalized to 0-1 scale */
-  readonly normalizedValue: number;
-  /** Screen X coordinate */
-  readonly x: number;
-  /** Screen Y coordinate */
-  readonly y: number;
-}
-
-/**
- * Processed series with calculated path and points
- */
-export interface ProcessedSeries<T extends ChartDataItem> {
-  readonly id: string;
-  readonly name: string;
-  readonly data: T;
-  readonly color: string;
-  readonly points: readonly ProcessedPoint[];
-  /** SVG path d attribute for the polygon */
-  readonly path: string;
-}
-
-/**
- * Hover state for interactions
- */
-export interface HoveredState {
-  readonly type: 'series' | 'axis' | 'point';
-  readonly seriesId?: string;
-  readonly axisIndex?: number;
-  readonly pointIndex?: number;
 }

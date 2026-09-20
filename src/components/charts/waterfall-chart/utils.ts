@@ -1,123 +1,192 @@
-import { getNumericValue } from "../_shared";
+import { calculateNiceTicks } from "../_shared";
 import type { ChartDataItem } from "../_shared";
 
-export type WaterfallType = "increase" | "decrease" | "total";
+export type WaterfallDataKey<T> = [T] extends [never]
+  ? string
+  : T extends unknown
+    ? keyof T
+    : never;
 
-/**
- * A single resolved waterfall bar in value-space (not yet mapped to pixels).
- *
- * `start`/`end` are the running total before/after this step. For "total" bars
- * the bar is anchored to the baseline (start = 0). `displayStart`/`displayEnd`
- * are the low/high edges of the floating bar, ready for a value→pixel scale.
- */
+export type WaterfallType =
+  | "increase"
+  | "decrease"
+  | "total"
+  | "sum"
+  | "subtotal";
+export type WaterfallVariant = "filled" | "outline";
+
+/** Resolved values retain the original observation and its input index. */
 export interface WaterfallBar<T extends ChartDataItem> {
   readonly data: T;
   readonly index: number;
   readonly label: string;
   readonly type: WaterfallType;
-  /** Signed delta for increase/decrease bars; the absolute value for totals. */
+  /** Signed change, absolute total, or computed subtotal/sum. */
   readonly value: number;
-  /** Running total before this step (value-space). */
+  /** Geometric anchor. Totals and sums start at zero; subtotals at the last checkpoint. */
   readonly start: number;
-  /** Running total after this step (value-space); equals `cumulative`. */
   readonly end: number;
-  /** Low edge of the floating bar: min(start, end). */
   readonly displayStart: number;
-  /** High edge of the floating bar: max(start, end). */
   readonly displayEnd: number;
-  /** Running total after this step (alias of `end`, used by connectors/tooltip). */
   readonly cumulative: number;
+  readonly previous: number;
+  /** False when an absolute total resets the balance to a different value. */
+  readonly connectFromPrevious: boolean;
 }
-
 export interface WaterfallSeries<T extends ChartDataItem> {
   readonly bars: readonly WaterfallBar<T>[];
-  /** Value-space domain that always includes 0 (the baseline). */
   readonly domain: { readonly min: number; readonly max: number };
+  readonly error: string | null;
 }
-
-/**
- * Resolve the bar type. An explicit `"increase" | "decrease" | "total"` wins;
- * otherwise the type is inferred from the sign of the value (negative →
- * decrease, non-negative → increase).
- */
-export function resolveWaterfallType(rawType: unknown, value: number): WaterfallType {
-  if (rawType === "total" || rawType === "increase" || rawType === "decrease") {
-    return rawType;
-  }
+export function resolveWaterfallType(
+  rawType: unknown,
+  value: number,
+): WaterfallType {
+  if (
+    ["increase", "decrease", "total", "sum", "subtotal"].includes(
+      String(rawType),
+    )
+  )
+    return rawType as WaterfallType;
   return value < 0 ? "decrease" : "increase";
 }
 
 /**
- * Turn raw data rows into cumulative waterfall bars.
- *
- * - `total` bars assert an absolute baseline: they draw from 0 to their value
- *   and reset the running total to that value.
- * - `increase`/`decrease` bars float from the current running total by their
- *   (sign-normalised) magnitude.
+ * `total` sets an absolute balance (legacy behavior). `sum` displays the current
+ * balance from zero. `subtotal` displays the change since the previous total,
+ * sum or subtotal. Computed steps omit value and never add their result twice.
  */
 export function computeWaterfallSeries<T extends ChartDataItem>(
   data: readonly T[],
-  keys: { readonly label: keyof T; readonly value: keyof T; readonly type: PropertyKey }
+  keys: {
+    readonly label: WaterfallDataKey<T>;
+    readonly value: WaterfallDataKey<T>;
+    readonly type: PropertyKey;
+  },
+  initialValue = 0,
 ): WaterfallSeries<T> {
-  let running = 0;
-  let min = 0;
-  let max = 0;
-
-  const bars = data.map((item, index): WaterfallBar<T> => {
-    const rawValue = getNumericValue(item as ChartDataItem, keys.value as string);
-    const type = resolveWaterfallType((item as ChartDataItem)[keys.type as string], rawValue);
-
-    let start: number;
-    let end: number;
-    let value: number;
-
+  const invalid = (error: string): WaterfallSeries<T> => ({
+    bars: [],
+    domain: { min: 0, max: 0 },
+    error,
+  });
+  if (!Number.isFinite(initialValue))
+    return invalid("initialValue must be a finite number.");
+  let running = initialValue,
+    checkpoint = initialValue,
+    min = Math.min(0, initialValue),
+    max = Math.max(0, initialValue);
+  const bars: WaterfallBar<T>[] = [];
+  for (const [index, item] of data.entries()) {
+    const label = String(item[keys.label] ?? "").trim();
+    if (!label)
+      return invalid(
+        `Step ${index + 1}: provide a non-empty label using the x key.`,
+      );
+    const rawType = item[keys.type as keyof T];
+    if (
+      rawType != null &&
+      !["increase", "decrease", "total", "sum", "subtotal"].includes(
+        String(rawType),
+      )
+    )
+      return invalid(
+        `${label}: unknown step type. Use increase, decrease, total, sum or subtotal.`,
+      );
+    const raw = item[keys.value];
+    const computed = rawType === "sum" || rawType === "subtotal";
+    if (!computed && (typeof raw !== "number" || !Number.isFinite(raw)))
+      return invalid(
+        `${label}: provide a finite numeric value. Use type "sum" for a calculated balance.`,
+      );
+    if (computed && raw != null)
+      return invalid(`${label}: omit value for a computed ${String(rawType)}.`);
+    const type = resolveWaterfallType(
+      rawType,
+      typeof raw === "number" ? raw : 0,
+    );
+    const previous = running;
+    let start: number, end: number, value: number;
     if (type === "total") {
-      value = rawValue;
       start = 0;
-      end = rawValue;
-      running = rawValue;
-    } else if (type === "increase") {
-      value = Math.abs(rawValue);
-      start = running;
-      end = running + value;
+      end = raw as number;
+      value = end;
       running = end;
+      checkpoint = running;
+    } else if (type === "sum") {
+      start = 0;
+      end = running;
+      value = running;
+      checkpoint = running;
+    } else if (type === "subtotal") {
+      start = checkpoint;
+      end = running;
+      value = end - start;
+      checkpoint = running;
     } else {
-      value = -Math.abs(rawValue);
       start = running;
+      value =
+        type === "increase"
+          ? Math.abs(raw as number)
+          : -Math.abs(raw as number);
       end = running + value;
       running = end;
     }
-
-    const displayStart = Math.min(start, end);
-    const displayEnd = Math.max(start, end);
+    if (!Number.isFinite(end) || !Number.isFinite(value))
+      return invalid(
+        `${label}: accumulated values exceed the numeric range. Rescale the data before plotting.`,
+      );
+    const displayStart = Math.min(start, end),
+      displayEnd = Math.max(start, end);
     min = Math.min(min, displayStart);
     max = Math.max(max, displayEnd);
-
-    return {
+    bars.push({
       data: item,
       index,
-      label: String(item[keys.label] ?? ""),
+      label,
       type,
       value,
       start,
       end,
       displayStart,
       displayEnd,
-      cumulative: end,
-    };
-  });
-
-  return { bars, domain: { min, max } };
+      cumulative: running,
+      previous,
+      connectFromPrevious: type !== "total" || running === previous,
+    });
+  }
+  return { bars, domain: { min, max }, error: null };
 }
-
-/**
- * Format the delta shown on a bar: totals show their absolute value, while
- * increases/decreases carry an explicit sign (e.g. `+45.0K`, `-12.0K`).
- */
 export function formatWaterfallDelta(
   bar: Pick<WaterfallBar<ChartDataItem>, "type" | "value">,
-  format: (value: unknown) => string
+  format: (value: number) => string,
 ): string {
-  if (bar.type === "total") return format(bar.value);
+  if (bar.type === "total" || bar.type === "sum") return format(bar.value);
   return bar.value > 0 ? `+${format(bar.value)}` : format(bar.value);
+}
+
+/** Normalize before tick calculation/subtraction so very large/small finite values work. */
+export function waterfallScale(domain: { min: number; max: number }) {
+  const magnitude = Math.max(Math.abs(domain.min), Math.abs(domain.max)) || 1;
+  const unit = Math.pow(10, Math.floor(Math.log10(magnitude))) || magnitude;
+  const low = domain.min / unit,
+    high = domain.max / unit;
+  const padding = (high - low || 1) * 0.12;
+  const ticks = calculateNiceTicks(
+    low < 0 ? low - padding : 0,
+    high > 0 ? high + padding : high === 0 && low === 0 ? 1 : 0,
+    5,
+  );
+  const min = ticks[0] ?? 0,
+    max = ticks[ticks.length - 1] ?? 1;
+  return {
+    ticks: ticks.map((tick) => tick * unit).filter(Number.isFinite),
+    ratio: (value: number) => (value / unit - min) / (max - min || 1),
+  };
+}
+export function truncateLabel(label: string, pixels: number): string {
+  const count = Math.max(1, Math.floor(pixels / 6.5));
+  return label.length > count
+    ? `${label.slice(0, count - 1).trimEnd()}…`
+    : label;
 }

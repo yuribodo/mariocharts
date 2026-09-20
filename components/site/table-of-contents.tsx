@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useLayoutEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "../../lib/utils";
@@ -22,34 +22,35 @@ export function TableOfContents({ className = "" }: TableOfContentsProps) {
 
   // Generate TOC from page headings
   const generateTOC = useCallback(() => {
-    const headings = document.querySelectorAll('h2, h3, h4');
+    const headings = document.querySelectorAll("h2, h3, h4");
     const items: TOCItem[] = [];
     const usedIds = new Set<string>();
 
     headings.forEach((heading, index) => {
       let id = heading.id;
-      
+
       if (!id && heading.textContent) {
         // Generate ID from text content
-        id = heading.textContent.toLowerCase()
-          .replace(/\s+/g, '-')
-          .replace(/[^\w\-]/g, '');
+        id = heading.textContent
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^\w\-]/g, "");
       }
-      
+
       // Ensure unique ID
       if (!id) {
         id = `heading-${index}`;
       }
-      
+
       let uniqueId = id;
       let counter = 1;
       while (usedIds.has(uniqueId)) {
         uniqueId = `${id}-${counter}`;
         counter++;
       }
-      
+
       usedIds.add(uniqueId);
-      
+
       // Set ID on heading if it doesn't have one
       if (!heading.id) {
         heading.id = uniqueId;
@@ -59,7 +60,7 @@ export function TableOfContents({ className = "" }: TableOfContentsProps) {
         items.push({
           id: uniqueId,
           title: heading.textContent,
-          level: parseInt(heading.tagName[1] || '2') as 2 | 3 | 4
+          level: parseInt(heading.tagName[1] || "2") as 2 | 3 | 4,
         });
       }
     });
@@ -69,37 +70,38 @@ export function TableOfContents({ className = "" }: TableOfContentsProps) {
 
   // Intersection Observer for active section tracking
   // Re-run when pathname changes to regenerate TOC for new page
-  useEffect(() => {
-    // Small delay to ensure DOM is updated after navigation
-    const timeoutId = setTimeout(() => {
-      generateTOC();
-    }, 100);
+  useLayoutEffect(() => {
+    // Route DOM is committed now. Replace the previous page's index before
+    // paint, and assign heading IDs before observing their intersections.
+    generateTOC();
+    setActiveId("");
 
-    const headings = document.querySelectorAll('h2, h3, h4');
+    const headings = document.querySelectorAll("h2, h3, h4");
 
     const observer = new IntersectionObserver(
       (entries) => {
-        const visibleEntries = entries.filter(entry => entry.isIntersecting);
+        const visibleEntries = entries.filter((entry) => entry.isIntersecting);
 
         if (visibleEntries.length > 0) {
           // Find the topmost visible heading
           const topEntry = visibleEntries.reduce((top, entry) =>
-            entry.boundingClientRect.top < top.boundingClientRect.top ? entry : top
+            entry.boundingClientRect.top < top.boundingClientRect.top
+              ? entry
+              : top,
           );
 
           setActiveId(topEntry.target.id);
         }
       },
       {
-        rootMargin: '0% 0% -80% 0%',
-        threshold: 0.5
-      }
+        rootMargin: "0% 0% -80% 0%",
+        threshold: 0.5,
+      },
     );
 
-    headings.forEach(heading => observer.observe(heading));
+    headings.forEach((heading) => observer.observe(heading));
 
     return () => {
-      clearTimeout(timeoutId);
       observer.disconnect();
     };
   }, [generateTOC, pathname]);
@@ -114,7 +116,7 @@ export function TableOfContents({ className = "" }: TableOfContentsProps) {
 
       window.scrollTo({
         top: offsetPosition,
-        behavior: 'smooth'
+        behavior: "smooth",
       });
     }
   };
@@ -129,7 +131,7 @@ export function TableOfContents({ className = "" }: TableOfContentsProps) {
       <ul className="m-0 list-none">
         {toc.map((item) => {
           const isActive = activeId === item.id;
-          
+
           return (
             <li key={item.id} className={cn("mt-0 pt-2")}>
               <Link
@@ -139,10 +141,10 @@ export function TableOfContents({ className = "" }: TableOfContentsProps) {
                   scrollToHeading(item.id);
                 }}
                 className={cn(
-                  "inline-block no-underline transition-colors hover:text-foreground",
-                  isActive ? "font-medium text-foreground" : "text-muted-foreground",
+                  "inline-block font-medium no-underline transition-colors hover:text-foreground",
+                  isActive ? "text-foreground" : "text-muted-foreground",
                   item.level === 3 && "pl-4",
-                  item.level === 4 && "pl-8"
+                  item.level === 4 && "pl-8",
                 )}
               >
                 {item.title}

@@ -88,17 +88,24 @@ export function GitHubStars({ className }: GitHubStarsProps) {
       {!isLoading && stars !== null ? (
         <motion.span
           className="inline-flex items-center gap-1"
-          initial={{ opacity: 0, x: -4 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.22 }}
         >
           <MarioStar size={18} powered={powered} />
-          <span className="min-w-[1ch] text-xs font-semibold tabular-nums tracking-tight text-foreground/80 group-hover:text-foreground">
+          <span className="min-w-[3ch] text-xs font-semibold tabular-nums tracking-tight text-foreground/80 group-hover:text-foreground">
             {formatStars(stars)}
           </span>
         </motion.span>
       ) : (
-        <MarioStar size={18} animate={false} />
+        <span className="inline-flex items-center gap-1" aria-hidden="true">
+          <MarioStar size={18} animate={false} />
+          {/* Reserve the count width while loading so the header doesn't
+              shift sideways once the star count arrives. */}
+          <span className="min-w-[3ch] text-xs font-semibold tabular-nums">
+            &nbsp;
+          </span>
+        </span>
       )}
 
       <span

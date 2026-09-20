@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MagnifyingGlass, X, CaretRight } from "@phosphor-icons/react";
+import { LoaderCircle } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 interface SidebarNavItem {
@@ -46,10 +47,6 @@ const sidebarNavItems: SidebarNavItem[] = [
         href: "/docs/components/line-chart"
       },
       {
-        title: "Area Chart",
-        href: "/docs/components/area-chart"
-      },
-      {
         title: "Pie Chart",
         href: "/docs/components/pie-chart"
       },
@@ -76,6 +73,10 @@ const sidebarNavItems: SidebarNavItem[] = [
       {
         title: "Funnel Chart",
         href: "/docs/components/funnel-chart"
+      },
+      {
+        title: "Sankey Chart",
+        href: "/docs/components/sankey-chart"
       },
       {
         title: "TreeMap",
@@ -106,6 +107,13 @@ const sidebarNavItems: SidebarNavItem[] = [
 export function DocsSidebarNav() {
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState("");
+  // Href the visitor clicked but hasn't committed yet. Chart pages mount a
+  // heavy playground, so the transition isn't instant — marking the pending
+  // link kills the "did my click register?" dead air between charts.
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
   const [expandedSections, setExpandedSections] = useState<string[]>(() => {
     // Auto-expand section that contains current page
     const expanded: string[] = ["Components"]; // Always include Components
@@ -265,17 +273,31 @@ export function DocsSidebarNav() {
                               <Link
                                 href={child.href}
                                 aria-current={pathname === child.href ? "page" : undefined}
+                                aria-busy={pendingHref === child.href || undefined}
+                                onClick={() => {
+                                  if (child.href !== pathname) {
+                                    setPendingHref(child.href);
+                                  }
+                                }}
                                 className={cn(
                                   "flex w-full items-center rounded-md px-2 py-1.5 text-sm transition-colors",
                                   pathname === child.href
                                     ? "bg-accent text-accent-foreground font-medium"
                                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                                  pendingHref === child.href && "opacity-70",
                                   child.disabled && "cursor-not-allowed opacity-60",
                                   "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 )}
                                 aria-disabled={child.disabled}
                               >
                                 {child.title}
+                                {pendingHref === child.href && (
+                                  <LoaderCircle
+                                    size={14}
+                                    className="ml-auto shrink-0 animate-spin"
+                                    aria-hidden="true"
+                                  />
+                                )}
                                 {child.disabled && (
                                   <span className="ml-2 rounded-md bg-muted px-1.5 py-0.5 text-xs leading-none text-muted-foreground no-underline group-hover:no-underline">
                                     Soon

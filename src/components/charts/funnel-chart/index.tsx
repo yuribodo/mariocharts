@@ -1,669 +1,620 @@
 "use client";
-
-import * as React from "react";
-import { memo, useMemo, useCallback } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import {
+  memo,
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+  useId,
+  type ReactNode,
+  type KeyboardEvent,
+} from "react";
+import {
+  animate,
+  useMotionValue,
+  useReducedMotion,
+  type MotionValue,
+} from "framer-motion";
 import { cn } from "../../../../lib/utils";
-import { formatValue, getNumericValue, useContainerDimensions, ChartTooltip } from "../_shared";
-import type { ChartDataItem, FunnelChartTooltipData, TooltipRenderer } from "../_shared";
-
-interface FunnelChartProps<T extends ChartDataItem> {
+import {
+  formatValue,
+  useContainerDimensions,
+  type ChartDataItem,
+  type FunnelChartTooltipData,
+  type TooltipRenderer,
+} from "../_shared";
+import { InspectionTooltip } from "../_shared/inspection-tooltip";
+import { buildFunnelModel, FUNNEL_COLORS } from "./model";
+import { layoutFunnel, type FunnelVariant } from "./geometry";
+export type { FunnelVariant };
+export interface FunnelChartProps<T extends ChartDataItem> {
+  /** Sequential stages in input order; values must be finite and nonnegative. */
   readonly data: readonly T[];
   readonly label: keyof T;
   readonly value: keyof T;
+  /** Valid CSS colors; an empty palette uses the defaults. */
   readonly colors?: readonly string[];
-  readonly variant?: "tapered" | "straight" | "horizontal";
+  /** Tapered/smooth show transitions; straight/horizontal/columns compare measured extents. */
+  readonly variant?: FunnelVariant;
   readonly showValues?: boolean;
+  /** Percent of the first stage, not a sum of repeated stage counts. */
   readonly showPercentages?: boolean;
   readonly showConversionRates?: boolean;
+  /** Signed change from the preceding stage: loss or increase. */
+  readonly showDropOff?: boolean;
+  readonly showConnectors?: boolean;
+  /** Requested stage gap; rate annotations reserve at least 26px in row layouts. */
+  readonly gap?: number;
+  /** Corner radius for straight, horizontal and columns. */
+  readonly borderRadius?: number;
   readonly className?: string;
+  /** Stable frame height. Crowded stages scroll rather than overlap. */
   readonly height?: number;
   readonly loading?: boolean;
   readonly error?: string | null;
   readonly animation?: boolean;
+  readonly valueFormatter?: (value: number) => string;
+  readonly ariaLabel?: string;
+  readonly description?: string;
   readonly onClick?: (item: T, index: number) => void;
   readonly tooltipRenderer?: TooltipRenderer<FunnelChartTooltipData<T>>;
 }
-
-interface ProcessedVerticalStage<T> {
-  readonly data: T;
-  readonly index: number;
-  readonly labelText: string;
-  readonly rawValue: number;
-  readonly formattedValue: string;
-  readonly pctOfTotal: number;
-  readonly pctFromPrev: number | null;
-  readonly color: string;
-  readonly topWidth: number;
-  readonly bottomWidth: number;
-  readonly cx: number;
-  readonly stageY: number;
-  readonly stageHeight: number;
-  readonly connectorY: number;
-  readonly connectorHeight: number;
-  readonly connectorTopWidth: number;
-  readonly connectorBottomWidth: number;
-}
-
-interface ProcessedHorizontalStage<T> {
-  readonly data: T;
-  readonly index: number;
-  readonly labelText: string;
-  readonly rawValue: number;
-  readonly formattedValue: string;
-  readonly pctOfTotal: number;
-  readonly pctFromPrev: number | null;
-  readonly color: string;
-  readonly barX: number;    // x where all bars start (same for all stages)
-  readonly barY: number;    // y of this bar
-  readonly barW: number;    // width of this bar (varies by value)
-  readonly barH: number;    // height of bar (same for all)
-  readonly barMaxW: number; // maximum available bar width (= 100%)
-  readonly convY: number;   // y of conversion rate row above this bar
-}
-
-// Constants
-const DEFAULT_COLORS = [
-  "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4",
-] as const;
-
-const DEFAULT_HEIGHT = 400;
-const MARGIN = { top: 16, right: 24, bottom: 16, left: 24 };
-const STAGE_GAP = 6;
-const STAGE_GAP_WITH_RATES = 36;
-const MIN_STAGE_RATIO = 0.15;
-const H_LABEL_W = 120;    // horizontal: label area width
-const H_ROW_GAP = 8;      // horizontal: gap between bars
-const H_CONV_H = 16;      // horizontal: conversion rate row height
-
-// Utilities
-function buildPolygon(cx: number, topW: number, bottomW: number, y: number, h: number): string {
-  const tl = cx - topW / 2;
-  const tr = cx + topW / 2;
-  const bl = cx - bottomW / 2;
-  const br = cx + bottomW / 2;
-  return `${tl},${y} ${tr},${y} ${br},${y + h} ${bl},${y + h}`;
-}
-
-// States
-function LoadingState({ height }: { height: number }) {
-  return (
-    <div className="relative w-full flex items-center justify-center" style={{ height }}>
-      <div className="w-full px-8 space-y-2 animate-pulse">
-        {[80, 65, 50, 35, 20].map((pct, i) => (
-          <div
-            key={i}
-            className="mx-auto rounded bg-muted"
-            style={{ width: `${pct}%`, height: 44, animationDelay: `${i * 0.1}s` }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ErrorState({ error }: { error: string }) {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center space-y-2">
-        <div className="text-destructive font-medium">Chart Error</div>
-        <div className="text-sm text-muted-foreground">{error}</div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center space-y-2">
-        <div className="text-muted-foreground">No Data</div>
-        <div className="text-sm text-muted-foreground">There&apos;s no data to display</div>
-      </div>
-    </div>
-  );
-}
-
-// ── Vertical funnel (tapered / straight) ─────────────────────────────────────
-
-function VerticalFunnel<T extends ChartDataItem>({
-  processedStages,
-  hoveredIndex,
-  setHoveredIndex,
-  showValues,
-  showPercentages,
-  showConversionRates,
-  shouldAnimate,
-  onClick,
-  handleKeyDown,
-  height,
-  stageGap,
+const PLACEHOLDER = [100, 72, 48, 28, 14].map((value, index) => ({
+  label: `Stage ${index + 1}`,
+  value,
+}));
+function Growth({
+  progress,
+  index,
+  count,
+  axis,
+  x,
+  y,
+  children,
 }: {
-  processedStages: ProcessedVerticalStage<T>[];
-  hoveredIndex: number | null;
-  setHoveredIndex: React.Dispatch<React.SetStateAction<number | null>>;
-  showValues: boolean;
-  showPercentages: boolean;
-  showConversionRates: boolean;
-  shouldAnimate: boolean;
-  onClick: ((item: T, index: number) => void) | undefined;
-  handleKeyDown: (e: React.KeyboardEvent, item: T, index: number) => void;
-  height: number;
-  stageGap: number;
+  progress: MotionValue<number>;
+  index: number;
+  count: number;
+  axis: "x" | "y";
+  x: number;
+  y: number;
+  children: ReactNode;
 }) {
+  const ref = useRef<SVGGElement>(null);
+  const transform = (p: number) => {
+    const delay = count > 1 ? (index / (count - 1)) * 0.22 : 0;
+    const scale = Math.max(0, Math.min(1, (p - delay) / (1 - delay)));
+    return axis === "x"
+      ? `translate(${x * (1 - scale)} 0) scale(${scale} 1)`
+      : `translate(0 ${y * (1 - scale)}) scale(1 ${scale})`;
+  };
+  useEffect(() => {
+    const update = (p: number) => {
+      const delay = count > 1 ? (index / (count - 1)) * 0.22 : 0;
+      const scale = Math.max(0, Math.min(1, (p - delay) / (1 - delay)));
+      ref.current?.setAttribute(
+        "transform",
+        axis === "x"
+          ? `translate(${x * (1 - scale)} 0) scale(${scale} 1)`
+          : `translate(0 ${y * (1 - scale)}) scale(1 ${scale})`,
+      );
+    };
+    update(progress.get());
+    return progress.on("change", update);
+  }, [progress, index, count, axis, x, y]);
   return (
-    <svg
-      width="100%"
-      height={height}
-      className="overflow-visible"
-      role="img"
-      aria-label={`Funnel chart with ${processedStages.length} stages`}
-    >
-      {processedStages.map((stage) => {
-        const isHovered = hoveredIndex === stage.index;
-        const stagePoints = buildPolygon(stage.cx, stage.topWidth, stage.bottomWidth, stage.stageY, stage.stageHeight);
-        const centerY = stage.stageY + stage.stageHeight / 2;
-        const gapCenterY = stage.connectorY + stageGap / 2;
-
-        return (
-          <g key={stage.index}>
-            {/* Connector */}
-            {stage.index < processedStages.length - 1 && (
-              <polygon
-                points={buildPolygon(
-                  stage.cx,
-                  stage.connectorTopWidth,
-                  stage.connectorBottomWidth,
-                  stage.connectorY,
-                  stage.connectorHeight,
-                )}
-                fill={stage.color}
-                fillOpacity={0.12}
-              />
-            )}
-
-            {/* Stage bar */}
-            <motion.polygon
-              points={stagePoints}
-              fill={stage.color}
-              fillOpacity={isHovered ? 0.9 : 0.75}
-              stroke={stage.color}
-              strokeWidth={isHovered ? 2 : 0}
-              strokeOpacity={0.5}
-              className={cn("outline-none", onClick && "cursor-pointer")}
-              style={{
-                transformOrigin: `${stage.cx}px ${stage.stageY}px`,
-                filter: isHovered ? `drop-shadow(0 0 6px ${stage.color})` : "none",
-                touchAction: "manipulation",
-              }}
-              initial={shouldAnimate ? { scaleY: 0, opacity: 0 } : { scaleY: 1, opacity: 1 }}
-              animate={{ scaleY: 1, opacity: 1 }}
-              transition={
-                shouldAnimate
-                  ? { duration: 0.5, delay: stage.index * 0.08, ease: [0.4, 0, 0.2, 1] }
-                  : { duration: 0 }
-              }
-              tabIndex={0}
-              role="graphics-symbol"
-              aria-label={`${stage.labelText}: ${stage.formattedValue} (${stage.pctOfTotal.toFixed(1)}%)`}
-              onMouseEnter={() => setHoveredIndex(stage.index)}
-              onMouseLeave={() => setHoveredIndex(null)}
-              onFocus={() => setHoveredIndex(stage.index)}
-              onBlur={() => setHoveredIndex(null)}
-              onClick={() => onClick?.(stage.data, stage.index)}
-              onKeyDown={(e) => handleKeyDown(e, stage.data, stage.index)}
-            />
-
-            {/* Stage label */}
-            <text
-              x={stage.cx}
-              y={centerY - (showValues || showPercentages ? 8 : 0)}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontSize={12}
-              fontWeight="600"
-              className="fill-foreground pointer-events-none"
-            >
-              {stage.labelText}
-            </text>
-
-            {/* Value + percentage */}
-            {(showValues || showPercentages) && (
-              <text
-                x={stage.cx}
-                y={centerY + 8}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fontSize={10}
-                className="fill-foreground/70 pointer-events-none"
-                style={{ fontVariantNumeric: "tabular-nums" }}
-              >
-                {showValues && stage.formattedValue}
-                {showValues && showPercentages && " · "}
-                {showPercentages && `${stage.pctOfTotal.toFixed(1)}%`}
-              </text>
-            )}
-
-            {/* Conversion rate badge in gap */}
-            {showConversionRates && stage.pctFromPrev !== null && stage.index > 0 && (
-              <g>
-                <rect
-                  x={stage.cx - 36}
-                  y={gapCenterY - 10}
-                  width={72}
-                  height={20}
-                  rx={10}
-                  ry={10}
-                  className="fill-muted stroke-border"
-                  strokeWidth={1}
-                />
-                <text
-                  x={stage.cx}
-                  y={gapCenterY}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fontSize={10}
-                  className="fill-muted-foreground pointer-events-none"
-                  style={{ fontVariantNumeric: "tabular-nums" }}
-                >
-                  ↓ {stage.pctFromPrev.toFixed(0)}%
-                </text>
-              </g>
-            )}
-          </g>
-        );
-      })}
-    </svg>
+    <g ref={ref} data-funnel-growth="" transform={transform(progress.get())}>
+      {children}
+    </g>
   );
 }
-
-// ── Horizontal funnel (bar chart style: labels left, bars right) ─────────────
-
-function HorizontalFunnel<T extends ChartDataItem>({
-  processedH,
-  hoveredIndex,
-  setHoveredIndex,
-  showValues,
-  showPercentages,
-  showConversionRates,
-  shouldAnimate,
-  onClick,
-  handleKeyDown,
-  height,
-}: {
-  processedH: ProcessedHorizontalStage<T>[];
-  hoveredIndex: number | null;
-  setHoveredIndex: React.Dispatch<React.SetStateAction<number | null>>;
-  showValues: boolean;
-  showPercentages: boolean;
-  showConversionRates: boolean;
-  shouldAnimate: boolean;
-  onClick: ((item: T, index: number) => void) | undefined;
-  handleKeyDown: (e: React.KeyboardEvent, item: T, index: number) => void;
-  height: number;
-}) {
-  const labelX = MARGIN.left + H_LABEL_W;
-
-  return (
-    <svg
-      width="100%"
-      height={height}
-      className="overflow-visible"
-      role="img"
-      aria-label={`Horizontal funnel chart with ${processedH.length} stages`}
-    >
-      {processedH.map((stage) => {
-        const isHovered = hoveredIndex === stage.index;
-        const barCenterY = stage.barY + stage.barH / 2;
-        const valueInsideBar = stage.barW > 110;
-
-        return (
-          <g key={stage.index}>
-            {/* Background track */}
-            <rect
-              x={stage.barX}
-              y={stage.barY}
-              width={stage.barMaxW}
-              height={stage.barH}
-              rx={4}
-              className="fill-muted/40"
-            />
-
-            {/* Bar */}
-            <motion.rect
-              x={stage.barX}
-              y={stage.barY}
-              width={stage.barW}
-              height={stage.barH}
-              rx={4}
-              fill={stage.color}
-              fillOpacity={isHovered ? 0.92 : 0.78}
-              stroke={stage.color}
-              strokeWidth={isHovered ? 1.5 : 0}
-              strokeOpacity={0.6}
-              className={cn("outline-none", onClick && "cursor-pointer")}
-              style={{
-                transformOrigin: `${stage.barX}px ${barCenterY}px`,
-                filter: isHovered ? `drop-shadow(0 0 6px ${stage.color})` : "none",
-                touchAction: "manipulation",
-              }}
-              initial={shouldAnimate ? { scaleX: 0, opacity: 0 } : { scaleX: 1, opacity: 1 }}
-              animate={{ scaleX: 1, opacity: 1 }}
-              transition={
-                shouldAnimate
-                  ? { duration: 0.5, delay: stage.index * 0.08, ease: [0.4, 0, 0.2, 1] }
-                  : { duration: 0 }
-              }
-              tabIndex={0}
-              role="graphics-symbol"
-              aria-label={`${stage.labelText}: ${stage.formattedValue} (${stage.pctOfTotal.toFixed(1)}%)`}
-              onMouseEnter={() => setHoveredIndex(stage.index)}
-              onMouseLeave={() => setHoveredIndex(null)}
-              onFocus={() => setHoveredIndex(stage.index)}
-              onBlur={() => setHoveredIndex(null)}
-              onClick={() => onClick?.(stage.data, stage.index)}
-              onKeyDown={(e) => handleKeyDown(e, stage.data, stage.index)}
-            />
-
-            {/* Label — right-aligned, left of bar */}
-            <text
-              x={labelX - 8}
-              y={barCenterY}
-              textAnchor="end"
-              dominantBaseline="middle"
-              fontSize={12}
-              fontWeight="600"
-              className="fill-foreground pointer-events-none"
-            >
-              {stage.labelText}
-            </text>
-
-            {/* Value + pct — inside bar if wide enough, else to the right */}
-            {(showValues || showPercentages) && (
-              <text
-                x={valueInsideBar ? stage.barX + stage.barW - 8 : stage.barX + stage.barW + 8}
-                y={barCenterY}
-                textAnchor={valueInsideBar ? "end" : "start"}
-                dominantBaseline="middle"
-                fontSize={11}
-                className={valueInsideBar
-                  ? "fill-white/90 pointer-events-none"
-                  : "fill-muted-foreground pointer-events-none"
-                }
-                style={{ fontVariantNumeric: "tabular-nums" }}
-              >
-                {showValues && stage.formattedValue}
-                {showValues && showPercentages && " · "}
-                {showPercentages && `${stage.pctOfTotal.toFixed(1)}%`}
-              </text>
-            )}
-
-            {/* Conversion rate badge between stages */}
-            {showConversionRates && stage.pctFromPrev !== null && stage.index > 0 && (
-              <g>
-                <rect
-                  x={stage.barX}
-                  y={stage.convY - 9}
-                  width={68}
-                  height={18}
-                  rx={9}
-                  className="fill-muted stroke-border"
-                  strokeWidth={1}
-                />
-                <text
-                  x={stage.barX + 34}
-                  y={stage.convY}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fontSize={10}
-                  className="fill-muted-foreground pointer-events-none"
-                  style={{ fontVariantNumeric: "tabular-nums" }}
-                >
-                  ↓ {stage.pctFromPrev.toFixed(0)}%
-                </text>
-              </g>
-            )}
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
-
+const rateText = (rate: number | null) =>
+  rate === null ? "—" : `${rate.toFixed(1)}%`;
 function FunnelChartComponent<T extends ChartDataItem>({
   data,
   label,
   value,
-  colors = DEFAULT_COLORS,
+  colors = FUNNEL_COLORS,
   variant = "tapered",
   showValues = true,
   showPercentages = true,
   showConversionRates = false,
+  showDropOff = false,
+  showConnectors = true,
+  gap = 12,
+  borderRadius = 4,
   className,
-  height = DEFAULT_HEIGHT,
+  height = 400,
   loading = false,
   error = null,
   animation = true,
+  valueFormatter = formatValue,
+  ariaLabel = "Funnel chart",
+  description,
   onClick,
   tooltipRenderer,
 }: FunnelChartProps<T>) {
-  const [containerRef, containerWidth] = useContainerDimensions();
-  const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
-  const reduceMotion = useReducedMotion();
-  const shouldAnimate = animation && !reduceMotion;
-
-  const chartWidth = Math.max(0, containerWidth - MARGIN.left - MARGIN.right);
-  const stageGap = showConversionRates ? STAGE_GAP_WITH_RATES : STAGE_GAP;
-
-  // ── Vertical stages (tapered / straight) ──
-  const processedStages = useMemo((): ProcessedVerticalStage<T>[] => {
-    if (variant === "horizontal" || !data.length || chartWidth <= 0) return [];
-
-    const values = data.map(d => Math.max(0, getNumericValue(d, value as string)));
-    const total = values[0] ?? 1;
-    const stageCount = data.length;
-
-    const availableHeight = height - MARGIN.top - MARGIN.bottom;
-    const stageHeight = (availableHeight - (stageCount - 1) * stageGap) / stageCount;
-    const cx = containerWidth / 2;
-
-    return data.map((item, i) => {
-      const rawValue = values[i] ?? 0;
-      const ratio = total > 0 ? rawValue / total : 0;
-      const prevValue = i > 0 ? (values[i - 1] ?? 0) : null;
-      const pctFromPrev = prevValue !== null && prevValue > 0 ? (rawValue / prevValue) * 100 : null;
-
-      let topWidth: number, bottomWidth: number;
-      if (variant === "straight") {
-        topWidth = chartWidth;
-        bottomWidth = chartWidth;
-      } else {
-        const clampedRatio = Math.max(MIN_STAGE_RATIO, ratio);
-        const clampedPrevRatio = i === 0 ? 1 : Math.max(MIN_STAGE_RATIO, (values[i - 1] ?? 0) / total);
-        topWidth = chartWidth * clampedPrevRatio;
-        bottomWidth = chartWidth * clampedRatio;
-      }
-
-      const stageY = MARGIN.top + i * (stageHeight + stageGap);
-      const connectorY = stageY + stageHeight;
-      const connectorBottomWidth = i < stageCount - 1
-        ? variant === "straight"
-          ? chartWidth
-          : chartWidth * Math.max(MIN_STAGE_RATIO, (values[i + 1] ?? 0) / total)
-        : bottomWidth;
-
-      return {
-        data: item,
-        index: i,
-        labelText: String(item[label]),
-        rawValue,
-        formattedValue: formatValue(rawValue),
-        pctOfTotal: total > 0 ? (rawValue / total) * 100 : 0,
-        pctFromPrev,
-        color: colors[i % colors.length] ?? DEFAULT_COLORS[0],
-        topWidth,
-        bottomWidth,
-        cx,
-        stageY,
-        stageHeight,
-        connectorY,
-        connectorHeight: stageGap,
-        connectorTopWidth: bottomWidth,
-        connectorBottomWidth,
-      };
-    });
-  }, [data, label, value, colors, variant, chartWidth, height, containerWidth, stageGap]);
-
-  // ── Horizontal stages (bar chart style: labels left, bars right) ──
-  const processedH = useMemo((): ProcessedHorizontalStage<T>[] => {
-    if (variant !== "horizontal" || !data.length || containerWidth <= 0) return [];
-
-    const values = data.map(d => Math.max(0, getNumericValue(d, value as string)));
-    const total = values[0] ?? 1;
-    const n = data.length;
-
-    const convH = showConversionRates ? H_CONV_H : 0;
-    const barX = MARGIN.left + H_LABEL_W + 8;
-    const barMaxW = Math.max(0, containerWidth - barX - MARGIN.right);
-    const availH = height - MARGIN.top - MARGIN.bottom;
-    const barH = Math.max(18, (availH - (n - 1) * (H_ROW_GAP + convH)) / n);
-    const stride = barH + H_ROW_GAP + convH;
-
-    return data.map((item, i) => {
-      const rawValue = values[i] ?? 0;
-      const ratio = total > 0 ? rawValue / total : 0;
-      const prevValue = i > 0 ? (values[i - 1] ?? 0) : null;
-      const pctFromPrev = prevValue !== null && prevValue > 0 ? (rawValue / prevValue) * 100 : null;
-
-      const barY = MARGIN.top + i * stride;
-      const convY = i > 0 ? barY - (H_ROW_GAP + convH) / 2 : barY;
-      const barW = barMaxW * Math.max(MIN_STAGE_RATIO, ratio);
-
-      return {
-        data: item,
-        index: i,
-        labelText: String(item[label]),
-        rawValue,
-        formattedValue: formatValue(rawValue),
-        pctOfTotal: total > 0 ? (rawValue / total) * 100 : 0,
-        pctFromPrev,
-        color: colors[i % colors.length] ?? DEFAULT_COLORS[0],
-        barX,
-        barY,
-        barW,
-        barH,
-        barMaxW,
-        convY,
-      };
-    });
-  }, [data, label, value, colors, variant, containerWidth, height, showConversionRates]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent, item: T, index: number) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onClick?.(item, index);
+  const [containerRef, width] = useContainerDimensions();
+  const id = useId(),
+    reduced = useReducedMotion();
+  const shouldAnimate = animation && !reduced;
+  const progress = useMotionValue(shouldAnimate ? 0 : 1);
+  const viewport = useRef<HTMLDivElement>(null);
+  const [scroll, setScroll] = useState({ x: 0, y: 0 });
+  const model = useMemo(
+    () => buildFunnelModel(data, label, value, colors),
+    [data, label, value, colors],
+  );
+  const placeholder = useMemo(
+    () => buildFunnelModel(PLACEHOLDER, "label", "value", FUNNEL_COLORS),
+    [],
+  );
+  const source = loading && (!data.length || model.error) ? placeholder : model;
+  const validHeight = Number.isFinite(height) && height > 0;
+  const frameHeight = validHeight ? height : 400;
+  const validGap = Number.isFinite(gap) && gap >= 0,
+    validRadius = Number.isFinite(borderRadius) && borderRadius >= 0;
+  const validVariant = [
+    "tapered",
+    "straight",
+    "smooth",
+    "horizontal",
+    "columns",
+  ].includes(variant);
+  const chartError =
+    error ||
+    model.error ||
+    (!validHeight
+      ? "height must be a positive finite number."
+      : !validGap
+        ? "gap must be a finite nonnegative number."
+        : !validRadius
+          ? "borderRadius must be a finite nonnegative number."
+          : !validVariant
+            ? "Choose tapered, straight, smooth, horizontal or columns."
+            : null);
+  const geometry = useMemo(
+    () =>
+      layoutFunnel(
+        source.stages.map((stage) => stage.ratio),
+        width,
+        frameHeight,
+        validVariant ? variant : "tapered",
+        validGap ? gap : 12,
+        validRadius ? borderRadius : 4,
+        showConversionRates || showDropOff,
+        showValues || showPercentages,
+      ),
+    [
+      source.stages,
+      width,
+      frameHeight,
+      variant,
+      validVariant,
+      validGap,
+      gap,
+      validRadius,
+      borderRadius,
+      showConversionRates,
+      showDropOff,
+      showValues,
+      showPercentages,
+    ],
+  );
+  const ready = !loading && !chartError && data.length > 0 && width > 0;
+  useEffect(() => {
+    if (!ready || !shouldAnimate) {
+      progress.jump(1);
+      return;
     }
-  }, [onClick]);
-
-  if (loading) return <LoadingState height={height} />;
-  if (error) return <ErrorState error={error} />;
-  if (!data.length) return <EmptyState />;
-
-  if (!containerWidth) {
-    return (
-      <div ref={containerRef} className={cn("relative w-full", className)} style={{ height }}>
-        <div className="flex items-center justify-center h-full text-sm text-muted-foreground">Loading…</div>
-      </div>
+    progress.set(0);
+    const controls = animate(progress, 1, {
+      duration: 0.7,
+      ease: [0.33, 0, 0.2, 1],
+    });
+    return () => controls.stop();
+  }, [ready, shouldAnimate, variant, progress]);
+  const [inspection, setInspection] = useState<number | null>(null),
+    [focus, setFocus] = useState<number | null>(null),
+    [tabIndex, setTabIndex] = useState(0);
+  const refs = useRef<(SVGRectElement | null)[]>([]);
+  useEffect(() => {
+    const focused = refs.current.findIndex(
+      (element) => element !== null && element === document.activeElement,
     );
-  }
-
-  const hoveredStage = hoveredIndex !== null
-    ? (variant === "horizontal" ? processedH[hoveredIndex] : processedStages[hoveredIndex])
+    setInspection(focused < 0 ? null : focused);
+    setFocus(focused < 0 ? null : focused);
+    if (focused >= 0) progress.jump(1);
+  }, [data, label, value, variant, loading, error, progress]);
+  const selected = Math.min(tabIndex, Math.max(0, source.stages.length - 1));
+  const active =
+    ready && inspection !== null ? model.stages[inspection] : undefined;
+  const activeGeometry = active ? geometry.stages[active.index] : undefined;
+  const tipX = activeGeometry ? activeGeometry.anchor.x - scroll.x : 0,
+    tipY = activeGeometry ? activeGeometry.anchor.y - scroll.y : 0;
+  const tip: FunnelChartTooltipData<T> | null = active
+    ? { ...active, formattedValue: valueFormatter(active.value) }
     : null;
-
-  const tooltipLeft = variant === "horizontal" && hoveredStage
-    ? (hoveredStage as ProcessedHorizontalStage<T>).barX + (hoveredStage as ProcessedHorizontalStage<T>).barW / 2
-    : hoveredStage ? (hoveredStage as ProcessedVerticalStage<T>).cx : 0;
-
-  const tooltipTop = variant === "horizontal" && hoveredStage
-    ? Math.max(8, (hoveredStage as ProcessedHorizontalStage<T>).barY - 72)
-    : hoveredStage ? Math.max(8, (hoveredStage as ProcessedVerticalStage<T>).stageY - 80) : 0;
-
+  const changeText = (change: number | null) =>
+    change === null
+      ? "—"
+      : change > 0
+        ? `+${valueFormatter(change)} gained`
+        : change < 0
+          ? `−${valueFormatter(-change)} lost`
+          : "No change";
+  function navigate(event: KeyboardEvent<SVGRectElement>, index: number) {
+    let next = index;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setInspection(null);
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setInspection(index);
+      onClick?.(data[index]!, index);
+      return;
+    }
+    if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = data.length - 1;
+    else if (["ArrowDown", "ArrowRight"].includes(event.key))
+      next = (index + 1) % data.length;
+    else if (["ArrowUp", "ArrowLeft"].includes(event.key))
+      next = (index - 1 + data.length) % data.length;
+    else return;
+    event.preventDefault();
+    setTabIndex(next);
+    refs.current[next]?.focus();
+  }
+  const message =
+    !loading && chartError
+      ? chartError
+      : !loading && !data.length
+        ? "No Data"
+        : !loading && !width
+          ? "Waiting for chart space"
+          : null;
   return (
-    <div ref={containerRef} className={cn("relative w-full", className)} style={{ height }}>
-      {variant === "horizontal" ? (
-        <HorizontalFunnel
-          processedH={processedH}
-          hoveredIndex={hoveredIndex}
-          setHoveredIndex={setHoveredIndex}
-          showValues={showValues}
-          showPercentages={showPercentages}
-          showConversionRates={showConversionRates}
-          shouldAnimate={shouldAnimate}
-          onClick={onClick}
-          handleKeyDown={handleKeyDown}
-          height={height}
-        />
-      ) : (
-        <VerticalFunnel
-          processedStages={processedStages}
-          hoveredIndex={hoveredIndex}
-          setHoveredIndex={setHoveredIndex}
-          showValues={showValues}
-          showPercentages={showPercentages}
-          showConversionRates={showConversionRates}
-          shouldAnimate={shouldAnimate}
-          onClick={onClick}
-          handleKeyDown={handleKeyDown}
-          height={height}
-          stageGap={stageGap}
-        />
+    <div
+      ref={containerRef}
+      className={cn("relative w-full", className)}
+      style={{ height: frameHeight }}
+      aria-busy={loading}
+      onPointerLeave={(event) => {
+        if (event.pointerType !== "touch") setInspection(focus);
+      }}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setFocus(null);
+          setInspection(null);
+        }
+      }}
+    >
+      {loading && (
+        <span role="status" className="sr-only">
+          Loading funnel
+        </span>
       )}
-
-      {(() => {
-        const tipData: FunnelChartTooltipData<T> | null = hoveredStage ? {
-          label: hoveredStage.labelText,
-          value: hoveredStage.rawValue,
-          rawValue: hoveredStage.rawValue,
-          percentage: hoveredStage.pctOfTotal,
-          conversionRate: hoveredStage.pctFromPrev ?? 100,
-          color: hoveredStage.color,
-        } : null;
-
-        return (
-          <ChartTooltip
-            visible={tipData !== null}
-            x={tooltipLeft}
-            y={tooltipTop}
-            className="transform -translate-x-1/2"
+      {message ? (
+        <div
+          role={chartError ? "alert" : "status"}
+          className="flex h-full items-center justify-center p-6 text-center"
+        >
+          <div>
+            <p
+              className={cn(
+                "font-medium",
+                chartError ? "text-destructive" : "text-muted-foreground",
+              )}
+            >
+              {chartError ? "Chart Error" : message}
+            </p>
+            {chartError && (
+              <p className="mt-2 text-sm text-muted-foreground">{chartError}</p>
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
+          <div
+            ref={viewport}
+            className="h-full overflow-auto"
+            onScroll={(event) =>
+              setScroll({
+                x: event.currentTarget.scrollLeft,
+                y: event.currentTarget.scrollTop,
+              })
+            }
           >
-            {tipData && (tooltipRenderer ? tooltipRenderer(tipData) : (
-              <>
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: tipData.color }} />
-                  <span className="text-xs font-medium text-foreground whitespace-nowrap">{tipData.label}</span>
-                </div>
-                <div className="text-sm font-bold text-primary tabular-nums text-center">
-                  {hoveredStage!.formattedValue}
-                </div>
-                <div className="text-xs text-muted-foreground text-center">
-                  {tipData.percentage.toFixed(1)}% of total
-                </div>
-                {hoveredStage!.pctFromPrev !== null && (
-                  <div className="text-xs text-muted-foreground text-center">
-                    {hoveredStage!.pctFromPrev!.toFixed(1)}% from prev
-                  </div>
+            <svg
+              width={geometry.width}
+              height={geometry.height}
+              role={loading ? "presentation" : "group"}
+              aria-hidden={loading || undefined}
+              aria-label={`${ariaLabel} with ${source.stages.length} stages`}
+              aria-describedby={`${id}-description`}
+              onFocusCapture={() => progress.jump(1)}
+            >
+              <desc id={`${id}-description`}>
+                {description ? `${description} ` : ""}Stages follow input order.
+                Width{variant === "columns" ? " is fixed; height" : ""}{" "}
+                represents value relative to the largest stage.{" "}
+                {variant === "tapered" || variant === "smooth"
+                  ? "Each stage enters at its own width and transitions to the next stage; area is not a value encoding. "
+                  : ""}
+                Percentages use the first stage; rates use the preceding stage.
+                A zero denominator has no defined rate. Arrow keys inspect
+                stages, Home/End jump, Escape dismisses. Enter or Space selects
+                a stage when an action is provided. Crowded stages scroll.
+              </desc>
+              {showConnectors && (
+                <g aria-hidden="true">
+                  {geometry.stages.map(
+                    (shape, index) =>
+                      shape.connector && (
+                        <path
+                          key={index}
+                          data-funnel-connector={index}
+                          d={shape.connector}
+                          fill={
+                            loading
+                              ? "currentColor"
+                              : source.stages[index]!.color
+                          }
+                          fillOpacity={0.14}
+                          className={cn(loading && "text-muted")}
+                        />
+                      ),
+                  )}
+                </g>
+              )}
+              <g
+                className={cn(
+                  loading && "text-muted",
+                  loading &&
+                    shouldAnimate &&
+                    "animate-pulse motion-reduce:animate-none",
                 )}
-              </>
-            ))}
-          </ChartTooltip>
-        );
-      })()}
+              >
+                {source.stages.map((stage, index) => {
+                  const shape = geometry.stages[index]!;
+                  const metrics = [
+                    showValues
+                      ? loading
+                        ? ""
+                        : valueFormatter(stage.value)
+                      : "",
+                    showPercentages ? rateText(stage.percentage) : "",
+                  ].filter(Boolean);
+                  return (
+                    <g key={index}>
+                      <Growth
+                        progress={progress}
+                        index={index}
+                        count={source.stages.length}
+                        axis={shape.axis}
+                        x={shape.origin.x}
+                        y={shape.origin.y}
+                      >
+                        <path
+                          data-funnel-stage={loading ? undefined : index}
+                          data-loading-stage={loading ? index : undefined}
+                          d={shape.path}
+                          fill={loading ? "currentColor" : stage.color}
+                          aria-hidden="true"
+                        />
+                      </Growth>
+                      <foreignObject
+                        {...shape.label}
+                        aria-hidden="true"
+                        pointerEvents="none"
+                      >
+                        <div
+                          className={cn(
+                            "truncate px-1 text-xs font-medium text-foreground sm:text-sm",
+                            variant === "columns" && "text-center",
+                          )}
+                          title={loading ? undefined : stage.label}
+                        >
+                          {loading ? (
+                            <span className="inline-block h-2 w-16 rounded bg-muted" />
+                          ) : (
+                            stage.label
+                          )}
+                        </div>
+                      </foreignObject>
+                      {(showValues || showPercentages) && (
+                        <foreignObject
+                          {...shape.metrics}
+                          aria-hidden="true"
+                          pointerEvents="none"
+                        >
+                          <div
+                            className={cn(
+                              "px-1 text-xs tabular-nums text-muted-foreground",
+                              variant === "columns"
+                                ? "text-center"
+                                : variant === "horizontal"
+                                  ? "text-right"
+                                  : "text-left",
+                            )}
+                            title={loading ? undefined : metrics.join(" · ")}
+                          >
+                            {loading ? (
+                              <span className="inline-block h-2 w-12 rounded bg-muted" />
+                            ) : variant === "columns" ||
+                              (variant === "horizontal" &&
+                                !geometry.compact) ? (
+                              metrics.map((text, i) => (
+                                <p
+                                  key={i}
+                                  className={cn(
+                                    "truncate",
+                                    showValues &&
+                                      i === 0 &&
+                                      "font-semibold text-foreground",
+                                  )}
+                                >
+                                  {text}
+                                </p>
+                              ))
+                            ) : (
+                              <p className="truncate">{metrics.join(" · ")}</p>
+                            )}
+                          </div>
+                        </foreignObject>
+                      )}
+                      {shape.rate && (
+                        <foreignObject
+                          {...shape.rate}
+                          aria-hidden="true"
+                          pointerEvents="none"
+                        >
+                          <div
+                            className="truncate px-1 text-center text-[11px] tabular-nums text-muted-foreground"
+                            title={
+                              loading
+                                ? undefined
+                                : `${stage.previousValue === 0 ? "Previous stage is zero; rate undefined" : `${rateText(stage.conversionRate)} from previous`}; ${changeText(stage.change)}`
+                            }
+                          >
+                            {!loading &&
+                              [
+                                showConversionRates
+                                  ? `${stage.change !== null && stage.change > 0 ? "↑" : "↓"} ${rateText(stage.conversionRate)}`
+                                  : "",
+                                showDropOff ? changeText(stage.change) : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                          </div>
+                        </foreignObject>
+                      )}
+                      {ready && (
+                        <rect
+                          ref={(node) => {
+                            refs.current[index] = node;
+                          }}
+                          {...shape.hit}
+                          data-funnel-target={index}
+                          fill="transparent"
+                          rx={4}
+                          stroke={
+                            inspection === index || focus === index
+                              ? "currentColor"
+                              : "transparent"
+                          }
+                          strokeWidth={1.5}
+                          className={cn(
+                            "text-foreground",
+                            "outline-none touch-manipulation focus-visible:stroke-foreground",
+                            onClick ? "cursor-pointer" : "cursor-default",
+                          )}
+                          role={onClick ? "button" : "graphics-symbol"}
+                          tabIndex={index === selected ? 0 : -1}
+                          aria-label={`${stage.label}: ${valueFormatter(stage.value)}; ${rateText(stage.percentage)} of first${index ? `; ${rateText(stage.conversionRate)} from previous; ${changeText(stage.change)}` : ""}`}
+                          aria-describedby={
+                            inspection === index ? `${id}-tooltip` : undefined
+                          }
+                          onMouseEnter={() => setInspection(index)}
+                          onPointerDown={() => setInspection(index)}
+                          onFocus={() => {
+                            setTabIndex(index);
+                            setFocus(index);
+                            setInspection(index);
+                          }}
+                          onClick={() => {
+                            setInspection(index);
+                            onClick?.(data[index]!, index);
+                          }}
+                          onKeyDown={(event) => navigate(event, index)}
+                        />
+                      )}
+                    </g>
+                  );
+                })}
+              </g>
+            </svg>
+          </div>
+          {ready && (
+            <table className="sr-only">
+              <caption>{ariaLabel} source stages</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Stage</th>
+                  <th scope="col">Value</th>
+                  <th scope="col">Of first</th>
+                  <th scope="col">From previous</th>
+                  <th scope="col">Change</th>
+                </tr>
+              </thead>
+              <tbody>
+                {model.stages.map((stage) => (
+                  <tr key={stage.index}>
+                    <th scope="row">{stage.label}</th>
+                    <td>{valueFormatter(stage.value)}</td>
+                    <td>{rateText(stage.percentage)}</td>
+                    <td>{rateText(stage.conversionRate)}</td>
+                    <td>{changeText(stage.change)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {tip &&
+            activeGeometry &&
+            tipX >= 0 &&
+            tipX <= width &&
+            tipY >= 0 &&
+            tipY <= frameHeight && (
+              <InspectionTooltip
+                id={`${id}-tooltip`}
+                x={tipX}
+                y={tipY}
+                width={width}
+                height={frameHeight}
+              >
+                {tooltipRenderer ? (
+                  tooltipRenderer(tip)
+                ) : (
+                  <>
+                    <p className="mb-2 border-b border-border pb-2 text-xs font-medium text-muted-foreground">
+                      {tip.label}
+                    </p>
+                    <div className="flex items-center justify-between gap-6 text-sm font-semibold">
+                      <span
+                        className="size-2.5 rounded-sm"
+                        style={{ background: tip.color }}
+                      />
+                      <span>{tip.formattedValue}</span>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {model.baseline === 0
+                        ? "First stage is zero; percentage undefined"
+                        : `${rateText(tip.percentage)} of first stage`}
+                    </p>
+                    {tip.index > 0 && (
+                      <>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {tip.previousValue === 0
+                            ? "Previous stage is zero; rate undefined"
+                            : `${rateText(tip.conversionRate)} from previous stage`}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {changeText(tip.change)}
+                        </p>
+                      </>
+                    )}
+                  </>
+                )}
+              </InspectionTooltip>
+            )}
+        </>
+      )}
     </div>
   );
 }
-
-export const FunnelChart = memo(FunnelChartComponent) as typeof FunnelChartComponent;
-export type { FunnelChartProps };
+export const FunnelChart = memo(
+  FunnelChartComponent,
+) as typeof FunnelChartComponent;

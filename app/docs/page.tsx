@@ -34,7 +34,7 @@ const faqItems = [
   {
     question: "Do you plan to add more chart types?",
     answer:
-      "Absolutely. We're actively developing line charts, pie charts, area charts, and advanced visualizations like heatmaps and funnel charts.",
+      "The registry already ships 12 charts, including line, pie, heatmap, funnel, sankey, and waterfall. Area fills are a LineChart option. New types are considered through GitHub issues.",
   },
   {
     question: "Can I request a specific chart component?",

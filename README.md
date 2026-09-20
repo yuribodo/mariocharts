@@ -141,16 +141,16 @@ CI fails if this file falls out of step with a regenerated build.
 
 - **BarChart** - Bar charts with filled/outline variants and vertical/horizontal orientations
 - **LineChart** - Time series line charts with multi-series support and curve interpolation
-- **AreaChart** - Layered area charts with gradient fills
 - **PieChart/DonutChart** - Pie and donut charts with center labels
 - **StackedBarChart** - Multi-series stacked bar charts
 - **GaugeChart** - 3/4 arc gauges with configurable color zones
 - **ScatterPlot** - Scatter and bubble charts with trend lines
 - **Heatmap** - Heatmaps with configurable color schemes
 - **RadarChart** - Multi-axis comparison charts
-- **FunnelChart** - Conversion and drop-off charts
-- **TreeMapChart** - Squarified treemaps for hierarchical data
-- **WaterfallChart** - Cumulative increases, decreases, and running totals
+- **FunnelChart** - Five layouts for stage conversion and drop-off
+- **SankeyChart** - Proportional flows that branch and converge
+- **TreeMapChart** - Three area layouts with nested groups, flat leaves and group navigation
+- **WaterfallChart** - Balance bridges with computed sums, period subtotals, vertical/horizontal layouts, and filled/outline bars
 
 ## 🎨 Design System
 

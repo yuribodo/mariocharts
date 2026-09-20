@@ -144,8 +144,10 @@ jobs:
           curl -sf https://mariocharts.com/r/registry.json -o registry.json
           node -e "
             const idx = require('/tmp/registry-probe/registry.json');
-            if (idx.items.length !== 12) {
-              console.error('Expected 12 items, got ' + idx.items.length);
+            // The hosted deployment may precede this checkout; validate the
+            // item this smoke test installs, not the checkout's chart count.
+            if (!Array.isArray(idx.items) || !idx.items.some(item => item.name === 'bar-chart')) {
+              console.error('Hosted registry does not list bar-chart');
               process.exit(1);
             }
             console.log('Registry index lists ' + idx.items.length + ' charts.');
