@@ -2,8 +2,45 @@ import { useEffect, useState } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { SmoothScroll } from "./smooth-scroll";
 
+let mockPathname = "/docs/components/bar-chart";
+
+jest.mock("next/navigation", () => ({
+  usePathname: () => mockPathname,
+}));
+
 jest.mock("lenis/dist/lenis.css", () => ({}));
-jest.mock("lenis/react", () => ({ ReactLenis: () => null }));
+jest.mock("lenis/react", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Jest mock factory
+  const React = require("react") as typeof import("react");
+  const ReactLenis = React.forwardRef(() => null);
+  ReactLenis.displayName = "ReactLenisMock";
+  return { ReactLenis };
+});
+
+function mockMatchMedia(matches: boolean) {
+  let updatePreference: () => void = () => {};
+  jest.spyOn(window, "matchMedia").mockImplementation(
+    () =>
+      ({
+        get matches() {
+          return matches;
+        },
+        addEventListener: (_event: string, listener: () => void) => {
+          updatePreference = listener;
+        },
+        removeEventListener: jest.fn(),
+      }) as unknown as MediaQueryList,
+  );
+  return () => updatePreference();
+}
+
+beforeEach(() => {
+  mockPathname = "/docs/components/bar-chart";
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 it("preserves page state and DOM when enabling or disabling smooth scrolling", () => {
   let reduceMotion = false;
@@ -52,5 +89,30 @@ it("preserves page state and DOM when enabling or disabling smooth scrolling", (
   unmount();
   expect(cleanup).toHaveBeenCalledTimes(1);
   expect(removeListener).toHaveBeenCalled();
-  jest.restoreAllMocks();
+});
+
+it("snaps instantly to the top when the route changes", () => {
+  mockMatchMedia(false);
+  const scrollTo = jest.fn();
+  Object.defineProperty(window, "scrollTo", {
+    configurable: true,
+    writable: true,
+    value: scrollTo,
+  });
+
+  const { rerender } = render(
+    <SmoothScroll>
+      <div>page</div>
+    </SmoothScroll>,
+  );
+  // First paint never snaps — only transitions between routes do.
+  expect(scrollTo).not.toHaveBeenCalled();
+
+  mockPathname = "/docs/components/scatter-plot";
+  rerender(
+    <SmoothScroll>
+      <div>page</div>
+    </SmoothScroll>,
+  );
+  expect(scrollTo).toHaveBeenCalledWith(0, 0);
 });

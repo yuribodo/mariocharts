@@ -275,6 +275,17 @@ it("shows singleton observations without dots, and all-null data as empty", () =
   );
   expect(screen.getByText("No Data")).toBeInTheDocument();
 });
+it("keeps hover inspection when plot geometry changes", () => {
+  const { rerender } = renderAndFlush(
+    <LineChart data={sampleData} x="month" y="sales" height={300} />,
+  );
+  fireEvent.mouseEnter(screen.getAllByRole("graphics-symbol")[1]!);
+  expect(screen.getByRole("tooltip")).toHaveTextContent("Feb");
+  rerender(
+    <LineChart data={sampleData} x="month" y="sales" height={420} />,
+  );
+  expect(screen.getByRole("tooltip")).toHaveTextContent("Feb");
+});
 it("reports malformed data and clears stale inspection after a replacement", () => {
   const { rerender } = renderAndFlush(
     <LineChart data={sampleData} x="month" y="sales" />,

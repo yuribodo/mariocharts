@@ -477,7 +477,7 @@ function WaterfallChartComponent<T extends ChartDataItem>({
               aria-label={ariaLabel}
               aria-describedby={`${id}-description`}
               aria-hidden={loading || undefined}
-              onMouseLeave={() => setActive(null)}
+              onMouseLeave={() => setActive(hasFocus ? focus : null)}
               onBlur={(event) => {
                 if (
                   !event.currentTarget.contains(

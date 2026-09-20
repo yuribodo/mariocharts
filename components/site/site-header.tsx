@@ -87,7 +87,11 @@ function PrimaryNavigation({ pathname }: { pathname: string | null }) {
     };
 
     measure(true);
-    const observer = new ResizeObserver(() => measure());
+    // Pass `true` so the indicator keeps sliding between sections instead of
+    // snapping: ResizeObserver fires immediately on observe, and a bare
+    // `measure()` here would overwrite the pathname-change animation above
+    // with `animate: false`, which reads as a navbar layout jump.
+    const observer = new ResizeObserver(() => measure(true));
     observer.observe(nav);
     return () => observer.disconnect();
   }, [pathname]);

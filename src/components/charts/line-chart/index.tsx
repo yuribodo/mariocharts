@@ -272,9 +272,12 @@ function LineChartComponent<T extends ChartDataItem>({
           (element) => element !== null && element === document.activeElement,
         )
       : -1;
-    if (index < 0) {
+    if (!ready) {
       setInspection(null);
       setFocus(null);
+      return;
+    }
+    if (index < 0) {
       return;
     }
     setTabIndex(index);

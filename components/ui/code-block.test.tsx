@@ -2,7 +2,7 @@ import { renderToString } from "react-dom/server.node";
 import { hydrateRoot } from "react-dom/client";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
-import { CodeBlock } from "./code-block";
+import { CodeBlock, clearCodeBlockHtmlCache } from "./code-block";
 
 const dispose = jest.fn();
 const codeToHtml = jest.fn(
@@ -21,6 +21,7 @@ jest.mock("next-themes", () => ({
 
 describe("CodeBlock", () => {
   beforeEach(() => {
+    clearCodeBlockHtmlCache();
     mockResolvedTheme = "dark";
     codeToHtml.mockClear();
     dispose.mockClear();

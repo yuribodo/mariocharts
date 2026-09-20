@@ -13,7 +13,7 @@ describe("ComponentsContent", () => {
     expect(screen.getByRole("heading", { name: "Find relationships" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Monitor progress" })).toBeInTheDocument();
 
-    expect(screen.getAllByRole("link")).toHaveLength(11);
+    expect(screen.getAllByRole("link")).toHaveLength(12);
   });
 
   it("links previews to their documentation", () => {
@@ -28,6 +28,7 @@ describe("ComponentsContent", () => {
       "/docs/components/line-chart",
     );
     expect(screen.getByRole("link", { name: /sankey chart/i })).toHaveAttribute("href", "/docs/components/sankey-chart");
+    expect(screen.getByRole("link", { name: /waterfall chart/i })).toHaveAttribute("href", "/docs/components/waterfall-chart");
     expect(screen.getByRole("link", { name: /treemap/i })).toHaveAttribute(
       "href",
       "/docs/components/treemap",

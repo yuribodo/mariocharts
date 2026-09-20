@@ -79,10 +79,13 @@ const PLACEHOLDER = [
   { label: "", value: 10 },
 ] as const;
 const defaultPercentage = (percentage: number) => {
-  if (percentage > 0 && percentage < 0.1) return `<${(0.1).toLocaleString()}%`;
+  // Pinned to en-US so accessible names stay deterministic regardless of the
+  // runtime locale (bare toLocaleString() renders "99,9%" under pt-BR).
+  if (percentage > 0 && percentage < 0.1)
+    return `<${(0.1).toLocaleString("en-US")}%`;
   if (percentage > 99.9 && percentage < 100)
-    return `>${(99.9).toLocaleString()}%`;
-  return `${percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`;
+    return `>${(99.9).toLocaleString("en-US")}%`;
+  return `${percentage.toLocaleString("en-US", { maximumFractionDigits: 1 })}%`;
 };
 
 /** Reveal the circumference with one animated mask, keeping all final geometry stable. */

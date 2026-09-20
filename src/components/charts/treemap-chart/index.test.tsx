@@ -172,6 +172,15 @@ it("retains the measured frame and tile geometry during refresh and recovers fro
   expect(view.container.firstChild).toBe(root);
   expect(target("0")).toBeInTheDocument();
 });
+it("keeps hover inspection when layout geometry changes", () => {
+  const view = mount(<TreeMapChart {...props} />);
+  fireEvent.mouseEnter(target("0.0"));
+  expect(screen.getByRole("tooltip")).toHaveTextContent("A");
+  expect(screen.getByRole("tooltip")).toHaveTextContent("60");
+  view.rerender(<TreeMapChart {...props} height={520} />);
+  expect(screen.getByRole("tooltip")).toHaveTextContent("A");
+  expect(screen.getByRole("tooltip")).toHaveTextContent("60");
+});
 it("resets scope on fresh data and preserves keyboard inspection when a focused tile remains", () => {
   const view = mount(<TreeMapChart {...props} />);
   fireEvent.click(target("0"));

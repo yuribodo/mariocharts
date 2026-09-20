@@ -2,11 +2,17 @@ import { fireEvent, render, screen } from "@testing-library/react";
 
 import { DocsSidebarNav } from "./docs-sidebar-nav";
 
+const mockUsePathname = jest.fn(() => "/docs/components/bar-chart");
+
 jest.mock("next/navigation", () => ({
-  usePathname: () => "/docs/components/bar-chart",
+  usePathname: () => mockUsePathname(),
 }));
 
 describe("DocsSidebarNav", () => {
+  beforeEach(() => {
+    mockUsePathname.mockReturnValue("/docs/components/bar-chart");
+  });
+
   it("labels search and filters component links", () => {
     render(<DocsSidebarNav />);
 
@@ -31,6 +37,20 @@ describe("DocsSidebarNav", () => {
     expect(screen.getByRole("button", { name: "Components" })).toHaveAttribute(
       "aria-expanded",
       "true",
+    );
+  });
+
+  it("marks the clicked chart as busy until navigation commits", () => {
+    render(<DocsSidebarNav />);
+
+    fireEvent.click(screen.getByRole("link", { name: "Scatter Plot" }));
+
+    expect(screen.getByRole("link", { name: "Scatter Plot" })).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+    expect(screen.getByRole("link", { name: "Bar Chart" })).not.toHaveAttribute(
+      "aria-busy",
     );
   });
 });

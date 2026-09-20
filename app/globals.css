@@ -40,6 +40,10 @@
   html {
     scroll-behavior: auto;
     scroll-padding-top: 2rem;
+    /* Keep the vertical scrollbar gutter reserved so centered layouts
+     * (e.g. /examples) don't nudge sideways when navigating to/from
+     * taller pages (e.g. /docs/components) where the scrollbar appears. */
+    scrollbar-gutter: stable;
   }
 
   /* Focus styles for better accessibility */
@@ -90,38 +94,23 @@
 /* Documentation UX improvements */
 
 /*
- * Theme switch: circular wipe from the toggle (--theme-x / --theme-y).
- * The old GIF mask read as broken/janky; clip-path is interruptible and local.
+ * Theme switch: the new snapshot clips in from the click. Kill the default
+ * cross-fade so the old theme stays put underneath — fading both snapshots
+ * is what made the wipe look muddy. Radius/origin are driven from JS.
  */
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-old(root),
   ::view-transition-new(root) {
-    animation-duration: 0.48s;
-    animation-timing-function: var(--ease-out-expo);
+    animation: none;
     mix-blend-mode: normal;
   }
 
   ::view-transition-old(root) {
-    animation-name: theme-fade-out;
+    z-index: 1;
   }
 
   ::view-transition-new(root) {
-    animation-name: theme-circle-in;
-  }
-
-  @keyframes theme-fade-out {
-    to {
-      opacity: 0;
-    }
-  }
-
-  @keyframes theme-circle-in {
-    from {
-      clip-path: circle(0% at var(--theme-x, 50%) var(--theme-y, 50%));
-    }
-    to {
-      clip-path: circle(150% at var(--theme-x, 50%) var(--theme-y, 50%));
-    }
+    z-index: 2;
   }
 }
 

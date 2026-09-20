@@ -83,6 +83,19 @@ it.each(["vertical", "horizontal"] as const)(
     expect(target(0)).toHaveFocus();
   },
 );
+it("retains focused inspection when the pointer leaves the chart", () => {
+  mount(<WaterfallChart data={data} />);
+  const svg = document.querySelector("[data-waterfall-chart] svg")!;
+  act(() => target(1).focus());
+  expect(screen.getByRole("tooltip")).toHaveTextContent("Sales");
+  fireEvent.mouseLeave(svg);
+  expect(screen.getByRole("tooltip")).toHaveTextContent("Sales");
+  expect(target(1)).toHaveFocus();
+  expect(target(1)).toHaveAttribute("stroke", "currentColor");
+  act(() => target(1).blur());
+  fireEvent.mouseLeave(svg);
+  expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+});
 it("returns the original object plus computed metadata with custom keys", () => {
   const original = [
     { name: "Same", amount: 40 },

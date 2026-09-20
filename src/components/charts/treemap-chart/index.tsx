@@ -246,8 +246,10 @@ function TreeMapChartComponent({
     );
     const key = index >= 0 ? (tiles[index]?.entry.key ?? null) : null;
     setFocus(key);
-    setInspection(key);
-    if (key) progress.jump(1);
+    if (key) {
+      setInspection(key);
+      progress.jump(1);
+    }
     if (pendingFocus.current && ready) {
       pendingFocus.current = false;
       setTab(0);

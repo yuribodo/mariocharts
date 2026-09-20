@@ -12,7 +12,8 @@ type ChartKind =
   | "heatmap"
   | "funnel"
   | "sankey"
-  | "gauge";
+  | "gauge"
+  | "waterfall";
 
 interface ChartEntry {
   name: string;
@@ -43,6 +44,7 @@ const groups: readonly ChartGroup[] = [
     description: "Follow a value across time or another continuous dimension.",
     charts: [
       { name: "Line Chart", href: "/docs/components/line-chart", description: "Reveal trends with lines or optional gradient area fills.", meta: "Time series", kind: "line" },
+      { name: "Waterfall Chart", href: "/docs/components/waterfall-chart", description: "Explain how additions and subtractions produce a running total.", meta: "Running total", kind: "waterfall" },
     ],
   },
   {
@@ -112,6 +114,10 @@ function ChartThumbnail({ kind }: { kind: ChartKind }) {
       <rect x="150" y="104" width="12" height="16" rx="2" fill="var(--chart-blue)" />
       <rect x="290" y="64" width="12" height="32" rx="2" fill="var(--chart-green)" />
     </svg>;
+  }
+
+  if (kind === "waterfall") {
+    return <div className="flex h-full items-end gap-2 px-8 pb-7 pt-10">{[{ h: 42, b: 0, c: "blue" }, { h: 24, b: 42, c: "green" }, { h: 18, b: 48, c: "coral" }, { h: 20, b: 30, c: "green" }, { h: 14, b: 36, c: "coral" }, { h: 50, b: 0, c: "blue" }].map((column) => <span key={`${column.c}-${column.b}`} className="flex-1 rounded-[2px]" style={{ height: `${column.h}%`, marginBottom: `${column.b}%`, background: `var(--chart-${column.c})` }} />)}</div>;
   }
 
   if (kind === "gauge") {

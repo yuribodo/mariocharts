@@ -34,6 +34,31 @@ type Highlighter = Awaited<ReturnType<typeof createHighlighter>>;
 let highlighterPromise: Promise<Highlighter> | null = null;
 
 /**
+ * Highlighted HTML shared across instances and navigations.
+ *
+ * Snippets on chart pages are static, so re-highlighting the same
+ * `code + language + theme` on every Bar -> Scatter hop is pure waste — and
+ * the async gap is what flashes unstyled code. Bounded FIFO: docs have a
+ * small fixed set of snippets, this never grows without limit.
+ */
+const htmlCache = new Map<string, string>();
+const MAX_CACHED_SNIPPETS = 100;
+
+function cacheKey(
+  code: string,
+  language: string,
+  theme: CodeTheme,
+  highlightKey: string,
+): string {
+  return `${language}::${theme}::${highlightKey}::${code}`;
+}
+
+/** Empties the highlighted-HTML cache (used by tests). */
+export function clearCodeBlockHtmlCache(): void {
+  htmlCache.clear();
+}
+
+/**
  * One highlighter for the whole app.
  *
  * `createHighlighter` loads two themes and eight grammars. The workbench
@@ -74,26 +99,45 @@ export function CodeBlock({
   const [hydrated, setHydrated] = useState(false);
   useIsomorphicLayoutEffect(() => setHydrated(true), []);
   const [copyState, setCopyState] = useState<CopyState>("idle");
-  const [highlightedCode, setHighlightedCode] =
-    useState<HighlightedCode | null>(null);
-  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // `highlightedLines` is an array prop, so a caller re-rendering with a fresh
   // literal would restart highlighting on every render. Depend on its contents.
   const highlightKey = highlightedLines?.join(",") ?? "";
+  // Paint synchronously when this exact snippet was highlighted before
+  // (e.g. hopping back to a chart you already visited). Without this every
+  // navigation flashes unstyled <pre> before the async highlight resolves.
+  const [highlightedCode, setHighlightedCode] =
+    useState<HighlightedCode | null>(() => {
+      const html = htmlCache.get(
+        cacheKey(code, language, "github-light", highlightKey),
+      );
+      return html ? { html, theme: "github-light" as CodeTheme } : null;
+    });
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     const highlight = async () => {
       try {
-        const highlighter = await getHighlighter();
-        if (cancelled) return;
-
         const lines =
           highlightKey === "" ? [] : highlightKey.split(",").map(Number);
         const theme: CodeTheme =
           resolvedTheme === "dark" ? "dracula" : "github-light";
+        const key = cacheKey(code, language, theme, highlightKey);
+        const cached = htmlCache.get(key);
+        if (cached) {
+          if (!cancelled) {
+            setHighlightedCode((previous) =>
+              previous?.html === cached && previous.theme === theme
+                ? previous
+                : { html: cached, theme },
+            );
+          }
+          return;
+        }
+
+        const highlighter = await getHighlighter();
+        if (cancelled) return;
         const html = highlighter.codeToHtml(code, {
           lang: language,
           theme,
@@ -114,7 +158,14 @@ export function CodeBlock({
           ],
         });
 
-        if (!cancelled) setHighlightedCode({ html, theme });
+        if (!cancelled) {
+          if (htmlCache.size >= MAX_CACHED_SNIPPETS) {
+            const oldest = htmlCache.keys().next();
+            if (!oldest.done) htmlCache.delete(oldest.value);
+          }
+          htmlCache.set(key, html);
+          setHighlightedCode({ html, theme });
+        }
       } catch {
         if (!cancelled) setHighlightedCode(null);
       }
